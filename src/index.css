@@ -1,0 +1,808 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ==========================================================================
+   DESIGN SYSTEM TOKENS - PREMIUM ENTERPRISE WORKSPACE
+   ========================================================================== */
+:root {
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  color-scheme: light;
+  --notion-bg: #f8fafc;
+  --notion-sidebar: #ffffff;
+  --notion-card: #ffffff;
+  --notion-card-hover: #f1f5f9;
+  --notion-modal-bg: #ffffff;
+  --notion-border: rgba(15, 23, 42, 0.09);
+  --notion-border-subtle: rgba(15, 23, 42, 0.05);
+  --notion-hover: rgba(15, 23, 42, 0.04);
+  --notion-active: rgba(15, 23, 42, 0.08);
+  --notion-item-bg: rgba(15, 23, 42, 0.03);
+  --notion-input-bg: #ffffff;
+  --notion-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --notion-shadow: 0 4px 16px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --notion-shadow-lg: 0 20px 35px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05);
+
+  --notion-text: #0f172a;
+  --notion-text-muted: #475569;
+  --notion-text-dim: #94a3b8;
+  --notion-blue: #4f46e5;
+  --notion-blue-hover: #4338ca;
+  --notion-blue-light: #eef2ff;
+
+  --bg-main: var(--notion-bg);
+  --bg-sidebar: var(--notion-sidebar);
+  --bg-card: var(--notion-card);
+  --bg-card-hover: var(--notion-card-hover);
+  --bg-modal: var(--notion-modal-bg);
+  --border-color: var(--notion-border);
+  --border-subtle: var(--notion-border-subtle);
+  --text-main: var(--notion-text);
+  --text-muted: var(--notion-text-muted);
+  --text-dim: var(--notion-text-dim);
+  --primary-blue: var(--notion-blue);
+
+  /* Light Tag Colors - Luxurious saturated pastels with strong contrast */
+  --tag-gray-bg: #f1f5f9;
+  --tag-gray-text: #475569;
+  --tag-brown-bg: #fef3c7;
+  --tag-brown-text: #92400e;
+  --tag-orange-bg: #ffedd5;
+  --tag-orange-text: #c2410c;
+  --tag-yellow-bg: #fef9c3;
+  --tag-yellow-text: #854d0e;
+  --tag-green-bg: #dcfce7;
+  --tag-green-text: #15803d;
+  --tag-blue-bg: #e0f2fe;
+  --tag-blue-text: #0369a1;
+  --tag-purple-bg: #f3e8ff;
+  --tag-purple-text: #7e22ce;
+  --tag-pink-bg: #fce7f3;
+  --tag-pink-text: #be185d;
+  --tag-red-bg: #fee2e2;
+  --tag-red-text: #b91c1c;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+}
+
+/* ==========================================================================
+   THEME 1: PURE WHITE / LUXE SLATE LIGHT (Default Light)
+   ========================================================================== */
+:root[data-theme="light"],
+[data-theme="light"],
+html[data-theme="light"],
+body[data-theme="light"] {
+  color-scheme: light;
+  --notion-bg: #f8fafc;
+  --notion-sidebar: #ffffff;
+  --notion-card: #ffffff;
+  --notion-card-hover: #f1f5f9;
+  --notion-modal-bg: #ffffff;
+  --notion-border: rgba(15, 23, 42, 0.08);
+  --notion-border-subtle: rgba(15, 23, 42, 0.04);
+  --notion-hover: rgba(15, 23, 42, 0.04);
+  --notion-active: rgba(15, 23, 42, 0.08);
+  --notion-item-bg: rgba(15, 23, 42, 0.03);
+  --notion-input-bg: #ffffff;
+  --notion-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --notion-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.07);
+  --notion-shadow-lg: 0 20px 35px -5px rgba(15, 23, 42, 0.1);
+
+  --notion-text: #0f172a;
+  --notion-text-muted: #475569;
+  --notion-text-dim: #94a3b8;
+  --notion-blue: #4f46e5;
+  --notion-blue-hover: #4338ca;
+  --notion-blue-light: #eef2ff;
+
+  --bg-main: var(--notion-bg);
+  --bg-sidebar: var(--notion-sidebar);
+  --bg-card: var(--notion-card);
+  --bg-card-hover: var(--notion-card-hover);
+  --bg-modal: var(--notion-modal-bg);
+  --border-color: var(--notion-border);
+  --border-subtle: var(--notion-border-subtle);
+  --text-main: var(--notion-text);
+  --text-muted: var(--notion-text-muted);
+  --text-dim: var(--notion-text-dim);
+  --primary-blue: var(--notion-blue);
+
+  --tag-gray-bg: #f1f5f9;
+  --tag-gray-text: #475569;
+  --tag-brown-bg: #fef3c7;
+  --tag-brown-text: #92400e;
+  --tag-orange-bg: #ffedd5;
+  --tag-orange-text: #c2410c;
+  --tag-yellow-bg: #fef9c3;
+  --tag-yellow-text: #854d0e;
+  --tag-green-bg: #dcfce7;
+  --tag-green-text: #15803d;
+  --tag-blue-bg: #e0f2fe;
+  --tag-blue-text: #0369a1;
+  --tag-purple-bg: #f3e8ff;
+  --tag-purple-text: #7e22ce;
+  --tag-pink-bg: #fce7f3;
+  --tag-pink-text: #be185d;
+  --tag-red-bg: #fee2e2;
+  --tag-red-text: #b91c1c;
+}
+
+/* ==========================================================================
+   THEME 2: OBSIDIAN LUXE / CARBON STUDIO (Premium Dark Theme)
+   ========================================================================== */
+:root[data-theme="dark"],
+[data-theme="dark"],
+html[data-theme="dark"],
+body[data-theme="dark"] {
+  color-scheme: dark;
+  --notion-bg: #090d16;
+  --notion-sidebar: #0e1424;
+  --notion-card: #131b2e;
+  --notion-card-hover: #19233c;
+  --notion-modal-bg: #111827;
+  --notion-border: rgba(255, 255, 255, 0.08);
+  --notion-border-subtle: rgba(255, 255, 255, 0.04);
+  --notion-hover: rgba(255, 255, 255, 0.05);
+  --notion-active: rgba(255, 255, 255, 0.09);
+  --notion-item-bg: rgba(255, 255, 255, 0.04);
+  --notion-input-bg: rgba(255, 255, 255, 0.05);
+  --notion-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --notion-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6);
+  --notion-shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+
+  --notion-text: #f8fafc;
+  --notion-text-muted: #94a3b8;
+  --notion-text-dim: #64748b;
+  --notion-blue: #6366f1;
+  --notion-blue-hover: #4f46e5;
+  --notion-blue-light: rgba(99, 102, 241, 0.15);
+
+  --bg-main: var(--notion-bg);
+  --bg-sidebar: var(--notion-sidebar);
+  --bg-card: var(--notion-card);
+  --bg-card-hover: var(--notion-card-hover);
+  --bg-modal: var(--notion-modal-bg);
+  --border-color: var(--notion-border);
+  --border-subtle: var(--notion-border-subtle);
+  --text-main: var(--notion-text);
+  --text-muted: var(--notion-text-muted);
+  --text-dim: var(--notion-text-dim);
+  --primary-blue: var(--notion-blue);
+
+  --tag-gray-bg: rgba(148, 163, 184, 0.14);
+  --tag-gray-text: #cbd5e1;
+  --tag-brown-bg: rgba(217, 119, 6, 0.2);
+  --tag-brown-text: #fbbf24;
+  --tag-orange-bg: rgba(234, 88, 12, 0.2);
+  --tag-orange-text: #fb923c;
+  --tag-yellow-bg: rgba(234, 179, 8, 0.2);
+  --tag-yellow-text: #fde047;
+  --tag-green-bg: rgba(34, 197, 94, 0.2);
+  --tag-green-text: #86efac;
+  --tag-blue-bg: rgba(56, 189, 248, 0.2);
+  --tag-blue-text: #7dd3fc;
+  --tag-purple-bg: rgba(168, 85, 247, 0.2);
+  --tag-purple-text: #d8b4fe;
+  --tag-pink-bg: rgba(244, 114, 182, 0.2);
+  --tag-pink-text: #fbcfe8;
+  --tag-red-bg: rgba(239, 68, 68, 0.2);
+  --tag-red-text: #fca5a5;
+}
+
+/* ==========================================================================
+   THEME 3: WARM SILK / EXECUTIVE SEPIA
+   ========================================================================== */
+:root[data-theme="sepia"],
+[data-theme="sepia"],
+html[data-theme="sepia"],
+body[data-theme="sepia"] {
+  color-scheme: light;
+  --notion-bg: #faf7f2;
+  --notion-sidebar: #f2ede4;
+  --notion-card: #ffffff;
+  --notion-card-hover: #f6f1e9;
+  --notion-modal-bg: #ffffff;
+  --notion-border: rgba(92, 70, 42, 0.12);
+  --notion-border-subtle: rgba(92, 70, 42, 0.06);
+  --notion-hover: rgba(92, 70, 42, 0.06);
+  --notion-active: rgba(92, 70, 42, 0.1);
+  --notion-item-bg: rgba(92, 70, 42, 0.04);
+  --notion-input-bg: #ffffff;
+  --notion-shadow: 0 4px 20px rgba(92, 70, 42, 0.08);
+
+  --notion-text: #2f251a;
+  --notion-text-muted: #73614d;
+  --notion-text-dim: #9c8a74;
+  --notion-blue: #b45309;
+  --notion-blue-hover: #92400e;
+  --notion-blue-light: #fef3c7;
+
+  --bg-main: var(--notion-bg);
+  --bg-sidebar: var(--notion-sidebar);
+  --bg-card: var(--notion-card);
+  --bg-card-hover: var(--notion-card-hover);
+  --bg-modal: var(--notion-modal-bg);
+  --border-color: var(--notion-border);
+  --border-subtle: var(--notion-border-subtle);
+  --text-main: var(--notion-text);
+  --text-muted: var(--notion-text-muted);
+  --text-dim: var(--notion-text-dim);
+  --primary-blue: var(--notion-blue);
+
+  --tag-gray-bg: rgba(92, 70, 42, 0.1);
+  --tag-gray-text: #6b5742;
+  --tag-brown-bg: rgba(180, 83, 9, 0.15);
+  --tag-brown-text: #92400e;
+  --tag-orange-bg: rgba(234, 88, 12, 0.15);
+  --tag-orange-text: #c2410c;
+  --tag-yellow-bg: rgba(202, 138, 4, 0.18);
+  --tag-yellow-text: #a16207;
+  --tag-green-bg: rgba(22, 101, 52, 0.14);
+  --tag-green-text: #15803d;
+  --tag-blue-bg: rgba(3, 105, 161, 0.14);
+  --tag-blue-text: #0284c7;
+  --tag-purple-bg: rgba(126, 34, 206, 0.14);
+  --tag-purple-text: #9333ea;
+  --tag-pink-bg: rgba(190, 24, 93, 0.14);
+  --tag-pink-text: #be185d;
+  --tag-red-bg: rgba(185, 28, 28, 0.15);
+  --tag-red-text: #b91c1c;
+}
+
+/* ==========================================================================
+   THEME 4: MIDNIGHT NAVY / DEEP SPACE
+   ========================================================================== */
+:root[data-theme="navy"],
+[data-theme="navy"],
+html[data-theme="navy"],
+body[data-theme="navy"] {
+  color-scheme: dark;
+  --notion-bg: #060b17;
+  --notion-sidebar: #0b1326;
+  --notion-card: #101c38;
+  --notion-card-hover: #16254a;
+  --notion-modal-bg: #0c162e;
+  --notion-border: rgba(148, 163, 184, 0.15);
+  --notion-border-subtle: rgba(148, 163, 184, 0.08);
+  --notion-hover: rgba(148, 163, 184, 0.08);
+  --notion-active: rgba(148, 163, 184, 0.14);
+  --notion-item-bg: rgba(148, 163, 184, 0.05);
+  --notion-input-bg: rgba(148, 163, 184, 0.06);
+  --notion-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+
+  --notion-text: #f8fafc;
+  --notion-text-muted: #94a3b8;
+  --notion-text-dim: #64748b;
+  --notion-blue: #38bdf8;
+  --notion-blue-hover: #0ea5e9;
+  --notion-blue-light: rgba(56, 189, 248, 0.15);
+
+  --bg-main: var(--notion-bg);
+  --bg-sidebar: var(--notion-sidebar);
+  --bg-card: var(--notion-card);
+  --bg-card-hover: var(--notion-card-hover);
+  --bg-modal: var(--notion-modal-bg);
+  --border-color: var(--notion-border);
+  --border-subtle: var(--notion-border-subtle);
+  --text-main: var(--notion-text);
+  --text-muted: var(--notion-text-muted);
+  --text-dim: var(--notion-text-dim);
+  --primary-blue: var(--notion-blue);
+
+  --tag-gray-bg: rgba(148, 163, 184, 0.15);
+  --tag-gray-text: #cbd5e1;
+  --tag-brown-bg: rgba(180, 83, 9, 0.25);
+  --tag-brown-text: #fcd34d;
+  --tag-orange-bg: rgba(234, 88, 12, 0.25);
+  --tag-orange-text: #fdba74;
+  --tag-yellow-bg: rgba(234, 179, 8, 0.22);
+  --tag-yellow-text: #fef08a;
+  --tag-green-bg: rgba(34, 197, 94, 0.2);
+  --tag-green-text: #86efac;
+  --tag-blue-bg: rgba(56, 189, 248, 0.2);
+  --tag-blue-text: #7dd3fc;
+  --tag-purple-bg: rgba(168, 85, 247, 0.22);
+  --tag-purple-text: #d8b4fe;
+  --tag-pink-bg: rgba(244, 114, 182, 0.22);
+  --tag-pink-text: #fbcfe8;
+  --tag-red-bg: rgba(239, 68, 68, 0.22);
+  --tag-red-text: #fca5a5;
+}
+
+/* ==========================================================================
+   THEME 5: VIBRANT ROYAL BLUE (Rathinam Blue Theme)
+   ========================================================================== */
+:root[data-theme="blue"],
+[data-theme="blue"],
+html[data-theme="blue"],
+body[data-theme="blue"] {
+  color-scheme: dark;
+  --notion-bg: #071228;
+  --notion-sidebar: #0b1c3e;
+  --notion-card: #112754;
+  --notion-card-hover: #173570;
+  --notion-modal-bg: #0d2146;
+  --notion-border: rgba(96, 165, 250, 0.22);
+  --notion-border-subtle: rgba(96, 165, 250, 0.12);
+  --notion-hover: rgba(96, 165, 250, 0.14);
+  --notion-active: rgba(96, 165, 250, 0.22);
+  --notion-item-bg: rgba(96, 165, 250, 0.08);
+  --notion-input-bg: rgba(11, 28, 62, 0.8);
+  --notion-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+  --notion-text: #f0f6fc;
+  --notion-text-muted: #93c5fd;
+  --notion-text-dim: #60a5fa;
+  --notion-blue: #38bdf8;
+  --notion-blue-hover: #0ea5e9;
+  --notion-blue-light: rgba(56, 189, 248, 0.18);
+
+  --bg-main: var(--notion-bg);
+  --bg-sidebar: var(--notion-sidebar);
+  --bg-card: var(--notion-card);
+  --bg-card-hover: var(--notion-card-hover);
+  --bg-modal: var(--notion-modal-bg);
+  --border-color: var(--notion-border);
+  --border-subtle: var(--notion-border-subtle);
+  --text-main: var(--notion-text);
+  --text-muted: var(--notion-text-muted);
+  --text-dim: var(--notion-text-dim);
+  --primary-blue: var(--notion-blue);
+
+  --tag-gray-bg: rgba(148, 163, 184, 0.2);
+  --tag-gray-text: #cbd5e1;
+  --tag-brown-bg: rgba(217, 119, 6, 0.25);
+  --tag-brown-text: #fcd34d;
+  --tag-orange-bg: rgba(249, 115, 22, 0.25);
+  --tag-orange-text: #fdba74;
+  --tag-yellow-bg: rgba(234, 179, 8, 0.25);
+  --tag-yellow-text: #fef08a;
+  --tag-green-bg: rgba(34, 197, 94, 0.25);
+  --tag-green-text: #86efac;
+  --tag-blue-bg: rgba(56, 189, 248, 0.28);
+  --tag-blue-text: #7dd3fc;
+  --tag-purple-bg: rgba(168, 85, 247, 0.25);
+  --tag-purple-text: #d8b4fe;
+  --tag-pink-bg: rgba(244, 114, 182, 0.25);
+  --tag-pink-text: #fbcfe8;
+  --tag-red-bg: rgba(239, 68, 68, 0.25);
+  --tag-red-text: #fca5a5;
+}
+
+/* ==========================================================================
+   THEME 6: NORDIC EMERALD (Modern Forest Green)
+   ========================================================================== */
+:root[data-theme="green"],
+[data-theme="green"],
+html[data-theme="green"],
+body[data-theme="green"] {
+  color-scheme: dark;
+  --notion-bg: #03140e;
+  --notion-sidebar: #062117;
+  --notion-card: #0c3325;
+  --notion-card-hover: #124532;
+  --notion-modal-bg: #08291d;
+  --notion-border: rgba(52, 211, 153, 0.2);
+  --notion-border-subtle: rgba(52, 211, 153, 0.1);
+  --notion-hover: rgba(52, 211, 153, 0.12);
+  --notion-active: rgba(52, 211, 153, 0.2);
+  --notion-item-bg: rgba(52, 211, 153, 0.08);
+  --notion-input-bg: rgba(6, 33, 23, 0.8);
+  --notion-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+  --notion-text: #f0fdf4;
+  --notion-text-muted: #86efac;
+  --notion-text-dim: #4ade80;
+  --notion-blue: #10b981;
+  --notion-blue-hover: #059669;
+  --notion-blue-light: rgba(16, 185, 129, 0.18);
+
+  --bg-main: var(--notion-bg);
+  --bg-sidebar: var(--notion-sidebar);
+  --bg-card: var(--notion-card);
+  --bg-card-hover: var(--notion-card-hover);
+  --bg-modal: var(--notion-modal-bg);
+  --border-color: var(--notion-border);
+  --border-subtle: var(--notion-border-subtle);
+  --text-main: var(--notion-text);
+  --text-muted: var(--notion-text-muted);
+  --text-dim: var(--notion-text-dim);
+  --primary-blue: var(--notion-blue);
+
+  --tag-gray-bg: rgba(148, 163, 184, 0.2);
+  --tag-gray-text: #cbd5e1;
+  --tag-brown-bg: rgba(217, 119, 6, 0.25);
+  --tag-brown-text: #fcd34d;
+  --tag-orange-bg: rgba(249, 115, 22, 0.25);
+  --tag-orange-text: #fdba74;
+  --tag-yellow-bg: rgba(234, 179, 8, 0.25);
+  --tag-yellow-text: #fef08a;
+  --tag-green-bg: rgba(52, 211, 153, 0.28);
+  --tag-green-text: #a7f3d0;
+  --tag-blue-bg: rgba(56, 189, 248, 0.25);
+  --tag-blue-text: #7dd3fc;
+  --tag-purple-bg: rgba(168, 85, 247, 0.25);
+  --tag-purple-text: #d8b4fe;
+  --tag-pink-bg: rgba(244, 114, 182, 0.25);
+  --tag-pink-text: #fbcfe8;
+  --tag-red-bg: rgba(239, 68, 68, 0.25);
+  --tag-red-text: #fca5a5;
+}
+
+/* ==========================================================================
+   GLOBAL RESET & TYPOGRAPHY FOUNDATION
+   ========================================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--notion-bg);
+  color: var(--notion-text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  letter-spacing: -0.01em;
+  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--notion-text);
+}
+
+/* ==========================================================================
+   SMOOTH SLEEK SCROLLBAR
+   ========================================================================== */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--notion-border);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--notion-text-dim);
+}
+
+/* ==========================================================================
+   BUTTON SYSTEM (.notion-btn)
+   ========================================================================== */
+.notion-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  background: transparent;
+  color: var(--notion-text);
+  text-decoration: none;
+  line-height: 1.35;
+}
+
+.notion-btn:hover {
+  background: var(--notion-hover);
+  transform: translateY(-1px);
+}
+
+.notion-btn:active {
+  background: var(--notion-active);
+  transform: translateY(0) scale(0.98);
+}
+
+.notion-btn-primary {
+  background: linear-gradient(135deg, var(--notion-blue) 0%, #3b82f6 100%);
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.notion-btn-primary:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.45);
+  transform: translateY(-1.5px);
+}
+
+.notion-btn-bordered {
+  border: 1px solid var(--notion-border);
+  background: var(--notion-card);
+  box-shadow: var(--notion-shadow-sm);
+}
+
+.notion-btn-bordered:hover {
+  background: var(--notion-card-hover);
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateY(-1px);
+}
+
+.notion-btn-danger {
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.notion-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.notion-btn-success {
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.notion-btn-success:hover {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+/* ==========================================================================
+   TAG PILLS & BADGES (.notion-tag)
+   ========================================================================== */
+.notion-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  line-height: 1.4;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  transition: all 0.15s ease;
+}
+
+.tag-gray { background: var(--tag-gray-bg); color: var(--tag-gray-text); }
+.tag-brown { background: var(--tag-brown-bg); color: var(--tag-brown-text); }
+.tag-orange { background: var(--tag-orange-bg); color: var(--tag-orange-text); }
+.tag-yellow { background: var(--tag-yellow-bg); color: var(--tag-yellow-text); }
+.tag-green { background: var(--tag-green-bg); color: var(--tag-green-text); }
+.tag-blue { background: var(--tag-blue-bg); color: var(--tag-blue-text); }
+.tag-purple { background: var(--tag-purple-bg); color: var(--tag-purple-text); }
+.tag-pink { background: var(--tag-pink-bg); color: var(--tag-pink-text); }
+.tag-red { background: var(--tag-red-bg); color: var(--tag-red-text); }
+
+/* Status pill mappings */
+.status-todo {
+  background: var(--tag-gray-bg);
+  color: var(--tag-gray-text);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+.status-in_progress {
+  background: var(--tag-blue-bg);
+  color: var(--tag-blue-text);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+.status-pending_gm_approval {
+  background: var(--tag-yellow-bg);
+  color: var(--tag-yellow-text);
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.15);
+}
+.status-changes_requested {
+  background: var(--tag-red-bg);
+  color: var(--tag-red-text);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.status-closed {
+  background: var(--tag-green-bg);
+  color: var(--tag-green-text);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+/* Priority badges */
+.priority-low {
+  background: var(--tag-gray-bg);
+  color: var(--tag-gray-text);
+}
+.priority-medium {
+  background: var(--tag-blue-bg);
+  color: var(--tag-blue-text);
+}
+.priority-high {
+  background: var(--tag-orange-bg);
+  color: var(--tag-orange-text);
+  font-weight: 700;
+}
+.priority-urgent {
+  background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+  color: #ffffff !important;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+  animation: pulseUrgent 2.5s infinite ease-in-out;
+}
+
+@keyframes pulseUrgent {
+  0%, 100% { box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35); }
+  50% { box-shadow: 0 4px 14px rgba(239, 68, 68, 0.6); }
+}
+
+/* ==========================================================================
+   CALLOUT BOXES (.notion-callout)
+   ========================================================================== */
+.notion-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--notion-item-bg);
+  border: 1px solid var(--notion-border);
+  font-size: 13px;
+  line-height: 1.55;
+  backdrop-filter: blur(8px);
+}
+.notion-callout-warning {
+  background: var(--tag-yellow-bg);
+  border-color: rgba(234, 179, 8, 0.3);
+  color: var(--tag-yellow-text);
+}
+.notion-callout-success {
+  background: var(--tag-green-bg);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: var(--tag-green-text);
+}
+.notion-callout-danger {
+  background: var(--tag-red-bg);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--tag-red-text);
+}
+
+/* ==========================================================================
+   FORM INPUTS & SELECTS (.notion-input)
+   ========================================================================== */
+.notion-input, .notion-select, .notion-textarea {
+  width: 100%;
+  padding: 9px 13px;
+  background: var(--notion-input-bg);
+  border: 1px solid var(--notion-border);
+  border-radius: var(--radius-md);
+  color: var(--notion-text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.notion-input::placeholder, .notion-textarea::placeholder {
+  color: var(--notion-text-dim);
+}
+
+.notion-input:focus, .notion-select:focus, .notion-textarea:focus {
+  outline: none;
+  background: var(--notion-card);
+  border-color: var(--notion-blue);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
+}
+
+/* ==========================================================================
+   MODALS & OVERLAYS (.notion-modal-*)
+   ========================================================================== */
+.notion-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 13, 22, 0.65);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+  animation: fadeInModal 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.notion-modal-content {
+  background: var(--notion-modal-bg);
+  color: var(--notion-text);
+  border: 1px solid var(--notion-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--notion-shadow-lg);
+  max-width: 680px;
+  width: 100%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: zoomInModal 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoomInModal {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ==========================================================================
+   CARDS, KPI STATS & LUXURY UTILITIES
+   ========================================================================== */
+.glass-card {
+  background: var(--notion-card);
+  border: 1px solid var(--notion-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--notion-shadow);
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--notion-shadow-lg);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.stat-kpi-card {
+  background: var(--notion-card);
+  border: 1px solid var(--notion-border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  box-shadow: var(--notion-shadow);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--notion-blue), #38bdf8);
+  opacity: 0.8;
+}
+
+.stat-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--notion-shadow-lg);
+}
+
+.gradient-heading {
+  background: linear-gradient(135deg, var(--notion-text) 30%, var(--notion-blue) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
