@@ -103,67 +103,89 @@ export function showBrowserNotification(
   }
 }
 
-/**
- * Calculates ms until the next 9:00 AM in the user's local timezone
- */
-export function getMsUntilNext9AM(): number {
-  const now = new Date();
-  const next9AM = new Date(now);
-  next9AM.setHours(9, 0, 0, 0);
-
-  // If already past 9:00 AM today, schedule for 9:00 AM tomorrow
-  if (now.getTime() >= next9AM.getTime()) {
-    next9AM.setDate(next9AM.getDate() + 1);
-  }
-
-  return next9AM.getTime() - now.getTime();
-}
+const ONE_HOUR_MS = 60 * 60 * 1000; // 3,600,000 ms (1 Hour)
+let hourlyTimerId: ReturnType<typeof setTimeout> | number | null = null;
 
 /**
- * Schedules recurring daily 9:00 AM morning work update reminders
+ * Schedules continuous 1-hour recurring work update reminders
+ * Fires every 1 hour continuously as long as the application is active
  */
-export function startDaily9AMReminderSchedule(): void {
-  if (dailyTimerId) {
-    clearTimeout(dailyTimerId as any);
-    dailyTimerId = null;
+export function startHourlyReminderSchedule(): void {
+  if (hourlyTimerId) {
+    clearTimeout(hourlyTimerId as any);
+    hourlyTimerId = null;
   }
 
-  const msUntil9AM = getMsUntilNext9AM();
-  const hoursUntil = (msUntil9AM / (1000 * 60 * 60)).toFixed(1);
-  console.log(`[WebNotifications] Daily 9:00 AM reminder scheduled in ~${hoursUntil} hours.`);
+  const lastTimestampStr = typeof window !== 'undefined' ? localStorage.getItem('nextup_last_hourly_reminder') : null;
+  let initialDelay = ONE_HOUR_MS;
+  if (lastTimestampStr) {
+    const lastTime = parseInt(lastTimestampStr, 10);
+    if (!isNaN(lastTime)) {
+      const elapsed = Date.now() - lastTime;
+      if (elapsed > 0 && elapsed < ONE_HOUR_MS) {
+        initialDelay = ONE_HOUR_MS - elapsed;
+      }
+    }
+  }
 
-  dailyTimerId = setTimeout(async () => {
-    // 1. Show browser notification
-    showBrowserNotification('☀️ 9:00 AM Daily Work Update Reminder', {
-      body: "Good morning! It's 9:00 AM. Please update your work report and task deliverables for today.",
-      tag: 'daily-work-update-9am',
+  console.log(`[WebNotifications] Continuous 1-hour work reminder scheduled (next alert in ~${(initialDelay / 60000).toFixed(1)} mins).`);
+
+  const fireReminder = async () => {
+    // 1. Show browser desktop notification
+    showBrowserNotification('⏰ Hourly Work Update Reminder', {
+      body: "Time for your 1-hour check-in! Please update your active tasks, progress reports, and deliverables for today.",
+      tag: 'hourly-work-update-reminder',
     });
 
-    // 2. Trigger backend notification dispatch so it records in in-app alerts and audit log
+    // 2. Play subtle pleasant chime
+    playNotificationChime();
+
+    // 3. Trigger backend dispatch for in-app notification center & compliance trail
     try {
-      await api.triggerDailyReminder();
+      await api.triggerHourlyReminder(false);
     } catch {
       // ignore
     }
 
-    // 3. Reschedule for tomorrow 9:00 AM
-    startDaily9AMReminderSchedule();
-  }, msUntil9AM);
+    // 4. Save timestamp to localStorage
+    try {
+      localStorage.setItem('nextup_last_hourly_reminder', Date.now().toString());
+    } catch {}
+
+    // 5. Reschedule continuously for the next 1 hour (3600000 ms)
+    hourlyTimerId = setTimeout(fireReminder, ONE_HOUR_MS);
+  };
+
+  hourlyTimerId = setTimeout(fireReminder, initialDelay);
 }
 
 /**
- * Cancels active daily reminder timer
+ * Backward-compatible alias for startHourlyReminderSchedule
  */
-export function stopDaily9AMReminderSchedule(): void {
-  if (dailyTimerId) {
-    clearTimeout(dailyTimerId as any);
-    dailyTimerId = null;
+export function startDaily9AMReminderSchedule(): void {
+  startHourlyReminderSchedule();
+}
+
+/**
+ * Cancels active continuous hourly reminder timer
+ */
+export function stopHourlyReminderSchedule(): void {
+  if (hourlyTimerId) {
+    clearTimeout(hourlyTimerId as any);
+    hourlyTimerId = null;
   }
 }
 
 /**
- * Triggers an immediate test 9:00 AM notification
- * Used for instant verification in settings / notification panel
+ * Backward-compatible alias for stopHourlyReminderSchedule
+ */
+export function stopDaily9AMReminderSchedule(): void {
+  stopHourlyReminderSchedule();
+}
+
+/**
+ * Triggers an immediate test 1-hour notification
+ * Used for instant verification in notification panel & settings
  */
 export async function triggerTestWorkReminder(): Promise<{ success: boolean; message: string }> {
   let hasPermission = false;
@@ -176,16 +198,16 @@ export async function triggerTestWorkReminder(): Promise<{ success: boolean; mes
   }
 
   if (hasPermission) {
-    showBrowserNotification('☀️ Daily Work Update Reminder (Test)', {
-      body: "Good morning! It's 9:00 AM. Please update your work report and task deliverables for today.",
-      tag: 'daily-work-update-9am-test',
+    showBrowserNotification('⏰ Hourly Work Update Reminder (Test)', {
+      body: "Time for your 1-hour check-in! Please update your active tasks, progress reports, and deliverables for today.",
+      tag: 'hourly-work-update-test',
     });
   }
 
   // Also call backend API to create in-app notification entry
   let backendDispatched = 0;
   try {
-    const res = await api.triggerDailyReminder(false);
+    const res = await api.triggerHourlyReminder(false);
     backendDispatched = res.dispatched_count;
   } catch (err: any) {
     console.warn('Backend trigger error:', err);
@@ -194,7 +216,7 @@ export async function triggerTestWorkReminder(): Promise<{ success: boolean; mes
   if (hasPermission) {
     return {
       success: true,
-      message: 'Desktop notification sent! Also recorded in your notification bell panel.',
+      message: 'Continuous 1-hour desktop notification sent! Also recorded in your notification bell panel.',
     };
   } else {
     return {
@@ -203,3 +225,4 @@ export async function triggerTestWorkReminder(): Promise<{ success: boolean; mes
     };
   }
 }
+

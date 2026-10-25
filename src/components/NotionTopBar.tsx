@@ -1,10 +1,14 @@
 import React from 'react';
-import { LayoutGrid, List, Calendar, Table, Plus, Search, Filter, Sparkles, Command } from 'lucide-react';
+import { LayoutGrid, List, Calendar, Table, Plus, Search, Filter, Sparkles, Command, Star, Bell } from 'lucide-react';
 import { ThemeSwitcher } from './ThemeSwitcher';
+import { LanguageToggle } from './LanguageToggle';
+import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { isUserAllowedToViewPage } from '../utils/pagePermissions';
 import rathinamLogo from '../image/image.png';
 
 interface NotionTopBarProps {
-  currentView: 'board' | 'list' | 'calendar' | 'table' | 'approvals' | 'staff' | 'departments' | 'report' | 'settings' | 'today';
+  currentView: 'board' | 'list' | 'calendar' | 'table' | 'approvals' | 'staff' | 'departments' | 'report' | 'settings' | 'today' | 'self_desk';
   onSelectView: (view: any) => void;
   deptTitle: string;
   searchQuery: string;
@@ -15,6 +19,9 @@ interface NotionTopBarProps {
   canCreateTask: boolean;
   canCreateStaff: boolean;
   canCreateDepartment?: boolean;
+  onOpenCreateGmOwnTask?: () => void;
+  unreadNotifsCount?: number;
+  onOpenNotifications?: () => void;
 }
 
 export const NotionTopBar: React.FC<NotionTopBarProps> = ({
@@ -29,7 +36,39 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
   canCreateTask,
   canCreateStaff,
   canCreateDepartment,
+  onOpenCreateGmOwnTask,
+  unreadNotifsCount = 0,
+  onOpenNotifications,
 }) => {
+  const { currentUser } = useAuth();
+  const { t, isTamil } = useLanguage();
+
+  const getViewTitle = () => {
+    switch (currentView) {
+      case 'today':
+        return t('todayUrgent');
+      case 'self_desk':
+        return t('personalDesk');
+      case 'report':
+        return t('reportsAnalytics');
+      case 'settings':
+        return t('systemSettings');
+      case 'approvals':
+        return t('approvalsHub');
+      case 'staff':
+        return t('staffDirectory');
+      case 'departments':
+        return t('departments');
+      case 'board':
+      case 'list':
+      case 'calendar':
+      case 'table':
+        return deptTitle === 'All Departments' ? t('allDepartments') : deptTitle;
+      default:
+        return deptTitle;
+    }
+  };
+
   return (
     <header
       style={{
@@ -87,13 +126,7 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
               whiteSpace: 'nowrap',
             }}
           >
-            {currentView === 'today'
-              ? 'GM Priority Desk — Today & Urgent'
-              : currentView === 'report'
-              ? 'Executive Reports & Analytics'
-              : currentView === 'settings'
-              ? 'System Administration'
-              : deptTitle}
+            {getViewTitle()}
           </span>
         </div>
 
@@ -112,97 +145,105 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
             }}
           >
             {/* Board View */}
-            <button
-              type="button"
-              onClick={() => onSelectView('board')}
-              className="notion-btn"
-              style={{
-                fontSize: '12px',
-                padding: '5px 11px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: currentView === 'board' ? 'var(--notion-card)' : 'transparent',
-                fontWeight: currentView === 'board' ? 700 : 500,
-                color: currentView === 'board' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                borderRadius: '8px',
-                border: currentView === 'board' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                boxShadow: currentView === 'board' ? 'var(--notion-shadow-sm)' : 'none',
-              }}
-            >
-              <LayoutGrid size={13} style={{ color: currentView === 'board' ? '#4f46e5' : 'inherit' }} />
-              <span>Board</span>
-            </button>
+            {isUserAllowedToViewPage(currentUser, 'board') && (
+              <button
+                type="button"
+                onClick={() => onSelectView('board')}
+                className="notion-btn"
+                style={{
+                  fontSize: '12px',
+                  padding: '5px 11px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: currentView === 'board' ? 'var(--notion-card)' : 'transparent',
+                  fontWeight: currentView === 'board' ? 700 : 500,
+                  color: currentView === 'board' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
+                  borderRadius: '8px',
+                  border: currentView === 'board' ? '1px solid var(--notion-border)' : '1px solid transparent',
+                  boxShadow: currentView === 'board' ? 'var(--notion-shadow-sm)' : 'none',
+                }}
+              >
+                <LayoutGrid size={13} style={{ color: currentView === 'board' ? '#4f46e5' : 'inherit' }} />
+                <span>{t('boardView')}</span>
+              </button>
+            )}
 
             {/* List View */}
-            <button
-              type="button"
-              onClick={() => onSelectView('list')}
-              className="notion-btn"
-              style={{
-                fontSize: '12px',
-                padding: '5px 11px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: currentView === 'list' ? 'var(--notion-card)' : 'transparent',
-                fontWeight: currentView === 'list' ? 700 : 500,
-                color: currentView === 'list' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                borderRadius: '8px',
-                border: currentView === 'list' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                boxShadow: currentView === 'list' ? 'var(--notion-shadow-sm)' : 'none',
-              }}
-            >
-              <List size={13} style={{ color: currentView === 'list' ? '#0ea5e9' : 'inherit' }} />
-              <span>List</span>
-            </button>
+            {isUserAllowedToViewPage(currentUser, 'list') && (
+              <button
+                type="button"
+                onClick={() => onSelectView('list')}
+                className="notion-btn"
+                style={{
+                  fontSize: '12px',
+                  padding: '5px 11px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: currentView === 'list' ? 'var(--notion-card)' : 'transparent',
+                  fontWeight: currentView === 'list' ? 700 : 500,
+                  color: currentView === 'list' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
+                  borderRadius: '8px',
+                  border: currentView === 'list' ? '1px solid var(--notion-border)' : '1px solid transparent',
+                  boxShadow: currentView === 'list' ? 'var(--notion-shadow-sm)' : 'none',
+                }}
+              >
+                <List size={13} style={{ color: currentView === 'list' ? '#0ea5e9' : 'inherit' }} />
+                <span>{t('listView')}</span>
+              </button>
+            )}
 
             {/* Table Matrix View */}
-            <button
-              type="button"
-              onClick={() => onSelectView('table')}
-              className="notion-btn"
-              style={{
-                fontSize: '12px',
-                padding: '5px 11px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: currentView === 'table' ? 'var(--notion-card)' : 'transparent',
-                fontWeight: currentView === 'table' ? 700 : 500,
-                color: currentView === 'table' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                borderRadius: '8px',
-                border: currentView === 'table' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                boxShadow: currentView === 'table' ? 'var(--notion-shadow-sm)' : 'none',
-              }}
-              title="Staff Status Matrix Table"
-            >
-              <Table size={13} style={{ color: currentView === 'table' ? '#10b981' : 'inherit' }} />
-              <span>Table</span>
-            </button>
+            {isUserAllowedToViewPage(currentUser, 'table') && (
+              <button
+                type="button"
+                onClick={() => onSelectView('table')}
+                className="notion-btn"
+                style={{
+                  fontSize: '12px',
+                  padding: '5px 11px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: currentView === 'table' ? 'var(--notion-card)' : 'transparent',
+                  fontWeight: currentView === 'table' ? 700 : 500,
+                  color: currentView === 'table' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
+                  borderRadius: '8px',
+                  border: currentView === 'table' ? '1px solid var(--notion-border)' : '1px solid transparent',
+                  boxShadow: currentView === 'table' ? 'var(--notion-shadow-sm)' : 'none',
+                }}
+                title={t('staffMatrix')}
+              >
+                <Table size={13} style={{ color: currentView === 'table' ? '#10b981' : 'inherit' }} />
+                <span>{t('tableView')}</span>
+              </button>
+            )}
 
             {/* Calendar View */}
-            <button
-              type="button"
-              onClick={() => onSelectView('calendar')}
-              className="notion-btn"
-              style={{
-                fontSize: '12px',
-                padding: '5px 11px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: currentView === 'calendar' ? 'var(--notion-card)' : 'transparent',
-                fontWeight: currentView === 'calendar' ? 700 : 500,
-                color: currentView === 'calendar' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                borderRadius: '8px',
-                border: currentView === 'calendar' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                boxShadow: currentView === 'calendar' ? 'var(--notion-shadow-sm)' : 'none',
-              }}
-            >
-              <Calendar size={13} style={{ color: currentView === 'calendar' ? '#f59e0b' : 'inherit' }} />
-              <span>Calendar</span>
-            </button>
+            {isUserAllowedToViewPage(currentUser, 'calendar') && (
+              <button
+                type="button"
+                onClick={() => onSelectView('calendar')}
+                className="notion-btn"
+                style={{
+                  fontSize: '12px',
+                  padding: '5px 11px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: currentView === 'calendar' ? 'var(--notion-card)' : 'transparent',
+                  fontWeight: currentView === 'calendar' ? 700 : 500,
+                  color: currentView === 'calendar' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
+                  borderRadius: '8px',
+                  border: currentView === 'calendar' ? '1px solid var(--notion-border)' : '1px solid transparent',
+                  boxShadow: currentView === 'calendar' ? 'var(--notion-shadow-sm)' : 'none',
+                }}
+              >
+                <Calendar size={13} style={{ color: currentView === 'calendar' ? '#f59e0b' : 'inherit' }} />
+                <span>{t('calendarView')}</span>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -226,7 +267,7 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
           <Search size={14} style={{ color: 'var(--notion-text-dim)', flexShrink: 0 }} />
           <input
             type="text"
-            placeholder="Search tasks, staff..."
+            placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             style={{
@@ -245,14 +286,14 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
         {currentView === 'departments' && canCreateDepartment && onOpenCreateDepartment && (
           <button onClick={onOpenCreateDepartment} className="notion-btn notion-btn-primary" style={{ padding: '7px 14px' }}>
             <Plus size={14} />
-            <span>New Department</span>
+            <span>{t('newDepartment')}</span>
           </button>
         )}
 
         {currentView === 'staff' && canCreateStaff && (
           <button onClick={onOpenCreateStaff} className="notion-btn notion-btn-primary" style={{ padding: '7px 14px' }}>
             <Plus size={14} />
-            <span>Add Staff</span>
+            <span>{t('addStaff')}</span>
           </button>
         )}
 
@@ -267,9 +308,78 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
             }}
           >
             <Plus size={15} />
-            <span>+ New Task / Issue</span>
+            <span>{t('newTask')}</span>
           </button>
         )}
+
+        {onOpenCreateGmOwnTask && (
+          <button
+            onClick={onOpenCreateGmOwnTask}
+            className="notion-btn"
+            style={{
+              gap: '6px',
+              padding: '7px 14px',
+              borderRadius: '9px',
+              background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+              color: '#FFFFFF',
+              border: 'none',
+              fontWeight: 700,
+              boxShadow: '0 2px 8px rgba(245, 158, 11, 0.25)',
+              cursor: 'pointer',
+            }}
+          >
+            <Star size={14} />
+            <span>{t('directTask')}</span>
+          </button>
+        )}
+
+        {/* In-app Notification Bell */}
+        {onOpenNotifications && (
+          <button
+            type="button"
+            onClick={onOpenNotifications}
+            className="notion-btn"
+            style={{
+              padding: '6px 9px',
+              borderRadius: '8px',
+              position: 'relative',
+              background: 'var(--notion-item-bg)',
+              border: '1px solid var(--notion-border-subtle)',
+              color: unreadNotifsCount > 0 ? '#f59e0b' : 'var(--notion-text-muted)',
+            }}
+            title={t('notifications')}
+          >
+            <Bell size={15} />
+            {unreadNotifsCount > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '9.5px',
+                  fontWeight: 800,
+                  minWidth: '16px',
+                  height: '16px',
+                  padding: '0 4px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                }}
+              >
+                {unreadNotifsCount}
+              </span>
+            )}
+          </button>
+        )}
+
+        {/* Language Switcher (EN / தமிழ்) */}
+        <div style={{ borderLeft: '1px solid var(--notion-border)', paddingLeft: '10px' }}>
+          <LanguageToggle compact={true} />
+        </div>
 
         {/* Top bar theme switcher */}
         <div style={{ borderLeft: '1px solid var(--notion-border)', paddingLeft: '10px' }}>

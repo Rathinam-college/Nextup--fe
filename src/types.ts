@@ -35,6 +35,7 @@ export interface User {
   phone?: string;
   job_title?: string;
   is_active?: boolean;
+  allowed_pages?: string[];
 }
 
 export interface TaskComment {
@@ -71,6 +72,7 @@ export interface Task {
   closed_at?: string | null;
   attachment_image?: string | null;
   image?: string | null;
+  is_gm_own_task?: boolean;
   created_at: string;
   updated_at: string;
   comments?: TaskComment[];
@@ -174,5 +176,45 @@ export interface EmailStatus {
   has_smtp_user: boolean;
   has_smtp_password: boolean;
   total_dispatched_emails: number;
+  email_host_user?: string;
+}
+
+export interface EmailSettingsPayload {
+  email_host_user?: string;
+  email_host_password?: string;
+  email_host?: string;
+  email_port?: number;
+  email_use_tls?: boolean;
+  default_from_email?: string;
+}
+
+export interface SelfTask {
+  id: number;
+  user: number;
+  user_name: string;
+  title: string;
+  description: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  priority_display: string;
+  status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
+  status_display: string;
+  due_date: string | null;
+  is_completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SelfNote {
+  id: number;
+  user: number;
+  user_name: string;
+  title: string;
+  content: string;
+  category: 'GENERAL' | 'WORK' | 'MEETING' | 'IDEA' | 'CHECKLIST';
+  category_display: string;
+  color?: string;
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
 }
 

@@ -54,39 +54,37 @@ export const NotionDepartmentsView: React.FC<NotionDepartmentsViewProps> = ({
   return (
     <div style={{ padding: '24px 32px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Top Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                background: '#ffffff',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '2px',
-                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)',
-                border: '1px solid rgba(15, 23, 42, 0.08)',
-              }}
-            >
-              <img
-                src={rathinamLogo}
-                alt="Rathinam"
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              />
-            </div>
-            <h2 style={{ fontSize: '1.6rem', fontWeight: 700, margin: 0, color: 'var(--notion-text)' }}>
-              Rathinam Departments Overview
-            </h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: '#ffffff',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '2px',
+              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
+              border: '1px solid rgba(15, 23, 42, 0.08)',
+            }}
+          >
+            <img
+              src={rathinamLogo}
+              alt="Rathinam"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
           </div>
-          <p style={{ margin: '6px 0 0', fontSize: '13px', color: 'var(--notion-text-muted)' }}>
-            Autonomous enterprise business units with backend-enforced query isolation and full edit/delete lifecycle control.
-          </p>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: 'var(--notion-text)', letterSpacing: '-0.02em' }}>
+            Departments
+          </h2>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--notion-text-dim)', background: 'var(--notion-item-bg)', padding: '2px 8px', borderRadius: '10px' }}>
+            {departments.length}
+          </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {/* Search Box */}
           <div style={{ position: 'relative', width: '220px' }}>
             <Search size={14} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--notion-text-dim)' }} />
@@ -104,17 +102,17 @@ export const NotionDepartmentsView: React.FC<NotionDepartmentsViewProps> = ({
             <button
               onClick={() => onOpenCreateTaskForDept(departments[0]?.id || 0, true)}
               className="notion-btn notion-btn-bordered"
-              style={{ gap: '6px', color: '#e11d48', borderColor: 'rgba(225, 29, 72, 0.4)', background: 'rgba(225, 29, 72, 0.05)' }}
+              style={{ gap: '6px', color: '#e11d48', borderColor: 'rgba(225, 29, 72, 0.4)', background: 'rgba(225, 29, 72, 0.05)', fontSize: '12px', padding: '6px 12px' }}
             >
               <AlertCircle size={14} />
-              <span>Report Department Issue</span>
+              <span>Report Issue</span>
             </button>
           )}
 
           {(canCreateDepartment || canManageDepartment) && onOpenCreateDepartment && (
-            <button onClick={onOpenCreateDepartment} className="notion-btn notion-btn-primary" style={{ gap: '6px' }}>
+            <button onClick={onOpenCreateDepartment} className="notion-btn notion-btn-primary" style={{ gap: '6px', fontSize: '12px', padding: '6px 14px' }}>
               <Plus size={14} />
-              <span>Create Department</span>
+              <span>New Department</span>
             </button>
           )}
         </div>

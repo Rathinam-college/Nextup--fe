@@ -1,5 +1,6 @@
 import React from 'react';
 import { Task } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 import { ShieldCheck, CheckCircle, RotateCcw, Calendar, CheckCircle2, ArrowRight, User } from 'lucide-react';
 
 interface NotionApprovalsHubProps {
@@ -13,6 +14,7 @@ export const NotionApprovalsHub: React.FC<NotionApprovalsHubProps> = ({
   onSelectTask,
   onQuickApprove,
 }) => {
+  const { t, isTamil } = useLanguage();
   const pendingTasks = tasks.filter((t) => t.status === 'PENDING_GM_APPROVAL');
 
   return (
@@ -37,17 +39,17 @@ export const NotionApprovalsHub: React.FC<NotionApprovalsHubProps> = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, color: 'var(--notion-text)', letterSpacing: '-0.025em' }}>
-                GM Task Verification &amp; Closure Hub
+                {t('approvalsTitle')}
               </h1>
               <span
                 className="notion-tag tag-yellow"
                 style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px' }}
               >
-                {pendingTasks.length} Awaiting GM Sign-Off
+                {pendingTasks.length} {t('status_pending_gm_approval')}
               </span>
             </div>
             <p style={{ fontSize: '13.5px', color: 'var(--notion-text-muted)', margin: '4px 0 0' }}>
-              Department staff completed these deliverables. Review work quality and approve for official institutional closure.
+              {t('approvalsSubtitle')}
             </p>
           </div>
         </div>
@@ -85,10 +87,10 @@ export const NotionApprovalsHub: React.FC<NotionApprovalsHubProps> = ({
             <CheckCircle2 size={36} />
           </div>
           <h3 style={{ fontSize: '17px', fontWeight: 700, margin: '4px 0 0', color: 'var(--notion-text)' }}>
-            All Pending Approvals Cleared
+            {t('allClearedTitle')}
           </h3>
           <p style={{ fontSize: '13px', color: 'var(--notion-text-muted)', margin: 0, maxWidth: '460px', lineHeight: 1.5 }}>
-            No tasks are currently waiting for General Manager verification. New completions will automatically appear here.
+            {t('allClearedSubtitle')}
           </p>
         </div>
       ) : (
@@ -220,7 +222,7 @@ export const NotionApprovalsHub: React.FC<NotionApprovalsHubProps> = ({
                   }}
                 >
                   <CheckCircle size={14} />
-                  <span>Verify &amp; Close</span>
+                  <span>{t('approveAndClose')}</span>
                 </button>
                 <button
                   type="button"
@@ -234,7 +236,7 @@ export const NotionApprovalsHub: React.FC<NotionApprovalsHubProps> = ({
                   }}
                 >
                   <RotateCcw size={13} />
-                  <span>Review / Notes</span>
+                  <span>{isTamil ? 'பணியை ஆய்வு செய்' : 'Review Task'}</span>
                 </button>
               </div>
             </div>

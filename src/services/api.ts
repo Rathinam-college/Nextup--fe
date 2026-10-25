@@ -1,6 +1,7 @@
 import {
   User, Department, Task, NotificationItem,
-  DispatchedEmail, ActivityLogItem, DashboardStats, TaskComment, SystemStats, EmailStatus
+  DispatchedEmail, ActivityLogItem, DashboardStats, TaskComment, SystemStats, EmailStatus, EmailSettingsPayload,
+  SelfTask, SelfNote
 } from '../types';
 
 let activeUserId: number | null = null;
@@ -206,11 +207,17 @@ export const api = {
     request<{ status: string }>('/api/notifications/mark-all-read/', { method: 'POST' }),
   markNotificationRead: (id: number) =>
     request<{ status: string }>(`/api/notifications/${id}/mark-read/`, { method: 'POST' }),
-  triggerDailyReminder: (targetAll = false) =>
+  triggerHourlyReminder: (targetAll = false) =>
     request<{ status: string; message: string; dispatched_count: number }>(
-      '/api/notifications/trigger-daily-reminder/',
+      '/api/notifications/trigger-hourly-reminder/',
       { method: 'POST', body: JSON.stringify({ all: targetAll }) }
     ),
+  triggerDailyReminder: (targetAll = false) =>
+    request<{ status: string; message: string; dispatched_count: number }>(
+      '/api/notifications/trigger-hourly-reminder/',
+      { method: 'POST', body: JSON.stringify({ all: targetAll }) }
+    ),
+
 
   // Dispatched Email Logs & Audit Logs
   getEmailLogs: () => request<DispatchedEmail[]>('/api/email-logs/'),
@@ -363,9 +370,76 @@ export const api = {
       body: JSON.stringify(data),
     }),
   getEmailStatus: () => request<EmailStatus>('/api/admin/email-status/'),
+  updateEmailSettings: (payload: EmailSettingsPayload) =>
+    request<{ status: string; message: string; settings: EmailStatus }>('/api/admin/email-settings/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   sendTestEmail: (email: string) =>
     request<{ status: string; message: string; details: any }>('/api/admin/send-test-email/', {
       method: 'POST',
       body: JSON.stringify({ email }),
+    }),
+
+  // Self Tasks (Personal tasks strictly private to each user)
+  getSelfTasks: (params?: { status?: string; is_completed?: boolean }) => {
+    let query = '';
+    if (params) {
+      const q = new URLSearchParams();
+      if (params.status) q.append('status', params.status);
+      if (params.is_completed !== undefined) q.append('is_completed', String(params.is_completed));
+      const s = q.toString();
+      if (s) query = `?${s}`;
+    }
+    return request<SelfTask[]>(`/api/self-tasks/${query}`);
+  },
+  createSelfTask: (data: Partial<SelfTask>) =>
+    request<SelfTask>('/api/self-tasks/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateSelfTask: (id: number, data: Partial<SelfTask>) =>
+    request<SelfTask>(`/api/self-tasks/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  deleteSelfTask: (id: number) =>
+    request<{ status: string }>(`/api/self-tasks/${id}/`, {
+      method: 'DELETE',
+    }),
+  toggleCompleteSelfTask: (id: number) =>
+    request<SelfTask>(`/api/self-tasks/${id}/toggle-complete/`, {
+      method: 'POST',
+    }),
+
+  // Self Notes (Personal notes strictly private to each user)
+  getSelfNotes: (params?: { category?: string; is_pinned?: boolean }) => {
+    let query = '';
+    if (params) {
+      const q = new URLSearchParams();
+      if (params.category) q.append('category', params.category);
+      if (params.is_pinned !== undefined) q.append('is_pinned', String(params.is_pinned));
+      const s = q.toString();
+      if (s) query = `?${s}`;
+    }
+    return request<SelfNote[]>(`/api/self-notes/${query}`);
+  },
+  createSelfNote: (data: Partial<SelfNote>) =>
+    request<SelfNote>('/api/self-notes/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateSelfNote: (id: number, data: Partial<SelfNote>) =>
+    request<SelfNote>(`/api/self-notes/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  deleteSelfNote: (id: number) =>
+    request<{ status: string }>(`/api/self-notes/${id}/`, {
+      method: 'DELETE',
+    }),
+  togglePinSelfNote: (id: number) =>
+    request<SelfNote>(`/api/self-notes/${id}/toggle-pin/`, {
+      method: 'POST',
     }),
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { LanguageProvider } from './context/LanguageContext';
 import { Task, Department, User, NotificationItem, DispatchedEmail, ActivityLogItem } from './types';
 import { api } from './services/api';
 import { NotionSidebar } from './components/NotionSidebar';
@@ -23,19 +24,24 @@ import { LoginPage } from './components/LoginPage';
 import { NotionReportsView } from './components/NotionReportsView';
 import { NotionSettingsView } from './components/NotionSettingsView';
 import { NotionGMTodayView } from './components/NotionGMTodayView';
-import { RefreshCw, Bell, Sparkles } from 'lucide-react';
+import { SelfDeskView } from './components/SelfDeskView';
+import { RefreshCw, Bell, Sparkles, Lock, ShieldAlert } from 'lucide-react';
+import { isUserAllowedToViewPage, ALL_APP_PAGES } from './utils/pagePermissions';
 import {
+  startHourlyReminderSchedule,
+  stopHourlyReminderSchedule,
   startDaily9AMReminderSchedule,
   stopDaily9AMReminderSchedule,
   requestBrowserNotificationPermission,
   triggerTestWorkReminder,
 } from './services/notifications';
 
-export type ViewType = 'board' | 'list' | 'calendar' | 'table' | 'approvals' | 'staff' | 'departments' | 'report' | 'settings' | 'today';
+export type ViewType = 'board' | 'list' | 'calendar' | 'table' | 'approvals' | 'staff' | 'departments' | 'report' | 'settings' | 'today' | 'self_desk';
 
 export const getViewFromPath = (path: string): ViewType => {
   const parts = path.toLowerCase().split('/').filter(Boolean).filter(p => p !== 'nextup');
   const cleanPath = parts[0] || '';
+  if (cleanPath === 'self' || cleanPath === 'self-desk' || cleanPath === 'personal' || cleanPath === 'notes' || cleanPath === 'my-tasks') return 'self_desk';
   if (cleanPath === 'today' || cleanPath === 'urgent' || cleanPath === 'gmtoday') return 'today';
   if (cleanPath === 'settings' || cleanPath === 'admin') return 'settings';
   if (cleanPath === 'report' || cleanPath === 'reports') return 'report';
@@ -52,6 +58,7 @@ export const getViewFromPath = (path: string): ViewType => {
 export const getPathFromView = (view: ViewType): string => {
   const isNextup = window.location.pathname.startsWith('/nextup');
   const prefix = isNextup ? '/nextup' : '';
+  if (view === 'self_desk') return `${prefix}/self-desk`;
   if (view === 'board') return `${prefix}/board`;
   if (view === 'list') return `${prefix}/list`;
   if (view === 'calendar') return `${prefix}/calendar`;
@@ -73,10 +80,10 @@ const DashboardContent: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showNotifPrompt, setShowNotifPrompt] = useState(false);
 
-  // Daily 9:00 AM Morning Work Reminder scheduler & notification permission banner
+  // Continuous 1-Hour Recurring Work Reminder scheduler & notification permission banner
   useEffect(() => {
     if (currentUser) {
-      startDaily9AMReminderSchedule();
+      startHourlyReminderSchedule();
       if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === 'default') {
           const timer = setTimeout(() => setShowNotifPrompt(true), 1200);
@@ -84,7 +91,7 @@ const DashboardContent: React.FC = () => {
         }
       }
     }
-    return () => stopDaily9AMReminderSchedule();
+    return () => stopHourlyReminderSchedule();
   }, [currentUser?.id]);
 
   const handleEnableNotifications = async () => {
@@ -132,13 +139,21 @@ const DashboardContent: React.FC = () => {
 
   // Modals state
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [taskModalInitialEdit, setTaskModalInitialEdit] = useState(false);
+
+  const handleEditTask = (task: Task) => {
+    setSelectedTask(task);
+    setTaskModalInitialEdit(true);
+  };
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [createTaskDefaultDeptId, setCreateTaskDefaultDeptId] = useState<number | null>(null);
   const [createTaskIsIssueMode, setCreateTaskIsIssueMode] = useState<boolean>(false);
+  const [createTaskIsGmOwnTask, setCreateTaskIsGmOwnTask] = useState<boolean>(false);
 
-  const handleOpenCreateTask = (deptId?: number, isIssue: boolean = false) => {
+  const handleOpenCreateTask = (deptId?: number, isIssue: boolean = false, isGmOwnTask: boolean = false) => {
     setCreateTaskDefaultDeptId(deptId || null);
     setCreateTaskIsIssueMode(isIssue);
+    setCreateTaskIsGmOwnTask(isGmOwnTask);
     setIsCreateTaskOpen(true);
   };
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
@@ -185,6 +200,10 @@ const DashboardContent: React.FC = () => {
   }, [loadAllData]);
 
   const handleOpenEmailLogs = async () => {
+    if (currentUser?.role !== 'SUPER_ADMIN') {
+      alert('Access restricted to System Administrators.');
+      return;
+    }
     try {
       const logs = await api.getEmailLogs();
       setEmailLogs(logs);
@@ -195,6 +214,10 @@ const DashboardContent: React.FC = () => {
   };
 
   const handleOpenActivityLogs = async () => {
+    if (currentUser?.role !== 'SUPER_ADMIN') {
+      alert('Access restricted to System Administrators.');
+      return;
+    }
     try {
       const logs = await api.getActivityLogs();
       setActivityLogs(logs);
@@ -268,21 +291,24 @@ const DashboardContent: React.FC = () => {
     }
   };
 
+  const firstAllowedPage = useMemo(() => {
+    if (!currentUser) return 'board' as ViewType;
+    const found = ALL_APP_PAGES.find((p) => isUserAllowedToViewPage(currentUser, p.key));
+    return (found ? found.key : 'board') as ViewType;
+  }, [currentUser]);
+
   useEffect(() => {
     if (currentUser) {
-      if (currentUser.role !== 'SUPER_ADMIN' && currentView === 'settings') {
-        handleSelectView('board');
+      if (!isUserAllowedToViewPage(currentUser, currentView)) {
+        handleSelectView(firstAllowedPage);
       }
       if (currentUser.role === 'DEPT_MANAGER' || currentUser.role === 'STAFF') {
         if (currentUser.department) {
           setSelectedDeptId(currentUser.department);
         }
-        if (currentView === 'approvals' || currentView === 'departments' || currentView === 'today') {
-          handleSelectView('board');
-        }
       }
     }
-  }, [currentUser, currentView, handleSelectView]);
+  }, [currentUser, currentView, firstAllowedPage, handleSelectView]);
 
   const isGM = currentUser?.role === 'GENERAL_MANAGER' || currentUser?.role === 'SUPER_ADMIN';
 
@@ -296,6 +322,16 @@ const DashboardContent: React.FC = () => {
 
   // Filter tasks based on selected department and search query
   const filteredTasks = tasks.filter((t) => {
+    // GM Own tasks must NEVER be shown to anyone except GM and Super Admin
+    if (!isGM) {
+      if (t.is_gm_own_task || t.department_code === 'GM') {
+        return false;
+      }
+      const assignee = staffList.find((s) => s.id === t.assigned_to);
+      if (assignee && (assignee.role === 'GENERAL_MANAGER' || assignee.role === 'SUPER_ADMIN')) {
+        return false;
+      }
+    }
     if (!isGM && currentUser?.department && t.department !== currentUser.department) {
       return false;
     }
@@ -447,43 +483,39 @@ const DashboardContent: React.FC = () => {
           canCreateTask={canCreateTask}
           canCreateStaff={canCreateStaff}
           canCreateDepartment={canCreateDepartment}
+          onOpenCreateGmOwnTask={canCreateTask && isGM ? () => handleOpenCreateTask(undefined, false, true) : undefined}
+          unreadNotifsCount={unreadNotifsCount}
+          onOpenNotifications={() => setIsNotificationsOpen(true)}
         />
 
-        {/* Daily 9:00 AM Reminder Permission Prompt Banner */}
+        {/* Hourly Notification Prompt */}
         {showNotifPrompt && (
           <div style={{
-            background: 'linear-gradient(90deg, rgba(37, 99, 235, 0.08) 0%, rgba(59, 130, 246, 0.12) 100%)',
-            borderBottom: '1px solid rgba(59, 130, 246, 0.25)',
-            padding: '10px 24px',
+            background: 'rgba(59, 130, 246, 0.08)',
+            borderBottom: '1px solid rgba(59, 130, 246, 0.2)',
+            padding: '8px 24px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px',
-            fontSize: '13px',
+            fontSize: '12.5px',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '18px' }}>☀️</span>
-              <div>
-                <span style={{ fontWeight: 700, color: 'var(--notion-text)' }}>
-                  Daily 9:00 AM Work Reminder:
-                </span>{' '}
-                <span style={{ color: 'var(--notion-text-muted)' }}>
-                  Allow device notifications so you receive a morning alert at 9:00 AM to update your work report and task deliverables.
-                </span>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--notion-text)' }}>
+              <span>⏰</span>
+              <span>Enable hourly notifications for your active tasks.</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
               <button
                 onClick={handleEnableNotifications}
                 className="notion-btn notion-btn-primary"
-                style={{ fontSize: '12px', padding: '5px 14px', borderRadius: '8px', fontWeight: 600 }}
+                style={{ fontSize: '11.5px', padding: '4px 12px', borderRadius: '7px', fontWeight: 600 }}
               >
-                Allow Notifications
+                Enable
               </button>
               <button
                 onClick={() => setShowNotifPrompt(false)}
                 className="notion-btn notion-btn-bordered"
-                style={{ fontSize: '12px', padding: '5px 12px', borderRadius: '8px' }}
+                style={{ fontSize: '11.5px', padding: '4px 10px', borderRadius: '7px' }}
               >
                 Dismiss
               </button>
@@ -492,158 +524,212 @@ const DashboardContent: React.FC = () => {
         )}
 
         <main style={{ flex: 1, minWidth: 0 }}>
-          {currentView === 'board' && (
-            <NotionBoardView
-              tasks={filteredTasks}
-              allTasks={tasks}
-              departments={visibleDepartments}
-              staffList={staffList}
-              selectedDeptId={selectedDeptId}
-              onSelectDept={setSelectedDeptId}
-              onSelectView={handleSelectView}
-              onSelectTask={setSelectedTask}
-              onOpenCreateTask={canCreateTask ? () => setIsCreateTaskOpen(true) : undefined}
-              onStartTask={handleStartTask}
-              onSubmitTask={handleSubmitTask}
-              onQuickApprove={handleQuickApprove}
-              currentUserRole={currentUser?.role}
-              currentUserId={currentUser?.id}
-              canCreateTask={canCreateTask}
-            />
-          )}
-
-          {currentView === 'list' && (
-            <NotionListView
-              tasks={filteredTasks}
-              onSelectTask={setSelectedTask}
-              onOpenCreateTask={canCreateTask ? () => setIsCreateTaskOpen(true) : undefined}
-              onStartTask={handleStartTask}
-              onSubmitTask={handleSubmitTask}
-              onQuickApprove={handleQuickApprove}
-              currentUserRole={currentUser?.role}
-              currentUserId={currentUser?.id}
-              canCreateTask={canCreateTask}
-            />
-          )}
-
-          {currentView === 'calendar' && (
-            <NotionCalendarView
-              tasks={filteredTasks}
-              onSelectTask={setSelectedTask}
-              onOpenCreateTask={canCreateTask ? () => setIsCreateTaskOpen(true) : undefined}
-              canCreateTask={canCreateTask}
-            />
-          )}
-
-          {currentView === 'table' && (
-            <NotionTableView
-              tasks={filteredTasks}
-              allTasks={tasks}
-              departments={visibleDepartments}
-              staffList={staffList}
-              selectedDeptId={selectedDeptId}
-              onSelectDept={setSelectedDeptId}
-              onSelectTask={setSelectedTask}
-              onOpenCreateTask={canCreateTask ? (deptId, isIssue) => handleOpenCreateTask(deptId, isIssue ?? true) : undefined}
-              canCreateTask={canCreateTask}
-              currentUserRole={currentUser?.role}
-              currentUserId={currentUser?.id}
-              onStartTask={handleStartTask}
-              onSubmitTask={handleSubmitTask}
-              onQuickApprove={handleQuickApprove}
-            />
-          )}
-
-          {currentView === 'approvals' && (
-            <NotionApprovalsHub
-              tasks={filteredTasks}
-              onSelectTask={setSelectedTask}
-              onQuickApprove={handleQuickApprove}
-            />
-          )}
-
-          {currentView === 'departments' && (
-            <NotionDepartmentsView
-              departments={visibleDepartments}
-              stats={dashboardStats}
-              onSelectDept={(id) => {
-                setSelectedDeptId(id);
-                handleSelectView('board');
+          {!isUserAllowedToViewPage(currentUser, currentView) ? (
+            <div
+              style={{
+                margin: '60px auto',
+                maxWidth: '520px',
+                padding: '40px 32px',
+                background: 'var(--notion-card)',
+                borderRadius: '16px',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.06)',
+                textAlign: 'center',
               }}
-              onOpenCreateDepartment={() => {
-                setEditingDepartment(null);
-                setIsCreateDeptOpen(true);
-              }}
-              onEditDepartment={handleEditDepartment}
-              onDeleteDepartment={handleDeleteDepartment}
-              onOpenCreateTaskForDept={canCreateTask ? (deptId, isIssue) => handleOpenCreateTask(deptId, isIssue ?? true) : undefined}
-              canManageDepartment={canCreateDepartment}
-              canCreateDepartment={canCreateDepartment}
-            />
-          )}
+            >
+              <div
+                style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '16px',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: '#ef4444',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '18px',
+                }}
+              >
+                <ShieldAlert size={28} />
+              </div>
+              <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '8px' }}>
+                Page Access Restricted
+              </h2>
+              <p style={{ fontSize: '13.5px', color: 'var(--notion-text-muted)', lineHeight: 1.6, marginBottom: '24px' }}>
+                You do not currently have permission to access the <strong>{getDeptTitle()}</strong> page.
+                Page view permissions can be managed by an administrator or General Manager in the Personnel &amp; Staff Directory.
+              </p>
+              <button
+                onClick={() => handleSelectView(firstAllowedPage)}
+                className="notion-btn notion-btn-primary"
+                style={{ padding: '9px 22px', fontSize: '13px', fontWeight: 700, borderRadius: '9px' }}
+              >
+                Go to Accessible Workspace
+              </button>
+            </div>
+          ) : (
+            <>
+              {currentView === 'board' && (
+                <NotionBoardView
+                  tasks={filteredTasks}
+                  allTasks={tasks}
+                  departments={visibleDepartments}
+                  staffList={staffList}
+                  selectedDeptId={selectedDeptId}
+                  onSelectDept={setSelectedDeptId}
+                  onSelectView={handleSelectView}
+                  onSelectTask={setSelectedTask}
+                  onOpenCreateTask={canCreateTask ? () => setIsCreateTaskOpen(true) : undefined}
+                  onStartTask={handleStartTask}
+                  onSubmitTask={handleSubmitTask}
+                  onQuickApprove={handleQuickApprove}
+                  currentUserRole={currentUser?.role}
+                  currentUserId={currentUser?.id}
+                  canCreateTask={canCreateTask}
+                />
+              )}
 
-          {currentView === 'staff' && (
-            <NotionStaffView
-              staffList={filteredStaff}
-              onOpenCreateStaff={() => {
-                setEditingStaff(null);
-                setIsStaffModalOpen(true);
-              }}
-              onEditStaff={(user) => {
-                setEditingStaff(user);
-                setIsStaffModalOpen(true);
-              }}
-              onDeleteStaff={handleDeleteStaff}
-              currentUserRole={currentUser.role}
-            />
-          )}
+              {currentView === 'list' && (
+                <NotionListView
+                  tasks={filteredTasks}
+                  onSelectTask={setSelectedTask}
+                  onEditTask={handleEditTask}
+                  onOpenCreateTask={canCreateTask ? () => setIsCreateTaskOpen(true) : undefined}
+                  onStartTask={handleStartTask}
+                  onSubmitTask={handleSubmitTask}
+                  onQuickApprove={handleQuickApprove}
+                  currentUserRole={currentUser?.role}
+                  currentUserId={currentUser?.id}
+                  canCreateTask={canCreateTask}
+                />
+              )}
 
-          {currentView === 'report' && (
-            <NotionReportsView
-              tasks={tasks.filter((t) => {
-                if (!isGM && currentUser?.department && t.department !== currentUser.department) {
-                  return false;
-                }
-                return true;
-              })}
-              departments={visibleDepartments}
-              stats={dashboardStats}
-              currentUserRole={currentUser.role}
-              onExportCsv={handleExportCsv}
-              onSelectTask={setSelectedTask}
-              staffList={staffList}
-              onOpenCreateTaskForDept={canCreateTask ? (deptId, isIssue) => handleOpenCreateTask(deptId, isIssue ?? true) : undefined}
-            />
-          )}
+              {currentView === 'calendar' && (
+                <NotionCalendarView
+                  tasks={filteredTasks}
+                  onSelectTask={setSelectedTask}
+                  onOpenCreateTask={canCreateTask ? () => setIsCreateTaskOpen(true) : undefined}
+                  canCreateTask={canCreateTask}
+                />
+              )}
 
-          {currentView === 'today' && isGM && (
-            <NotionGMTodayView
-              tasks={tasks}
-              departments={visibleDepartments}
-              staffList={staffList}
-              onSelectTask={setSelectedTask}
-              onQuickApprove={handleQuickApprove}
-              onOpenCreateTask={(deptId, isIssue) => handleOpenCreateTask(deptId, isIssue ?? true)}
-              onRefresh={loadAllData}
-            />
-          )}
+              {currentView === 'table' && (
+                <NotionTableView
+                  tasks={filteredTasks}
+                  allTasks={tasks}
+                  departments={visibleDepartments}
+                  staffList={staffList}
+                  selectedDeptId={selectedDeptId}
+                  onSelectDept={setSelectedDeptId}
+                  onSelectTask={setSelectedTask}
+                  onEditTask={handleEditTask}
+                  onOpenCreateTask={canCreateTask ? (deptId, isIssue) => handleOpenCreateTask(deptId, isIssue ?? true) : undefined}
+                  canCreateTask={canCreateTask}
+                  currentUserRole={currentUser?.role}
+                  currentUserId={currentUser?.id}
+                  onStartTask={handleStartTask}
+                  onSubmitTask={handleSubmitTask}
+                  onQuickApprove={handleQuickApprove}
+                />
+              )}
 
-          {currentView === 'settings' && currentUser.role === 'SUPER_ADMIN' && (
-            <NotionSettingsView
-              currentUserRole={currentUser.role}
-              departments={visibleDepartments}
-              onOpenCreateStaff={() => {
-                setEditingStaff(null);
-                setIsStaffModalOpen(true);
-              }}
-              onEditStaff={(user) => {
-                setEditingStaff(user);
-                setIsStaffModalOpen(true);
-              }}
-              onOpenEmailLogs={handleOpenEmailLogs}
-              onOpenActivityLogs={handleOpenActivityLogs}
-              onRefreshData={loadAllData}
-            />
+              {currentView === 'approvals' && (
+                <NotionApprovalsHub
+                  tasks={filteredTasks}
+                  onSelectTask={setSelectedTask}
+                  onQuickApprove={handleQuickApprove}
+                />
+              )}
+
+              {currentView === 'departments' && (
+                <NotionDepartmentsView
+                  departments={visibleDepartments}
+                  stats={dashboardStats}
+                  onSelectDept={(id) => {
+                    setSelectedDeptId(id);
+                    handleSelectView('board');
+                  }}
+                  onOpenCreateDepartment={() => {
+                    setEditingDepartment(null);
+                    setIsCreateDeptOpen(true);
+                  }}
+                  onEditDepartment={handleEditDepartment}
+                  onDeleteDepartment={handleDeleteDepartment}
+                  onOpenCreateTaskForDept={canCreateTask ? (deptId, isIssue) => handleOpenCreateTask(deptId, isIssue ?? true) : undefined}
+                  canManageDepartment={canCreateDepartment}
+                  canCreateDepartment={canCreateDepartment}
+                />
+              )}
+
+              {currentView === 'staff' && (
+                <NotionStaffView
+                  staffList={filteredStaff}
+                  onOpenCreateStaff={() => {
+                    setEditingStaff(null);
+                    setIsStaffModalOpen(true);
+                  }}
+                  onEditStaff={(user) => {
+                    setEditingStaff(user);
+                    setIsStaffModalOpen(true);
+                  }}
+                  onDeleteStaff={handleDeleteStaff}
+                  currentUserRole={currentUser.role}
+                />
+              )}
+
+              {currentView === 'report' && (
+                <NotionReportsView
+                  tasks={tasks.filter((t) => {
+                    if (!isGM && currentUser?.department && t.department !== currentUser.department) {
+                      return false;
+                    }
+                    return true;
+                  })}
+                  departments={visibleDepartments}
+                  stats={dashboardStats}
+                  currentUserRole={currentUser.role}
+                  onExportCsv={handleExportCsv}
+                  onSelectTask={setSelectedTask}
+                  staffList={staffList}
+                  onOpenCreateTaskForDept={canCreateTask ? (deptId, isIssue) => handleOpenCreateTask(deptId, isIssue ?? true) : undefined}
+                />
+              )}
+
+              {currentView === 'today' && isGM && (
+                <NotionGMTodayView
+                  tasks={tasks}
+                  departments={visibleDepartments}
+                  staffList={staffList}
+                  onSelectTask={setSelectedTask}
+                  onEditTask={handleEditTask}
+                  onQuickApprove={handleQuickApprove}
+                  onOpenCreateTask={(deptId, isIssue) => handleOpenCreateTask(deptId, isIssue ?? true)}
+                  onRefresh={loadAllData}
+                />
+              )}
+
+              {currentView === 'settings' && currentUser.role === 'SUPER_ADMIN' && (
+                <NotionSettingsView
+                  currentUserRole={currentUser.role}
+                  departments={visibleDepartments}
+                  onOpenCreateStaff={() => {
+                    setEditingStaff(null);
+                    setIsStaffModalOpen(true);
+                  }}
+                  onEditStaff={(user) => {
+                    setEditingStaff(user);
+                    setIsStaffModalOpen(true);
+                  }}
+                  onOpenEmailLogs={handleOpenEmailLogs}
+                  onOpenActivityLogs={handleOpenActivityLogs}
+                  onRefreshData={loadAllData}
+                />
+              )}
+
+              {currentView === 'self_desk' && currentUser && (
+                <SelfDeskView currentUser={currentUser} />
+              )}
+            </>
           )}
         </main>
       </div>
@@ -651,8 +737,17 @@ const DashboardContent: React.FC = () => {
       {/* Notion Task Side-Peek / Modal */}
       <NotionTaskModal
         task={selectedTask}
-        onClose={() => setSelectedTask(null)}
-        onTaskUpdated={loadAllData}
+        initialEditMode={taskModalInitialEdit}
+        onClose={() => {
+          setSelectedTask(null);
+          setTaskModalInitialEdit(false);
+        }}
+        onTaskUpdated={(updatedTask) => {
+          if (updatedTask) {
+            setSelectedTask(updatedTask);
+          }
+          loadAllData();
+        }}
         currentUserRole={currentUser.role}
         departments={visibleDepartments}
       />
@@ -664,6 +759,7 @@ const DashboardContent: React.FC = () => {
           setIsCreateTaskOpen(false);
           setCreateTaskDefaultDeptId(null);
           setCreateTaskIsIssueMode(false);
+          setCreateTaskIsGmOwnTask(false);
         }}
         onCreated={loadAllData}
         departments={visibleDepartments}
@@ -672,10 +768,12 @@ const DashboardContent: React.FC = () => {
         currentUserId={currentUser.id}
         initialDeptId={createTaskDefaultDeptId}
         initialIsIssue={createTaskIsIssueMode}
+        initialIsGmOwnTask={createTaskIsGmOwnTask}
       />
 
       {/* Staff Management Modal */}
       <StaffManagementModal
+        key={editingStaff ? `staff-${editingStaff.id}` : 'new-staff'}
         isOpen={isStaffModalOpen}
         onClose={() => {
           setIsStaffModalOpen(false);
@@ -728,9 +826,11 @@ const DashboardContent: React.FC = () => {
 export function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <DashboardContent />
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <DashboardContent />
+        </AuthProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

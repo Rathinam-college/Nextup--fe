@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Department, User, Role, Priority } from '../types';
 import { api } from '../services/api';
-import { X, Plus, AlertCircle, Calendar, Clock, Mail, ShieldAlert, CheckCircle2, UserCheck, Wrench, AlertTriangle, Camera } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { X, Plus, AlertCircle, Calendar, Clock, Mail, ShieldAlert, CheckCircle2, UserCheck, Wrench, AlertTriangle, Camera, Star, ShieldCheck } from 'lucide-react';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface CreateTaskModalProps {
   currentUserId?: number | null;
   initialDeptId?: number | null;
   initialIsIssue?: boolean;
+  initialIsGmOwnTask?: boolean;
 }
 
 export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
@@ -25,13 +27,17 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   currentUserId,
   initialDeptId,
   initialIsIssue = false,
+  initialIsGmOwnTask = false,
 }) => {
+  const { t, isTamil } = useLanguage();
   const isDeptManager = currentUserRole === 'DEPT_MANAGER';
   const isStaff = currentUserRole === 'STAFF';
   const isGM = currentUserRole === 'GENERAL_MANAGER' || currentUserRole === 'SUPER_ADMIN';
   const isRestrictedDept = isDeptManager || isStaff;
 
-  const [itemType, setItemType] = useState<'TASK' | 'ISSUE'>(initialIsIssue ? 'ISSUE' : 'TASK');
+  const [itemType, setItemType] = useState<'TASK' | 'ISSUE' | 'GM_TASK'>(
+    initialIsIssue ? 'ISSUE' : (initialIsGmOwnTask ? 'GM_TASK' : 'TASK')
+  );
 
   const [formData, setFormData] = useState({
     title: '',
@@ -62,15 +68,18 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       setSuccessNotice(null);
       setAttachmentImage('');
 
-      const targetType = initialIsIssue ? 'ISSUE' : 'TASK';
+      const targetType: 'TASK' | 'ISSUE' | 'GM_TASK' = initialIsIssue
+        ? 'ISSUE'
+        : (initialIsGmOwnTask ? 'GM_TASK' : 'TASK');
       setItemType(targetType);
 
       // Target department priority:
-      // 1. If staff or dept manager: their assigned department
-      // 2. If initialDeptId passed from card/drilldown: use initialDeptId
-      // 3. Otherwise: first available department
+      // If GM own task: check if General Management (code 'GM') exists
+      const gmDept = departments.find((d) => d.code === 'GM' || d.name.toLowerCase().includes('general management'));
       let targetDeptId: string | number = '';
-      if (isRestrictedDept && currentUserDeptId) {
+      if (targetType === 'GM_TASK' && gmDept) {
+        targetDeptId = gmDept.id;
+      } else if (isRestrictedDept && currentUserDeptId) {
         targetDeptId = currentUserDeptId;
       } else if (initialDeptId) {
         targetDeptId = initialDeptId;
@@ -82,8 +91,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         title: targetType === 'ISSUE' ? '[ISSUE] ' : '',
         description: '',
         department: String(targetDeptId),
-        assigned_to: '',
-        priority: targetType === 'ISSUE' ? 'HIGH' : 'MEDIUM',
+        assigned_to: (targetType === 'GM_TASK' && currentUserId) ? String(currentUserId) : '',
+        priority: targetType === 'ISSUE' || targetType === 'GM_TASK' ? 'HIGH' : 'MEDIUM',
         due_date: '',
       });
 
@@ -91,7 +100,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         loadDepartmentStaff(Number(targetDeptId));
       }
     }
-  }, [isOpen, departments, currentUserRole, currentUserDeptId, initialDeptId, initialIsIssue]);
+  }, [isOpen, departments, currentUserRole, currentUserDeptId, initialDeptId, initialIsIssue, initialIsGmOwnTask, currentUserId]);
 
   // Load staff for specific department
   const loadDepartmentStaff = async (deptId: number) => {
@@ -108,7 +117,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   };
 
   // Switch type mode
-  const handleTypeChange = (type: 'TASK' | 'ISSUE') => {
+  const handleTypeChange = (type: 'TASK' | 'ISSUE' | 'GM_TASK') => {
     setItemType(type);
     if (type === 'ISSUE') {
       if (!formData.title.startsWith('[ISSUE]')) {
@@ -117,6 +126,18 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           title: prev.title.trim() ? `[ISSUE] ${prev.title}` : '[ISSUE] ',
           priority: prev.priority === 'LOW' || prev.priority === 'MEDIUM' ? 'HIGH' : prev.priority,
         }));
+      }
+    } else if (type === 'GM_TASK') {
+      const gmDept = departments.find((d) => d.code === 'GM' || d.name.toLowerCase().includes('general management'));
+      setFormData((prev) => ({
+        ...prev,
+        title: prev.title.replace(/^\[ISSUE\]\s*/i, ''),
+        department: gmDept ? String(gmDept.id) : prev.department,
+        assigned_to: currentUserId ? String(currentUserId) : prev.assigned_to,
+        priority: 'HIGH',
+      }));
+      if (gmDept) {
+        loadDepartmentStaff(gmDept.id);
       }
     } else {
       // Standard Task
@@ -177,6 +198,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         finalTitle = `[ISSUE] ${finalTitle}`;
       }
 
+      const isGmOwn = itemType === 'GM_TASK' || (isGM && formData.assigned_to === String(currentUserId));
+
       const payload: any = {
         title: finalTitle,
         description: formData.description,
@@ -185,11 +208,14 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         assigned_to: formData.assigned_to ? Number(formData.assigned_to) : null,
         due_date: formData.due_date || null,
         attachment_image: attachmentImage || '',
+        is_gm_own_task: isGmOwn,
       };
 
       await api.createTask(payload);
 
-      if (itemType === 'ISSUE') {
+      if (isGmOwn) {
+        setSuccessNotice(`🔒 GM Personal Task created! Strictly private — will not be shown to any staff or department managers.`);
+      } else if (itemType === 'ISSUE') {
         setSuccessNotice(`🚨 Department Issue logged successfully! Manager and staff in ${activeDept?.name || 'department'} have been alerted.`);
       } else if (selectedStaff) {
         setSuccessNotice(`✅ Task created! Assignment email dispatched to ${selectedStaff.full_name} (${selectedStaff.email}).`);
@@ -242,8 +268,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>
                   {itemType === 'ISSUE'
-                    ? 'Report Department Issue / Incident'
-                    : 'Create New Task / Deliverable'}
+                    ? (isTamil ? 'பிரச்சனை / புகார் பதிவு செய்' : 'Report Problem / Issue')
+                    : (isTamil ? 'புதிய பணி உருவாக்கு' : 'Create New Task')}
                 </span>
                 {activeDept && (
                   <span
@@ -256,8 +282,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               </div>
               <div style={{ fontSize: '11.5px', color: 'var(--notion-text-dim)' }}>
                 {itemType === 'ISSUE'
-                  ? 'Urgent operational incident tracking & alert routing'
-                  : 'Assign institutional deliverables with deadline milestones'}
+                  ? (isTamil ? 'அவசர சிக்கல்களைப் பதிவு செய்து மேலாளருக்கு அறிவிக்கவும்' : 'Report urgent problems so managers can resolve them quickly')
+                  : (isTamil ? 'பணியாளருக்கு புதிய வேலை மற்றும் முடிக்க வேண்டிய நாளை ஒதுக்குங்கள்' : 'Assign task details and due date to staff')}
               </div>
             </div>
           </div>
@@ -297,8 +323,30 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             }}
           >
             <span>📋</span>
-            <span>Deliverable Task</span>
+            <span>{isTamil ? 'சாதாரண பணி' : 'Normal Task'}</span>
           </button>
+
+          {isGM && (
+            <button
+              type="button"
+              onClick={() => handleTypeChange('GM_TASK')}
+              className="notion-btn"
+              style={{
+                fontSize: '12.5px',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                background: itemType === 'GM_TASK' ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
+                fontWeight: itemType === 'GM_TASK' ? 700 : 500,
+                color: itemType === 'GM_TASK' ? '#d97706' : 'var(--notion-text-dim)',
+                border: itemType === 'GM_TASK' ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid transparent',
+                boxShadow: itemType === 'GM_TASK' ? '0 1px 4px rgba(245, 158, 11, 0.1)' : 'none',
+                gap: '6px',
+              }}
+            >
+              <span>⭐</span>
+              <span>{isTamil ? 'சொந்த பணி' : 'My Own Task'}</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -317,7 +365,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             }}
           >
             <span>🚨</span>
-            <span>Report Incident / Issue</span>
+            <span>{isTamil ? 'புகார் / பிரச்சனை' : 'Report Problem'}</span>
           </button>
         </div>
 
@@ -392,10 +440,33 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               </div>
             )}
 
+            {/* GM Own Task Banner */}
+            {itemType === 'GM_TASK' && (
+              <div
+                style={{
+                  marginBottom: '14px',
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  border: '1px solid rgba(245, 158, 11, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  fontSize: '12.5px',
+                  color: '#92400e',
+                }}
+              >
+                <ShieldCheck size={16} style={{ color: '#d97706', flexShrink: 0 }} />
+                <div>
+                  <strong>General Manager Executive Deliverable:</strong> This task is assigned directly to you and tracked under your personal executive desk.
+                </div>
+              </div>
+            )}
+
             {/* Title Field */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '12px', color: 'var(--notion-text-dim)', marginBottom: '5px' }}>
-                {itemType === 'ISSUE' ? 'Issue Summary / Problem Title' : 'Task Title'}
+                {itemType === 'ISSUE' ? (isTamil ? 'பிரச்சனையின் தலைப்பு' : 'Problem Title') : t('taskTitle')}
               </label>
               <input
                 type="text"
@@ -404,8 +475,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 className="notion-input"
                 placeholder={
                   itemType === 'ISSUE'
-                    ? '[ISSUE] e.g. Network switch failure in CCTV rack / Fiber packet loss'
-                    : 'Untitled Task...'
+                    ? (isTamil ? '[புகார்] எ.கா: இணையம் / கணினி வேலை செய்யவில்லை...' : '[ISSUE] e.g. Network switch failure in CCTV rack')
+                    : (isTamil ? 'என்ன வேலை செய்ய வேண்டும்? (எ.கா: மாதாந்திர அறிக்கை தயாரித்தல்)...' : 'What needs to be done? (e.g. Prepare monthly budget report)...')
                 }
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -416,14 +487,14 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             {/* Description Field */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '12px', color: 'var(--notion-text-dim)', marginBottom: '5px' }}>
-                {itemType === 'ISSUE' ? 'Issue Details & Steps to Reproduce' : 'Description & Deliverables'}
+                {itemType === 'ISSUE' ? (isTamil ? 'பிரச்சனை பற்றிய எளிய விவரம்' : 'Problem Details & Description') : t('taskDescription')}
               </label>
               <textarea
                 className="notion-textarea"
                 placeholder={
                   itemType === 'ISSUE'
-                    ? 'Describe what happened, error codes observed, affected systems, and operational impact...'
-                    : 'Write task specifications and deliverables...'
+                    ? (isTamil ? 'என்ன நடந்தது? எங்கு பிரச்சனை? எளிய குறிப்புகளை எழுதவும்...' : 'Describe what happened, affected systems, and operational impact...')
+                    : t('taskDescPlaceholder')
                 }
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -435,7 +506,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: 'var(--notion-text-dim)', marginBottom: '5px' }}>
-                  Department {isRestrictedDept && <span style={{ color: 'var(--notion-text-dim)', fontSize: '11px' }}>(Locked)</span>}
+                  {t('department')} {isRestrictedDept && <span style={{ color: 'var(--notion-text-dim)', fontSize: '11px' }}>({isTamil ? 'பூட்டப்பட்டது' : 'Locked'})</span>}
                 </label>
                 <select
                   className="notion-select"
@@ -454,7 +525,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
                   <label style={{ fontSize: '12px', color: 'var(--notion-text-dim)' }}>
-                    Assignee
+                    {t('assignedTo')}
                   </label>
                   {isStaff && currentUserId && (
                     <button
@@ -463,7 +534,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                       className="notion-btn"
                       style={{ fontSize: '11px', padding: '1px 6px', color: '#2383e2' }}
                     >
-                      Assign to me
+                      {isTamil ? 'எனக்கு ஒதுக்கு' : 'Assign to me'}
                     </button>
                   )}
                 </div>
@@ -475,12 +546,17 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 >
                   <option value="">
                     {itemType === 'ISSUE'
-                      ? '— Unassigned (Department Queue for Manager Review) —'
-                      : '— Unassigned (Department Backlog) —'}
+                      ? (isTamil ? '— ஒதுக்கப்படவில்லை (மேலாளர் பார்வைக்கு) —' : '— Unassigned (Department Queue) —')
+                      : (isTamil ? '— ஒதுக்கப்படவில்லை (யாருக்கும் தரப்படவில்லை) —' : '— Unassigned (Department Backlog) —')}
                   </option>
-                  {departmentStaff.map((s) => (
+                  {isGM && currentUserId && (
+                    <option value={String(currentUserId)}>
+                      {isTamil ? '⭐ நானே செய்துகொள்கிறேன் (எனது சொந்த மேசை)' : '⭐ General Manager (Myself) — Assign to my own desk'}
+                    </option>
+                  )}
+                  {departmentStaff.filter((s) => s.id !== currentUserId).map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.full_name || s.username} ({s.role === 'DEPT_MANAGER' ? 'Manager' : s.job_title || 'Staff'}) {s.id === currentUserId ? '★ You' : ''} {s.email ? `— ${s.email}` : ''}
+                      {s.full_name || s.username} ({s.role === 'DEPT_MANAGER' ? 'Manager' : s.job_title || 'Staff'}) {s.email ? `— ${s.email}` : ''}
                     </option>
                   ))}
                 </select>
@@ -527,24 +603,24 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: 'var(--notion-text-dim)', marginBottom: '5px' }}>
-                  Priority
+                  {t('priority')}
                 </label>
                 <select
                   className="notion-select"
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value as Priority })}
                 >
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High (Important)</option>
-                  <option value="URGENT">Urgent (Immediate Attention)</option>
+                  <option value="LOW">{isTamil ? 'குறைவு (Low)' : 'Low'}</option>
+                  <option value="MEDIUM">{isTamil ? 'சாதாரண (Medium)' : 'Medium'}</option>
+                  <option value="HIGH">{isTamil ? 'முக்கியம் (High)' : 'High (Important)'}</option>
+                  <option value="URGENT">{isTamil ? 'மிக அவசரம்! (Urgent)' : 'Urgent (Immediate Attention)'}</option>
                 </select>
               </div>
 
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
                   <label style={{ fontSize: '12px', color: 'var(--notion-text-dim)' }}>
-                    Timeline / Due Date
+                    {t('dueDate')}
                   </label>
                   {timelineSummary && (
                     <span className={`notion-tag ${timelineSummary.tagClass}`} style={{ fontSize: '11px', padding: '1px 6px' }}>
@@ -566,7 +642,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     className="notion-btn notion-btn-bordered"
                     style={{ fontSize: '11px', padding: '2px 6px', lineHeight: 1.2 }}
                   >
-                    Today
+                    {t('today')}
                   </button>
                   <button
                     type="button"
@@ -574,7 +650,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     className="notion-btn notion-btn-bordered"
                     style={{ fontSize: '11px', padding: '2px 6px', lineHeight: 1.2 }}
                   >
-                    Tomorrow
+                    {t('tomorrow')}
                   </button>
                   <button
                     type="button"
@@ -582,7 +658,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     className="notion-btn notion-btn-bordered"
                     style={{ fontSize: '11px', padding: '2px 6px', lineHeight: 1.2 }}
                   >
-                    +3 Days
+                    {isTamil ? '+3 நாட்கள்' : '+3 Days'}
                   </button>
                   <button
                     type="button"
@@ -590,7 +666,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     className="notion-btn notion-btn-bordered"
                     style={{ fontSize: '11px', padding: '2px 6px', lineHeight: 1.2 }}
                   >
-                    +1 Week
+                    {isTamil ? '+1 வாரம்' : '+1 Week'}
                   </button>
                 </div>
               </div>
@@ -601,10 +677,10 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <label style={{ fontSize: '12px', color: 'var(--notion-text-dim)', fontWeight: 600 }}>
-                    📸 Attachment Image
+                    {isTamil ? '📸 புகைப்படம் இணைக்க' : '📸 Attachment Photo'}
                   </label>
                   <span className="notion-tag tag-gray" style={{ fontSize: '10px', padding: '1px 6px', fontWeight: 500 }}>
-                    Optional (Not Required)
+                    {isTamil ? 'விருப்பம் (கட்டாயமில்லை)' : 'Optional (Not Required)'}
                   </span>
                 </div>
                 {attachmentImage && (
@@ -614,7 +690,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     className="notion-btn notion-btn-ghost"
                     style={{ fontSize: '11px', color: '#ef4444', padding: '1px 6px' }}
                   >
-                    Remove Image
+                    {isTamil ? 'படத்தை நீக்கு' : 'Remove Image'}
                   </button>
                 )}
               </div>
@@ -643,7 +719,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   }}
                 >
                   <Camera size={14} />
-                  <span style={{ fontSize: '12px' }}>Choose or drag image file (Optional — skip anytime)</span>
+                  <span style={{ fontSize: '12px' }}>
+                    {isTamil ? 'படத்தைத் தேர்வு செய்யவும் (விருப்பம் — தவிர்க்கலாம்)' : 'Choose or drag photo file (Optional — skip anytime)'}
+                  </span>
                   <input
                     type="file"
                     accept="image/*"
@@ -750,7 +828,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               disabled={loading}
               style={{ borderRadius: '8px', padding: '7px 16px', fontSize: '12.5px', fontWeight: 600 }}
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="submit"
@@ -773,10 +851,10 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               }}
             >
               {loading
-                ? 'Submitting...'
+                ? (isTamil ? 'உருவாக்குகிறது...' : 'Submitting...')
                 : itemType === 'ISSUE'
-                ? '🚨 Report Department Issue'
-                : 'Create & Assign Ticket'}
+                ? (isTamil ? '🚨 பிரச்சனையைப் பதிவு செய்' : '🚨 Report Problem')
+                : (isTamil ? 'பணியை உருவாக்கு' : 'Create Task')}
             </button>
           </div>
         </form>

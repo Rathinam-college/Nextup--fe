@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Task, Role, User, Department, Priority } from '../types';
+import { Task, Role, User, Department, Priority, TaskStatus } from '../types';
 import { api } from '../services/api';
+import { useLanguage, getTranslatedStatus, getTranslatedPriority } from '../context/LanguageContext';
 import {
   X,
   Calendar,
   User as UserIcon,
+  UserCheck,
   Building,
   CheckCircle,
   CheckCircle2,
@@ -23,30 +25,45 @@ import {
   Camera,
   Edit,
   Save,
+  Flag,
+  Activity,
+  FileText,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface NotionTaskModalProps {
   task: Task | null;
   onClose: () => void;
-  onTaskUpdated: () => void;
+  onTaskUpdated: (updatedTask?: Task) => void;
   currentUserRole?: Role;
   departments?: Department[];
+  initialEditMode?: boolean;
 }
 
 export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
-  task,
+  task: initialTask,
   onClose,
   onTaskUpdated,
   currentUserRole,
   departments = [],
+  initialEditMode = false,
 }) => {
   const isGM = currentUserRole === 'GENERAL_MANAGER' || currentUserRole === 'SUPER_ADMIN';
+  const { t, isTamil, language } = useLanguage();
+  const [currentTask, setCurrentTask] = useState<Task | null>(initialTask);
+
+  useEffect(() => {
+    setCurrentTask(initialTask);
+  }, [initialTask]);
+
+  const task = currentTask || initialTask;
 
   // Task Editing & Deletion State (GM & Super Admin only)
   const [isEditingTask, setIsEditingTask] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editPriority, setEditPriority] = useState<Priority>('MEDIUM');
+  const [editStatus, setEditStatus] = useState<TaskStatus>('TODO');
   const [editDueDate, setEditDueDate] = useState('');
   const [editDepartmentId, setEditDepartmentId] = useState<number>(0);
   const [editAssignedTo, setEditAssignedTo] = useState<number | null>(null);
@@ -82,18 +99,23 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
   const [imageSuccessNotice, setImageSuccessNotice] = useState<string | null>(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
-  // Sync edit form state when task loads
+  // Sync edit form state when task loads or changes
   useEffect(() => {
     if (task) {
-      setEditTitle(task.title);
+      setEditTitle(task.title || '');
       setEditDescription(task.description || '');
-      setEditPriority(task.priority);
-      setEditDueDate(task.due_date || '');
-      setEditDepartmentId(task.department);
-      setEditAssignedTo(task.assigned_to);
-      setIsEditingTask(false);
+      setEditPriority(task.priority || 'MEDIUM');
+      setEditStatus(task.status || 'TODO');
+      setEditDueDate(task.due_date ? task.due_date.split('T')[0] : '');
+      setEditDepartmentId(task.department || 0);
+      setEditAssignedTo(task.assigned_to || null);
+      if (initialEditMode && isGM) {
+        setIsEditingTask(true);
+      } else {
+        setIsEditingTask(false);
+      }
     }
-  }, [task?.id]);
+  }, [task?.id, initialEditMode, isGM]);
 
   // Load department staff whenever modal opens or department changes
   useEffect(() => {
@@ -125,16 +147,18 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
     try {
       setSavingEdit(true);
       setError(null);
-      await api.updateTask(task.id, {
+      const updated = await api.updateTask(task.id, {
         title: editTitle.trim(),
         description: editDescription,
         priority: editPriority,
+        status: editStatus,
         due_date: editDueDate || null,
         department: Number(editDepartmentId),
         assigned_to: editAssignedTo ? Number(editAssignedTo) : null,
       });
+      setCurrentTask(updated);
       setIsEditingTask(false);
-      onTaskUpdated();
+      onTaskUpdated(updated);
     } catch (err: any) {
       setError(`Failed to update task: ${err.message}`);
     } finally {
@@ -200,7 +224,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
           setUploadingImage(true);
           setError(null);
           await api.attachImage(task.id, finalBase64);
-          setImageSuccessNotice('✅ Optional image attached successfully!');
+          setImageSuccessNotice('Optional image attached successfully.');
           onTaskUpdated();
           setTimeout(() => setImageSuccessNotice(null), 3500);
         } catch (err: any) {
@@ -300,24 +324,24 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
     const diffDays = Math.round((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     if (diffDays < 0) {
       return {
-        label: `🚨 Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'}`,
+        label: `Overdue by ${Math.abs(diffDays)}d`,
         colorClass: 'tag-red',
       };
     }
     if (diffDays === 0) {
       return {
-        label: '⚠️ Due Today',
+        label: 'Due Today',
         colorClass: 'tag-yellow',
       };
     }
     if (diffDays === 1) {
       return {
-        label: '⏰ Due Tomorrow',
+        label: 'Due Tomorrow',
         colorClass: 'tag-orange',
       };
     }
     return {
-      label: `📅 ${diffDays} days remaining`,
+      label: `${diffDays} days left`,
       colorClass: 'tag-blue',
     };
   };
@@ -418,34 +442,36 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
   };
 
   const getStatusTag = (status: string) => {
+    const text = getTranslatedStatus(status, language);
     switch (status) {
       case 'TODO':
-        return <span className="notion-tag tag-gray">To Do</span>;
+        return <span className="notion-tag tag-gray">{text}</span>;
       case 'IN_PROGRESS':
-        return <span className="notion-tag tag-blue">In Progress</span>;
+        return <span className="notion-tag tag-blue">{text}</span>;
       case 'PENDING_GM_APPROVAL':
-        return <span className="notion-tag tag-yellow">Pending GM Review</span>;
+        return <span className="notion-tag tag-yellow">{text}</span>;
       case 'CHANGES_REQUESTED':
-        return <span className="notion-tag tag-red">Changes Requested</span>;
+        return <span className="notion-tag tag-red">{text}</span>;
       case 'CLOSED':
-        return <span className="notion-tag tag-green">Closed & Verified</span>;
+        return <span className="notion-tag tag-green">{text}</span>;
       default:
-        return <span className="notion-tag tag-gray">{status}</span>;
+        return <span className="notion-tag tag-gray">{text}</span>;
     }
   };
 
   const getPriorityTag = (p: string) => {
+    const text = getTranslatedPriority(p, language);
     switch (p) {
       case 'LOW':
-        return <span className="notion-tag tag-gray">Low</span>;
+        return <span className="notion-tag tag-gray">{text}</span>;
       case 'MEDIUM':
-        return <span className="notion-tag tag-blue">Medium</span>;
+        return <span className="notion-tag tag-blue">{text}</span>;
       case 'HIGH':
-        return <span className="notion-tag tag-orange">High</span>;
+        return <span className="notion-tag tag-orange">{text}</span>;
       case 'URGENT':
-        return <span className="notion-tag tag-red">Urgent</span>;
+        return <span className="notion-tag tag-red">{text}</span>;
       default:
-        return <span className="notion-tag tag-gray">{p}</span>;
+        return <span className="notion-tag tag-gray">{text}</span>;
     }
   };
 
@@ -480,23 +506,25 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsEditingTask(true)}
-                  className="notion-btn notion-btn-bordered"
+                  className="notion-btn"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '5px',
+                    gap: '6px',
                     fontSize: '12px',
-                    fontWeight: 600,
-                    padding: '5px 12px',
+                    fontWeight: 700,
+                    padding: '6px 14px',
                     borderRadius: '8px',
-                    color: 'var(--notion-blue)',
-                    borderColor: 'rgba(37, 99, 235, 0.3)',
-                    background: 'rgba(37, 99, 235, 0.05)',
+                    color: '#ffffff',
+                    background: 'var(--notion-accent, #2383e2)',
+                    boxShadow: '0 2px 6px rgba(35, 131, 226, 0.35)',
+                    border: 'none',
+                    cursor: 'pointer',
                   }}
                   title="Edit task details (GM & Super Admin only)"
                 >
                   <Edit size={13} />
-                  <span>Edit Task</span>
+                  <span>{t('editTask')}</span>
                 </button>
                 <button
                   type="button"
@@ -518,7 +546,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                   title="Permanently delete this task (GM & Super Admin only)"
                 >
                   <Trash2 size={13} />
-                  <span>{deletingTask ? 'Deleting...' : 'Delete'}</span>
+                  <span>{deletingTask ? (isTamil ? 'நீக்குகிறது...' : 'Deleting...') : t('deleteTask')}</span>
                 </button>
               </>
             )}
@@ -586,6 +614,20 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                 </span>
               </div>
 
+              {/* Sub-header with Assigned By */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--notion-text-dim)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <UserCheck size={13} style={{ color: '#8b5cf6' }} />
+                  Assigned By: <strong style={{ color: 'var(--notion-text)' }}>{task.created_by_name || 'Management'}</strong>
+                </span>
+                {task.created_at && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Clock size={12} />
+                    {new Date(task.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                )}
+              </div>
+
               {/* Title */}
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text-dim)', marginBottom: '6px' }}>
@@ -602,11 +644,11 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                 />
               </div>
 
-              {/* Grid: Department, Assignee, Priority, Due Date */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '16px' }}>
+              {/* Grid: Department, Assignee, Priority, Status, Due Date */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text-dim)', marginBottom: '6px' }}>
-                    🏢 Department *
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text-dim)', marginBottom: '6px' }}>
+                    <Building size={13} /> Department *
                   </label>
                   <select
                     className="notion-select"
@@ -627,8 +669,8 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text-dim)', marginBottom: '6px' }}>
-                    👤 Assigned Staff
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text-dim)', marginBottom: '6px' }}>
+                    <UserIcon size={13} /> Assigned To
                   </label>
                   <select
                     className="notion-select"
@@ -646,8 +688,8 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text-dim)', marginBottom: '6px' }}>
-                    ⚡ Priority
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text-dim)', marginBottom: '6px' }}>
+                    <Flag size={13} /> Priority
                   </label>
                   <select
                     className="notion-select"
@@ -663,8 +705,26 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text-dim)', marginBottom: '6px' }}>
-                    📅 Due Date
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text-dim)', marginBottom: '6px' }}>
+                    <Activity size={13} /> Status
+                  </label>
+                  <select
+                    className="notion-select"
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as TaskStatus)}
+                    style={{ width: '100%', fontSize: '13px' }}
+                  >
+                    <option value="TODO">To Do (Open)</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="PENDING_GM_APPROVAL">Pending GM Approval</option>
+                    <option value="CHANGES_REQUESTED">Changes Requested</option>
+                    <option value="CLOSED">Closed (Verified & Done)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text-dim)', marginBottom: '6px' }}>
+                    <Calendar size={13} /> Due Date
                   </label>
                   <input
                     type="date"
@@ -699,7 +759,8 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                     setEditTitle(task.title);
                     setEditDescription(task.description || '');
                     setEditPriority(task.priority);
-                    setEditDueDate(task.due_date || '');
+                    setEditStatus(task.status);
+                    setEditDueDate(task.due_date ? task.due_date.split('T')[0] : '');
                     setEditDepartmentId(task.department);
                     setEditAssignedTo(task.assigned_to);
                     setIsEditingTask(false);
@@ -722,263 +783,400 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
             </form>
           ) : (
             <>
-              {/* Page Title */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '28px' }}>📄</span>
-                <h1 style={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.25, color: 'var(--notion-text)' }}>
-                  {task.title}
-                </h1>
-              </div>
-
-          {/* Properties Table (Notion Property List) */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '120px 1fr',
-              rowGap: '10px',
-              fontSize: '13px',
-              marginBottom: '24px',
-              paddingBottom: '20px',
-              borderBottom: '1px solid var(--notion-border-subtle)',
-            }}
-          >
-            <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>🔵</span> Status
-            </div>
-            <div>{getStatusTag(task.status)}</div>
-
-            <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>⚡</span> Priority
-            </div>
-            <div>{getPriorityTag(task.priority)}</div>
-
-            <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>👤</span> Assignee
-            </div>
-            <div>
-              {isEditingAssignee ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <select
-                    className="notion-select"
-                    defaultValue={task.assigned_to || ''}
-                    disabled={updatingAssignee}
-                    onChange={(e) => handleReassignStaff(e.target.value)}
-                    style={{ fontSize: '12px', padding: '4px 8px' }}
+              {/* Page Title & Actions */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1, minWidth: '220px' }}>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '8px',
+                      background: 'rgba(35, 131, 226, 0.08)',
+                      color: 'var(--notion-accent, #2383e2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      marginTop: '2px',
+                    }}
                   >
-                    <option value="">— Unassign —</option>
-                    {departmentStaff.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.full_name || s.username} ({s.role === 'DEPT_MANAGER' ? 'Manager' : s.job_title || 'Staff'}) {s.email ? `— ${s.email}` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    <FileText size={18} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h1
+                      style={{
+                        fontSize: '1.45rem',
+                        fontWeight: 700,
+                        lineHeight: 1.3,
+                        color: 'var(--notion-text)',
+                        margin: 0,
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {task.title}
+                    </h1>
+                  </div>
+                </div>
+
+                {isGM && !isEditingTask && (
                   <button
                     type="button"
-                    onClick={() => setIsEditingAssignee(false)}
-                    className="notion-btn notion-btn-ghost"
-                    style={{ fontSize: '11px', padding: '4px 8px' }}
+                    onClick={() => setIsEditingTask(true)}
+                    className="notion-btn notion-btn-bordered"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 14px',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      borderRadius: '8px',
+                      color: 'var(--notion-accent, #2383e2)',
+                      borderColor: 'rgba(35, 131, 226, 0.35)',
+                      background: 'rgba(35, 131, 226, 0.06)',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                    title="Edit task specifications, priority, assignee, status, due date"
                   >
-                    Cancel
+                    <Edit size={13} />
+                    <span>{t('editTask')}</span>
                   </button>
-                  {updatingAssignee && (
-                    <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>Saving...</span>
+                )}
+              </div>
+
+              {/* Properties Grid (Notion / Linear Property List) */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '130px 1fr',
+                  rowGap: '12px',
+                  columnGap: '16px',
+                  fontSize: '13px',
+                  marginBottom: '24px',
+                  padding: '16px 18px',
+                  borderRadius: '10px',
+                  background: 'var(--notion-item-bg)',
+                  border: '1px solid var(--notion-border-subtle)',
+                  alignItems: 'center',
+                }}
+              >
+                {/* Status */}
+                <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 500 }}>
+                  <Activity size={14} style={{ opacity: 0.8 }} />
+                  <span>{t('status')}</span>
+                </div>
+                <div>{getStatusTag(task.status)}</div>
+
+                {/* Priority */}
+                <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 500 }}>
+                  <Flag size={14} style={{ opacity: 0.8 }} />
+                  <span>{t('priority')}</span>
+                </div>
+                <div>{getPriorityTag(task.priority)}</div>
+
+                {/* Assigned By */}
+                <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 500 }}>
+                  <UserCheck size={14} style={{ color: '#8b5cf6' }} />
+                  <span>{t('assignedBy')}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      padding: '3px 9px 3px 4px',
+                      borderRadius: '6px',
+                      background: 'var(--notion-card)',
+                      border: '1px solid var(--notion-border)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+                        color: '#ffffff',
+                        fontSize: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {(task.created_by_name || 'A').charAt(0).toUpperCase()}
+                    </span>
+                    <span style={{ fontWeight: 600, fontSize: '12.5px', color: 'var(--notion-text)' }}>
+                      {task.created_by_name || 'Management'}
+                    </span>
+                  </div>
+
+                  {task.created_at && (
+                    <span
+                      style={{
+                        fontSize: '11.5px',
+                        color: 'var(--notion-text-dim)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                      title={`Created on ${new Date(task.created_at).toLocaleString()}`}
+                    >
+                      <Clock size={11} />
+                      {new Date(task.created_at).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </span>
                   )}
                 </div>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  {task.assigned_to ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span
-                        style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          background: '#3373ba',
-                          color: '#fff',
-                          fontSize: '10px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 700,
-                        }}
+
+                {/* Assigned To */}
+                <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 500 }}>
+                  <UserIcon size={14} style={{ color: '#2383e2' }} />
+                  <span>{t('assignedTo')}</span>
+                </div>
+                <div>
+                  {isEditingAssignee ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <select
+                        className="notion-select"
+                        defaultValue={task.assigned_to || ''}
+                        disabled={updatingAssignee}
+                        onChange={(e) => handleReassignStaff(e.target.value)}
+                        style={{ fontSize: '12px', padding: '4px 8px' }}
                       >
-                        {(task.assigned_to_name || '?').charAt(0).toUpperCase()}
-                      </span>
-                      <span style={{ fontWeight: 600, color: 'var(--notion-text)' }}>
-                        {task.assigned_to_name}
-                      </span>
+                        <option value="">— Unassign —</option>
+                        {departmentStaff.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.full_name || s.username} ({s.role === 'DEPT_MANAGER' ? 'Manager' : s.job_title || 'Staff'}) {s.email ? `— ${s.email}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingAssignee(false)}
+                        className="notion-btn notion-btn-ghost"
+                        style={{ fontSize: '11px', padding: '4px 8px' }}
+                      >
+                        Cancel
+                      </button>
+                      {updatingAssignee && (
+                        <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>Saving...</span>
+                      )}
                     </div>
                   ) : (
-                    <span className="notion-tag tag-yellow" style={{ fontSize: '11px' }}>
-                      ⚠️ Unassigned
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      {task.assigned_to ? (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '7px',
+                            padding: '3px 9px 3px 4px',
+                            borderRadius: '6px',
+                            background: 'var(--notion-card)',
+                            border: '1px solid var(--notion-border)',
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: '22px',
+                              height: '22px',
+                              borderRadius: '50%',
+                              background: '#2383e2',
+                              color: '#ffffff',
+                              fontSize: '10px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {(task.assigned_to_name || '?').charAt(0).toUpperCase()}
+                          </span>
+                          <span style={{ fontWeight: 600, fontSize: '12.5px', color: 'var(--notion-text)' }}>
+                            {task.assigned_to_name}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="notion-tag tag-yellow" style={{ fontSize: '11px' }}>
+                          Unassigned
+                        </span>
+                      )}
+
+                      {task.assigned_to_email && (
+                        <span style={{ fontSize: '12px', color: 'var(--notion-text-dim)' }}>
+                          &lt;{task.assigned_to_email}&gt;
+                        </span>
+                      )}
+
+                      {canManageAssignment && (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingAssignee(true)}
+                          className="notion-btn notion-btn-bordered"
+                          style={{
+                            fontSize: '11px',
+                            padding: '2px 8px',
+                            color: 'var(--notion-blue)',
+                            borderColor: 'rgba(2, 132, 199, 0.3)',
+                            background: 'rgba(2, 132, 199, 0.05)',
+                          }}
+                        >
+                          {task.assigned_to ? 'Change ▾' : '+ Assign Staff'}
+                        </button>
+                      )}
+
+                      {task.assigned_to && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleSendAssignmentEmail}
+                            disabled={sendingAssignmentEmail}
+                            className="notion-btn notion-btn-bordered"
+                            style={{
+                              fontSize: '11px',
+                              padding: '2px 8px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              color: '#2383e2',
+                              borderColor: 'rgba(35, 131, 226, 0.4)',
+                              background: 'rgba(35, 131, 226, 0.05)',
+                            }}
+                            title={`Send or re-send task details email directly to ${task.assigned_to_email || task.assigned_to_name}`}
+                          >
+                            <Mail size={11} />
+                            <span>{sendingAssignmentEmail ? 'Sending...' : 'Email Task'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPushMessageOpen(true);
+                              setPushMessageError(null);
+                              setPushMessageSuccess(null);
+                            }}
+                            className="notion-btn notion-btn-bordered"
+                            style={{
+                              fontSize: '11px',
+                              padding: '2px 8px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              color: '#6366f1',
+                              borderColor: 'rgba(99, 102, 241, 0.4)',
+                              background: 'rgba(99, 102, 241, 0.05)',
+                            }}
+                            title={`Push direct message & notification to ${task.assigned_to_name}`}
+                          >
+                            <Send size={11} />
+                            <span>Push Message</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   )}
 
-                  {task.assigned_to_email && (
-                    <span style={{ fontSize: '12px', color: 'var(--notion-text-dim)' }}>
-                      &lt;{task.assigned_to_email}&gt;
-                    </span>
+                  {assigneeSuccessNotice && (
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--tag-green-text)', fontWeight: 500 }}>
+                      {assigneeSuccessNotice}
+                    </div>
                   )}
+                </div>
 
-                  {canManageAssignment && (
+                {/* Department */}
+                <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 500 }}>
+                  <Building size={14} style={{ opacity: 0.8 }} />
+                  <span>Department</span>
+                </div>
+                <div>
+                  <span className="notion-tag tag-purple">
+                    {task.department_name} ({task.department_code})
+                  </span>
+                </div>
+
+                {/* Due Date */}
+                <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 500 }}>
+                  <Calendar size={14} style={{ opacity: 0.8 }} />
+                  <span>{t('dueDate')}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ color: task.due_date ? 'var(--notion-text)' : 'var(--notion-text-dim)', fontWeight: 500 }}>
+                    {task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : (isTamil ? 'நாள் குறிப்பிடப்படவில்லை' : 'No deadline set')}
+                  </span>
+                  {task.due_date && (() => {
+                    const info = getTimelineInfo(task.due_date);
+                    return info ? <span className={`notion-tag ${info.colorClass}`}>{info.label}</span> : null;
+                  })()}
+                  {task.status !== 'CLOSED' && task.due_date && (
                     <button
                       type="button"
-                      onClick={() => setIsEditingAssignee(true)}
+                      onClick={handleSendTimelineReminder}
+                      disabled={sendingReminder}
                       className="notion-btn notion-btn-bordered"
                       style={{
                         fontSize: '11px',
                         padding: '2px 8px',
-                        color: 'var(--notion-blue)',
-                        borderColor: 'rgba(2, 132, 199, 0.3)',
-                        background: 'rgba(2, 132, 199, 0.05)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        color: '#2383e2',
+                        borderColor: 'rgba(35, 131, 226, 0.4)',
+                        cursor: sendingReminder ? 'not-allowed' : 'pointer',
                       }}
+                      title="Send timeline reminder email"
                     >
-                      {task.assigned_to ? 'Change / Reassign ▾' : '+ Assign Staff'}
+                      <Mail size={11} />
+                      <span>{sendingReminder ? (isTamil ? 'அனுப்புகிறது...' : 'Sending...') : (isTamil ? 'நினைவூட்டு' : 'Send Reminder')}</span>
                     </button>
                   )}
+                </div>
 
-                  {task.assigned_to && (
-                    <>
+                {/* Verified By (if present) */}
+                {task.verified_by_name && (
+                  <>
+                    <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 500 }}>
+                      <ShieldCheck size={14} style={{ color: '#10b981' }} />
+                      <span>{isTamil ? 'சரிபார்த்தவர்' : 'Verified By'}</span>
+                    </div>
+                    <div style={{ color: 'var(--tag-green-text)', fontWeight: 600, fontSize: '12.5px' }}>
+                      {task.verified_by_name} {task.closed_at ? `• ${new Date(task.closed_at).toLocaleDateString()}` : ''}
+                    </div>
+                  </>
+                )}
+
+                {/* Attachment Image */}
+                <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 500 }}>
+                  <ImageIcon size={14} style={{ opacity: 0.8 }} />
+                  <span>{isTamil ? 'இணைப்பு' : 'Attachment'}</span>
+                </div>
+                <div>
+                  {task.attachment_image ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="notion-tag tag-green" style={{ fontSize: '11px' }}>
+                        {isTamil ? 'படம் இணைக்கப்பட்டுள்ளது' : 'Image Attached'}
+                      </span>
                       <button
                         type="button"
-                        onClick={handleSendAssignmentEmail}
-                        disabled={sendingAssignmentEmail}
+                        onClick={() => setIsImageModalOpen(true)}
                         className="notion-btn notion-btn-bordered"
-                        style={{
-                          fontSize: '11px',
-                          padding: '2px 8px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          color: '#2383e2',
-                          borderColor: 'rgba(35, 131, 226, 0.4)',
-                          background: 'rgba(35, 131, 226, 0.05)',
-                        }}
-                        title={`Send or re-send task details email directly to ${task.assigned_to_email || task.assigned_to_name}`}
+                        style={{ fontSize: '11px', padding: '2px 8px' }}
                       >
-                        <Mail size={12} />
-                        <span>{sendingAssignmentEmail ? 'Sending...' : 'Send Task Email'}</span>
+                        {isTamil ? 'பார்' : 'View'}
                       </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsPushMessageOpen(true);
-                          setPushMessageError(null);
-                          setPushMessageSuccess(null);
-                        }}
-                        className="notion-btn"
-                        style={{
-                          fontSize: '11px',
-                          padding: '3px 10px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          color: '#fff',
-                          background: 'linear-gradient(135deg, #0284c7, #6366f1)',
-                          borderRadius: '4px',
-                          fontWeight: 600,
-                          border: 'none',
-                          boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
-                          cursor: 'pointer',
-                        }}
-                        title={`Push custom direct message & notification to ${task.assigned_to_name}`}
-                      >
-                        <Send size={12} />
-                        <span>Push Message to Staff</span>
-                      </button>
-                    </>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: '12px', color: 'var(--notion-text-dim)' }}>
+                      {isTamil ? 'இல்லை' : 'None'}
+                    </span>
                   )}
                 </div>
-              )}
-
-              {assigneeSuccessNotice && (
-                <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--tag-green-text)', fontWeight: 500 }}>
-                  ✅ {assigneeSuccessNotice}
-                </div>
-              )}
-            </div>
-
-            <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>🏢</span> Department
-            </div>
-            <div>
-              <span className="notion-tag tag-purple">
-                {task.department_name} ({task.department_code})
-              </span>
-            </div>
-
-            <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>📅</span> Due Date
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ color: task.due_date ? 'var(--notion-text)' : 'var(--notion-text-dim)' }}>
-                {task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'No deadline set'}
-              </span>
-              {task.due_date && (() => {
-                const info = getTimelineInfo(task.due_date);
-                return info ? <span className={`notion-tag ${info.colorClass}`}>{info.label}</span> : null;
-              })()}
-              {task.status !== 'CLOSED' && (
-                <button
-                  type="button"
-                  onClick={handleSendTimelineReminder}
-                  disabled={sendingReminder}
-                  className="notion-btn notion-btn-bordered"
-                  style={{
-                    fontSize: '11px',
-                    padding: '2px 8px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    color: '#2383e2',
-                    borderColor: 'rgba(35, 131, 226, 0.4)',
-                    cursor: sendingReminder ? 'not-allowed' : 'pointer',
-                  }}
-                  title="Send timeline status and milestone countdown email to assignee and manager"
-                >
-                  <Mail size={12} />
-                  <span>{sendingReminder ? 'Sending Mail...' : 'Send Reminder Email'}</span>
-                </button>
-              )}
-            </div>
-
-            {task.verified_by_name && (
-              <>
-                <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>🛡️</span> Verified By
-                </div>
-                <div style={{ color: '#529e72', fontWeight: 500 }}>
-                  {task.verified_by_name} ({task.closed_at ? new Date(task.closed_at).toLocaleDateString() : 'Signed off'})
-                </div>
-              </>
-            )}
-
-            <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <ImageIcon size={14} /> Attachment Image
-            </div>
-            <div>
-              {task.attachment_image ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="notion-tag tag-green" style={{ fontSize: '11px' }}>
-                    ✓ 1 Image Attached
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIsImageModalOpen(true)}
-                    className="notion-btn notion-btn-bordered"
-                    style={{ fontSize: '11px', padding: '2px 8px' }}
-                  >
-                    View
-                  </button>
-                </div>
-              ) : (
-                <span style={{ fontSize: '12px', color: 'var(--notion-text-dim)' }}>
-                  None (Optional)
-                </span>
-              )}
-            </div>
-          </div>
+              </div>
 
           {/* GM Feedback Callout Box if present */}
           {task.gm_feedback_notes && (
@@ -989,7 +1187,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
               <Sparkles size={18} />
               <div>
                 <div style={{ fontWeight: 600, marginBottom: '2px' }}>
-                  {task.status === 'CLOSED' ? 'GM Verification Remarks' : 'GM Requested Changes & Revisions'}
+                  {task.status === 'CLOSED' ? (isTamil ? 'மேலாளர் ஒப்புதல் குறிப்புகள்' : 'Manager Approval Remarks') : (isTamil ? 'கோரப்பட்ட மாற்றங்கள் & திருத்தங்கள்' : 'Requested Changes & Revisions')}
                 </div>
                 <div>"{task.gm_feedback_notes}"</div>
               </div>
@@ -1004,15 +1202,15 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
                 <CheckCircle size={16} />
-                <span>Executive GM Sign-Off & Verification</span>
+                <span>{isTamil ? 'மேலாளர் ஒப்புதல் & சரிபார்ப்பு' : 'Executive GM Sign-Off & Verification'}</span>
               </div>
               <p style={{ fontSize: '12px', color: 'var(--notion-text-muted)' }}>
-                As General Manager, verify task completion before final closure. You may approve & close or request revisions.
+                {isTamil ? 'பணி நிறைவடைந்ததை சரிபார்த்து ஒப்புதல் அளியுங்கள் அல்லது திருத்தங்களைக் கோருங்கள்.' : 'As General Manager, verify task completion before final closure. You may approve & close or request revisions.'}
               </p>
 
               <textarea
                 className="notion-textarea"
-                placeholder="Optional approval remarks or required change notes..."
+                placeholder={isTamil ? 'ஒப்புதல் குறிப்பு அல்லது தேவையான மாற்றங்கள் (விருப்பம்)...' : 'Optional approval remarks or required change notes...'}
                 value={gmNotes}
                 onChange={(e) => setGmNotes(e.target.value)}
                 rows={2}
@@ -1027,7 +1225,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                   style={{ flex: 1, padding: '7px' }}
                 >
                   <CheckCircle size={14} />
-                  <span>Verify, Approve & Close</span>
+                  <span>{isTamil ? 'சரிபார்த்து ஒப்புதல் செய்' : 'Approve & Complete'}</span>
                 </button>
                 <button
                   type="button"
@@ -1037,7 +1235,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                   style={{ flex: 1, padding: '7px' }}
                 >
                   <RotateCcw size={14} />
-                  <span>Request Changes</span>
+                  <span>{isTamil ? 'திருத்தங்கள் கோரு' : 'Request Changes'}</span>
                 </button>
               </div>
             </div>
@@ -1055,7 +1253,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                   style={{ padding: '7px 14px' }}
                 >
                   <Play size={14} />
-                  <span>Start Work (Move to In Progress)</span>
+                  <span>{isTamil ? 'வேலையைத் தொடங்கு' : 'Start Work'}</span>
                 </button>
               )}
 
@@ -1068,7 +1266,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                   style={{ padding: '7px 14px', color: '#e07d10', borderColor: 'rgba(217, 115, 13, 0.4)' }}
                 >
                   <CheckCircle size={14} />
-                  <span>Submit for GM Verification</span>
+                  <span>{isTamil ? 'ஒப்புதலுக்கு அனுப்பு' : 'Submit for Approval'}</span>
                 </button>
               )}
             </div>
@@ -1076,22 +1274,23 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
 
           {/* Task Description / Deliverables */}
           <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase', marginBottom: '8px' }}>
-              Description & Specifications
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: 'var(--notion-text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
+              <FileText size={13} />
+              <span>{isTamil ? 'பணியின் விவரம் & குறிப்புகள்' : 'Description & Notes'}</span>
+            </div>
             <div
               style={{
-                fontSize: '14px',
-                lineHeight: 1.6,
+                fontSize: '13.5px',
+                lineHeight: 1.65,
                 color: 'var(--notion-text)',
                 whiteSpace: 'pre-wrap',
                 background: 'var(--notion-item-bg)',
-                padding: '12px 14px',
-                borderRadius: '4px',
+                padding: '14px 16px',
+                borderRadius: '8px',
                 border: '1px solid var(--notion-border-subtle)',
               }}
             >
-              {task.description || 'No description provided.'}
+              {task.description || (isTamil ? 'விவரம் எதுவும் இல்லை.' : 'No description provided.')}
             </div>
           </div>
             </>
@@ -1112,9 +1311,9 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <ImageIcon size={16} style={{ color: task.attachment_image ? '#2383e2' : task.status === 'IN_PROGRESS' ? '#2383e2' : 'var(--notion-text-dim)' }} />
                 <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--notion-text)' }}>
-                  {task.attachment_image ? 'Task Attached Image' : task.status === 'IN_PROGRESS'
-                    ? 'In Progress Work Attachment / Proof Image (Optional)'
-                    : 'Ticket Attachment Image (Optional)'}
+                  {task.attachment_image ? 'Attached Image' : task.status === 'IN_PROGRESS'
+                    ? 'Progress Work Attachment'
+                    : 'Ticket Attachment'}
                 </span>
                 {task.attachment_image ? (
                   <span className="notion-tag tag-blue" style={{ fontSize: '10px' }}>
@@ -1237,7 +1436,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, marginBottom: '12px' }}>
               <MessageSquare size={15} style={{ color: 'var(--notion-text-dim)' }} />
-              <span>Discussion ({task.comments?.length || 0})</span>
+              <span>{isTamil ? `கருத்துக்கள் & உரையாடல் (${task.comments?.length || 0})` : `Discussion (${task.comments?.length || 0})`}</span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
@@ -1271,14 +1470,14 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
               <input
                 type="text"
                 className="notion-input"
-                placeholder="Add a comment or note... (email notifications sent automatically)"
+                placeholder={t('addComment')}
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 disabled={loading}
               />
               <button type="submit" disabled={loading || !commentText.trim()} className="notion-btn notion-btn-bordered">
                 <Send size={13} />
-                <span>Send</span>
+                <span>{t('send')}</span>
               </button>
             </form>
           </div>
@@ -1384,11 +1583,11 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {[
-                  '⚡ Priority Focus: Please prioritize this task today.',
-                  '📋 Status Check: Please submit current progress update on this deliverable.',
-                  '⏰ Deadline Alert: Target deadline is approaching. Please submit your progress.',
-                  '⚠️ Revisions Required: Please check remarks and update deliverable.',
-                  '✅ Deliverable reviewed! Ready for final verification.',
+                  'Priority Focus: Please prioritize this task today.',
+                  'Status Check: Please submit current progress update on this deliverable.',
+                  'Deadline Alert: Target deadline is approaching. Please submit your progress.',
+                  'Revisions Required: Please check remarks and update deliverable.',
+                  'Deliverable reviewed: Ready for final verification.',
                 ].map((tpl, idx) => (
                   <button
                     key={idx}
@@ -1447,7 +1646,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                     checked={pushSendInApp}
                     onChange={(e) => setPushSendInApp(e.target.checked)}
                   />
-                  <span>🔔 Dispatch live in-app notification to staff tray</span>
+                  <span>Dispatch live in-app notification to staff</span>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
@@ -1456,7 +1655,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                     checked={pushSendEmail}
                     onChange={(e) => setPushSendEmail(e.target.checked)}
                   />
-                  <span>📨 Dispatch direct notification email to staff inbox</span>
+                  <span>Dispatch direct notification email to staff inbox</span>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: pushIsUrgent ? 'var(--tag-red-text)' : 'inherit' }}>
@@ -1465,7 +1664,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                     checked={pushIsUrgent}
                     onChange={(e) => setPushIsUrgent(e.target.checked)}
                   />
-                  <span>🚨 Mark as Urgent / High Priority Alert</span>
+                  <span>Mark as Urgent / High Priority Alert</span>
                 </label>
               </div>
 

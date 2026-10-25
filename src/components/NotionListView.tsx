@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Task, TaskStatus, Role } from '../types';
-import { Plus, Calendar, Clock, User, CheckCircle2, AlertCircle, ChevronRight, Filter, Play, Send, RotateCcw, CheckSquare } from 'lucide-react';
+import { Plus, Calendar, Clock, User, CheckCircle2, AlertCircle, ChevronRight, Filter, Play, Send, RotateCcw, CheckSquare, Edit } from 'lucide-react';
 
 interface NotionListViewProps {
   tasks: Task[];
   onSelectTask: (task: Task) => void;
+  onEditTask?: (task: Task) => void;
   onOpenCreateTask?: () => void;
   onStartTask?: (task: Task) => void;
   onSubmitTask?: (task: Task) => void;
@@ -17,6 +18,7 @@ interface NotionListViewProps {
 export const NotionListView: React.FC<NotionListViewProps> = ({
   tasks,
   onSelectTask,
+  onEditTask,
   onOpenCreateTask,
   onStartTask,
   onSubmitTask,
@@ -43,11 +45,11 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
       case 'IN_PROGRESS':
         return <span className="notion-tag tag-blue">In Progress</span>;
       case 'PENDING_GM_APPROVAL':
-        return <span className="notion-tag tag-yellow">Pending GM Review</span>;
+        return <span className="notion-tag tag-yellow">In Review</span>;
       case 'CHANGES_REQUESTED':
         return <span className="notion-tag tag-red">Changes Requested</span>;
       case 'CLOSED':
-        return <span className="notion-tag tag-green">Closed & Verified</span>;
+        return <span className="notion-tag tag-green">Completed</span>;
       default:
         return <span className="notion-tag tag-gray">{status}</span>;
     }
@@ -123,9 +125,9 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
             { id: 'ALL', label: `All (${tasks.length})` },
             { id: 'TODO', label: `To Do (${tasks.filter((t) => t.status === 'TODO').length})` },
             { id: 'IN_PROGRESS', label: `In Progress (${tasks.filter((t) => t.status === 'IN_PROGRESS').length})` },
-            { id: 'PENDING_GM_APPROVAL', label: `Pending GM (${tasks.filter((t) => t.status === 'PENDING_GM_APPROVAL').length})` },
-            { id: 'CHANGES_REQUESTED', label: `Revisions (${tasks.filter((t) => t.status === 'CHANGES_REQUESTED').length})` },
-            { id: 'CLOSED', label: `Closed (${tasks.filter((t) => t.status === 'CLOSED').length})` },
+            { id: 'PENDING_GM_APPROVAL', label: `In Review (${tasks.filter((t) => t.status === 'PENDING_GM_APPROVAL').length})` },
+            { id: 'CHANGES_REQUESTED', label: `Changes (${tasks.filter((t) => t.status === 'CHANGES_REQUESTED').length})` },
+            { id: 'CLOSED', label: `Completed (${tasks.filter((t) => t.status === 'CLOSED').length})` },
           ].map((pill) => (
             <button
               key={pill.id}
@@ -150,9 +152,9 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
           <button
             onClick={onOpenCreateTask}
             className="notion-btn notion-btn-primary"
-            style={{ fontSize: '12.5px', padding: '7px 16px', borderRadius: '9px', gap: '7px', fontWeight: 700 }}
+            style={{ fontSize: '12px', padding: '6px 14px', borderRadius: '8px', gap: '6px', fontWeight: 700 }}
           >
-            <Plus size={15} />
+            <Plus size={14} />
             <span>New Task</span>
           </button>
         )}
@@ -162,21 +164,15 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
       <div
         style={{
           border: '1px solid var(--notion-border)',
-          borderRadius: '14px',
+          borderRadius: '12px',
           background: 'var(--notion-card)',
           overflow: 'hidden',
-          boxShadow: 'var(--notion-shadow)',
+          boxShadow: 'var(--notion-shadow-sm)',
         }}
       >
         {filteredTasks.length === 0 ? (
-          <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--notion-text-muted)' }}>
-            <p style={{ margin: 0, fontSize: '14px' }}>No tasks found in this view.</p>
-            {(canCreateTask !== false && onOpenCreateTask) && (
-              <button onClick={onOpenCreateTask} className="notion-btn notion-btn-bordered" style={{ marginTop: '12px', fontSize: '12px' }}>
-                <Plus size={13} />
-                <span>Create your first task</span>
-              </button>
-            )}
+          <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--notion-text-muted)' }}>
+            <p style={{ margin: 0, fontSize: '13px' }}>No tasks in this view.</p>
           </div>
         ) : (
           filteredTasks.map((task) => (
@@ -187,7 +183,7 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '12px 18px',
+                padding: '11px 16px',
                 borderBottom: '1px solid var(--notion-border-subtle)',
                 cursor: 'pointer',
                 transition: 'background 0.12s ease',
@@ -196,14 +192,13 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--notion-hover)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              {/* Left: Icon, Title & Description & Department */}
+              {/* Left: Title & Department */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
-                <span style={{ fontSize: '16px', flexShrink: 0 }}>📄</span>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span
                       style={{
-                        fontSize: '14px',
+                        fontSize: '13.5px',
                         fontWeight: 600,
                         color: 'var(--notion-text)',
                         whiteSpace: 'nowrap',
@@ -213,12 +208,14 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
                     >
                       {task.title}
                     </span>
-                    <span className="notion-tag tag-purple" style={{ flexShrink: 0, fontSize: '11px' }}>
-                      {task.department_code}
-                    </span>
+                    {task.department_code && (
+                      <span className="notion-tag tag-purple" style={{ flexShrink: 0, fontSize: '10.5px' }}>
+                        {task.department_code}
+                      </span>
+                    )}
                     {task.attachment_image && (
                       <span className="notion-tag tag-blue" style={{ flexShrink: 0, fontSize: '10px', padding: '1px 5px' }}>
-                        🖼️ Image
+                        Image
                       </span>
                     )}
                   </div>
@@ -349,6 +346,32 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
                     >
                       <CheckCircle2 size={11} />
                       <span>Approve</span>
+                    </button>
+                  )}
+                  {(currentUserRole === 'GENERAL_MANAGER' || currentUserRole === 'SUPER_ADMIN') && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onEditTask) {
+                          onEditTask(task);
+                        } else {
+                          onSelectTask(task);
+                        }
+                      }}
+                      className="notion-btn notion-btn-bordered"
+                      style={{
+                        fontSize: '11px',
+                        padding: '3px 8px',
+                        color: 'var(--notion-accent, #2383e2)',
+                        borderColor: 'rgba(35, 131, 226, 0.4)',
+                        background: 'rgba(35, 131, 226, 0.08)',
+                        fontWeight: 600,
+                      }}
+                      title="Edit task specifications, priority, assignee, status, due date"
+                    >
+                      <Edit size={11} />
+                      <span>Edit</span>
                     </button>
                   )}
                   <button

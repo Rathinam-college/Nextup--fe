@@ -24,8 +24,10 @@ import {
   Check,
   X,
   Mail,
+  Edit,
 } from 'lucide-react';
 import { api } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 
 interface NotionTableViewProps {
   tasks: Task[];
@@ -35,6 +37,7 @@ interface NotionTableViewProps {
   selectedDeptId: number | 'ALL';
   onSelectDept: (deptId: number | 'ALL') => void;
   onSelectTask: (task: Task) => void;
+  onEditTask?: (task: Task) => void;
   onOpenCreateTask?: (deptId?: number, isIssue?: boolean) => void;
   canCreateTask?: boolean;
   currentUserRole?: Role;
@@ -52,6 +55,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
   selectedDeptId,
   onSelectDept,
   onSelectTask,
+  onEditTask,
   onOpenCreateTask,
   canCreateTask,
   currentUserRole,
@@ -60,6 +64,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
   onSubmitTask,
   onQuickApprove,
 }) => {
+  const { t, isTamil } = useLanguage();
   // Use allTasks if provided, fallback to tasks
   const sourceTasks = allTasks && allTasks.length > 0 ? allTasks : tasks;
 
@@ -97,14 +102,14 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
   }, [shareTargetStaff, sourceTasks, todayStr]);
 
   const generateShareSummaryTextForStaff = (staff: User) => {
-    let text = `📋 Rathinam TaskTracker - Work Allocation for ${staff.full_name || staff.username}\n`;
-    text += `👤 Staff: ${staff.full_name || staff.username} (${staff.email || 'No email'})\n`;
-    if (staff.department_name) text += `🏢 Department: ${staff.department_name}\n`;
-    text += `📅 Date: ${new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}\n`;
-    text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    let text = `Work Allocation for ${staff.full_name || staff.username}\n`;
+    text += `Staff: ${staff.full_name || staff.username} (${staff.email || 'No email'})\n`;
+    if (staff.department_name) text += `Department: ${staff.department_name}\n`;
+    text += `Date: ${new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}\n`;
+    text += `----------------------------------------\n\n`;
 
     if (shareTargetTasks.urgent.length > 0) {
-      text += `🚨 URGENT WORK (${shareTargetTasks.urgent.length} tasks):\n`;
+      text += `Urgent Deliverables (${shareTargetTasks.urgent.length}):\n`;
       shareTargetTasks.urgent.forEach((t, idx) => {
         text += `${idx + 1}. [${t.priority}] #${t.id}: ${t.title} (Due: ${t.due_date || 'No date'})\n`;
       });
@@ -112,7 +117,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
     }
 
     if (shareTargetTasks.inProcess.length > 0) {
-      text += `🔵 IN PROCESS WORK (${shareTargetTasks.inProcess.length} tasks):\n`;
+      text += `In Progress Deliverables (${shareTargetTasks.inProcess.length}):\n`;
       shareTargetTasks.inProcess.forEach((t, idx) => {
         text += `${idx + 1}. #${t.id}: ${t.title} (${t.status === 'PENDING_GM_APPROVAL' ? 'Pending Review' : 'In Progress'})\n`;
       });
@@ -120,10 +125,10 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
     }
 
     if (shareTargetTasks.urgent.length === 0 && shareTargetTasks.inProcess.length === 0) {
-      text += `✓ No pending urgent or in-process tasks.\n\n`;
+      text += `No pending urgent or in-process tasks.\n\n`;
     }
 
-    text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `----------------------------------------\n`;
     text += `Workspace Link: ${typeof window !== 'undefined' ? window.location.href : ''}\n`;
     return text;
   };
@@ -304,13 +309,13 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
   const getPriorityBadge = (p: string) => {
     switch (p) {
       case 'URGENT':
-        return <span className="notion-tag tag-red" style={{ fontSize: '10px', padding: '1px 5px' }}>Urgent</span>;
+        return <span className="notion-tag tag-red" style={{ fontSize: '10px', padding: '1px 5px' }}>{t('priority_urgent')}</span>;
       case 'HIGH':
-        return <span className="notion-tag tag-orange" style={{ fontSize: '10px', padding: '1px 5px' }}>High</span>;
+        return <span className="notion-tag tag-orange" style={{ fontSize: '10px', padding: '1px 5px' }}>{t('priority_high')}</span>;
       case 'MEDIUM':
-        return <span className="notion-tag tag-blue" style={{ fontSize: '10px', padding: '1px 5px' }}>Med</span>;
+        return <span className="notion-tag tag-blue" style={{ fontSize: '10px', padding: '1px 5px' }}>{t('priority_medium')}</span>;
       case 'LOW':
-        return <span className="notion-tag tag-gray" style={{ fontSize: '10px', padding: '1px 5px' }}>Low</span>;
+        return <span className="notion-tag tag-gray" style={{ fontSize: '10px', padding: '1px 5px' }}>{t('priority_low')}</span>;
       default:
         return null;
     }
@@ -343,35 +348,46 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
           gap: '16px',
         }}
       >
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '24px' }}>📊</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              background: 'rgba(2, 132, 199, 0.08)',
+              color: '#0284c7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <TableIcon size={20} />
+          </div>
+          <div>
             <h1
               style={{
-                fontSize: '1.75rem',
-                fontWeight: 800,
-                letterSpacing: '-0.025em',
+                fontSize: '1.45rem',
+                fontWeight: 700,
+                letterSpacing: '-0.02em',
                 margin: 0,
                 color: 'var(--notion-text)',
               }}
             >
-              Department Staff Status Matrix
+              Staff Workload Table
             </h1>
           </div>
-          <p style={{ margin: '6px 0 0', fontSize: '13.5px', color: 'var(--notion-text-muted)' }}>
-            Institutional workload distribution. Select a department to inspect each staff member's Open, In Progress, and Completed task matrix.
-          </p>
         </div>
 
         {/* View Mode Toggle: Matrix Table vs Flat Tasks */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
             style={{
               display: 'inline-flex',
               background: 'var(--notion-item-bg)',
               border: '1px solid var(--notion-border)',
-              borderRadius: '10px',
-              padding: '3px',
+              borderRadius: '8px',
+              padding: '2px',
             }}
           >
             <button
@@ -379,40 +395,40 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
               onClick={() => setViewMode('matrix')}
               className="notion-btn"
               style={{
-                fontSize: '12.5px',
-                padding: '6px 14px',
+                fontSize: '12px',
+                padding: '5px 12px',
                 background: viewMode === 'matrix' ? 'var(--notion-card)' : 'transparent',
                 color: viewMode === 'matrix' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                fontWeight: viewMode === 'matrix' ? 700 : 500,
-                borderRadius: '8px',
+                fontWeight: viewMode === 'matrix' ? 600 : 500,
+                borderRadius: '6px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '7px',
+                gap: '6px',
                 boxShadow: viewMode === 'matrix' ? 'var(--notion-shadow-sm)' : 'none',
               }}
             >
-              <TableIcon size={14} style={{ color: viewMode === 'matrix' ? '#10b981' : 'inherit' }} />
-              <span>Staff Status Matrix</span>
+              <TableIcon size={13} style={{ color: viewMode === 'matrix' ? '#10b981' : 'inherit' }} />
+              <span>Matrix View</span>
             </button>
             <button
               type="button"
               onClick={() => setViewMode('flat')}
               className="notion-btn"
               style={{
-                fontSize: '12.5px',
-                padding: '6px 14px',
+                fontSize: '12px',
+                padding: '5px 12px',
                 background: viewMode === 'flat' ? 'var(--notion-card)' : 'transparent',
                 color: viewMode === 'flat' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                fontWeight: viewMode === 'flat' ? 700 : 500,
-                borderRadius: '8px',
+                fontWeight: viewMode === 'flat' ? 600 : 500,
+                borderRadius: '6px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '7px',
+                gap: '6px',
                 boxShadow: viewMode === 'flat' ? 'var(--notion-shadow-sm)' : 'none',
               }}
             >
-              <List size={14} style={{ color: viewMode === 'flat' ? '#4f46e5' : 'inherit' }} />
-              <span>Flat Task Records</span>
+              <List size={13} style={{ color: viewMode === 'flat' ? '#4f46e5' : 'inherit' }} />
+              <span>Task List</span>
             </button>
           </div>
 
@@ -421,17 +437,17 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
               onClick={() => onOpenCreateTask(selectedDeptId === 'ALL' ? undefined : selectedDeptId)}
               className="notion-btn notion-btn-primary"
               style={{
-                fontSize: '12.5px',
-                padding: '7px 16px',
-                borderRadius: '9px',
+                fontSize: '12px',
+                padding: '6px 14px',
+                borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '7px',
-                fontWeight: 700,
+                gap: '6px',
+                fontWeight: 600,
               }}
             >
-              <Plus size={15} />
-              <span>+ Add Task</span>
+              <Plus size={14} />
+              <span>New Task</span>
             </button>
           )}
         </div>
@@ -450,22 +466,19 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Building size={16} style={{ color: '#0284c7' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--notion-text)' }}>
-              1. First Select Department Filter
-            </span>
-            <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>
-              (Click a department to view its assigned staff & workload)
+            <Building size={15} style={{ color: '#0284c7' }} />
+            <span style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--notion-text)' }}>
+              Departments
             </span>
           </div>
 
           {/* Quick Stats Pill */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11.5px' }}>
             <span className="notion-tag tag-gray" style={{ fontWeight: 600 }}>
-              👥 {totalSummary.totalStaff} Total Staff
+              {totalSummary.totalStaff} Staff
             </span>
             <span className="notion-tag tag-blue" style={{ fontWeight: 600 }}>
-              📋 {totalSummary.totalTasks} Tasks ({totalSummary.openCount} Open, {totalSummary.inProcessCount} In Progress, {totalSummary.completedCount} Closed)
+              {totalSummary.totalTasks} Tasks
             </span>
           </div>
         </div>
@@ -482,8 +495,8 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
           <div
             onClick={() => onSelectDept('ALL')}
             style={{
-              padding: '12px 14px',
-              borderRadius: '8px',
+              padding: '10px 14px',
+              borderRadius: '10px',
               cursor: 'pointer',
               border: selectedDeptId === 'ALL'
                 ? '2px solid #0284c7'
@@ -492,24 +505,22 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                 ? 'rgba(2, 132, 199, 0.08)'
                 : 'var(--notion-item-bg)',
               transition: 'all 0.15s ease',
-              boxShadow: selectedDeptId === 'ALL' ? '0 2px 8px rgba(2, 132, 199, 0.15)' : 'none',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '13px', color: 'var(--notion-text)' }}>
-                <span>🏢</span>
-                <span>All Departments</span>
-              </div>
-              <span className="notion-tag tag-blue" style={{ fontSize: '11px', fontWeight: 700 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <span style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--notion-text)' }}>
+                All Departments
+              </span>
+              <span className="notion-tag tag-blue" style={{ fontSize: '10.5px', fontWeight: 700 }}>
                 {totalSummary.totalTasks}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
-              <span>👥 {totalSummary.totalStaff} staff</span>
+              <span>{totalSummary.totalStaff} staff</span>
               <span>•</span>
-              <span style={{ color: '#64748b' }}>⚪ {totalSummary.openCount}</span>
-              <span style={{ color: '#0284c7' }}>🔵 {totalSummary.inProcessCount}</span>
-              <span style={{ color: '#10b981' }}>🟢 {totalSummary.completedCount}</span>
+              <span style={{ color: '#64748b' }}>{totalSummary.openCount} open</span>
+              <span style={{ color: '#0284c7' }}>{totalSummary.inProcessCount} active</span>
+              <span style={{ color: '#10b981' }}>{totalSummary.completedCount} done</span>
             </div>
           </div>
 
@@ -521,8 +532,8 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                 key={item.dept.id}
                 onClick={() => onSelectDept(item.dept.id)}
                 style={{
-                  padding: '12px 14px',
-                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   border: isSelected
                     ? '2px solid #6366f1'
@@ -531,10 +542,9 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                     ? 'rgba(99, 102, 241, 0.08)'
                     : 'var(--notion-item-bg)',
                   transition: 'all 0.15s ease',
-                  boxShadow: isSelected ? '0 2px 8px rgba(99, 102, 241, 0.15)' : 'none',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
                     <span className="notion-tag tag-purple" style={{ fontSize: '10px', fontWeight: 700, flexShrink: 0 }}>
                       {item.dept.code}
@@ -553,16 +563,16 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                       {item.dept.name}
                     </span>
                   </div>
-                  <span className="notion-tag tag-blue" style={{ fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
+                  <span className="notion-tag tag-blue" style={{ fontSize: '10.5px', fontWeight: 700, flexShrink: 0 }}>
                     {item.totalTasks}
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
-                  <span>👥 {item.staffCount}</span>
+                  <span>{item.staffCount} staff</span>
                   <span>•</span>
-                  <span style={{ color: '#64748b' }}>⚪ {item.openCount}</span>
-                  <span style={{ color: '#0284c7' }}>🔵 {item.inProcessCount}</span>
-                  <span style={{ color: '#10b981' }}>🟢 {item.completedCount}</span>
+                  <span style={{ color: '#64748b' }}>{item.openCount} open</span>
+                  <span style={{ color: '#0284c7' }}>{item.inProcessCount} active</span>
+                  <span style={{ color: '#10b981' }}>{item.completedCount} done</span>
                 </div>
               </div>
             );
@@ -570,7 +580,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
         </div>
       </div>
 
-      {/* STEP 2: INSIDE DEPARTMENT - SHOW THAT STAFF & STATUS CONTROLS ("in side of the deprot show that staff") */}
+      {/* Staff & Status Controls */}
       <div
         style={{
           display: 'flex',
@@ -581,20 +591,20 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
           gap: '12px',
           background: 'var(--notion-card)',
           border: '1px solid var(--notion-border)',
-          borderRadius: '8px',
-          padding: '10px 16px',
+          borderRadius: '10px',
+          padding: '10px 14px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <Users size={16} style={{ color: '#10b981' }} />
+          <Users size={15} style={{ color: '#10b981' }} />
           <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--notion-text)' }}>
-            Staff in {activeDepartment ? `${activeDepartment.name} (${activeDepartment.code})` : 'All Departments'}
+            {activeDepartment ? activeDepartment.name : t('allStaffMembers')}
           </span>
           <span className="notion-tag tag-gray" style={{ fontSize: '11px' }}>
-            {departmentStaff.length} staff member{departmentStaff.length === 1 ? '' : 's'}
+            {departmentStaff.length}
           </span>
 
-          {/* Secondary Quick Filter Pills */}
+          {/* Quick Filter Pills */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px' }}>
             <button
               type="button"
@@ -603,9 +613,9 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
               style={{
                 fontSize: '11px',
                 padding: '3px 8px',
-                borderRadius: '4px',
+                borderRadius: '6px',
                 background: staffFilter === 'ALL' ? 'var(--notion-hover)' : 'transparent',
-                fontWeight: staffFilter === 'ALL' ? 600 : 400,
+                fontWeight: staffFilter === 'ALL' ? 700 : 500,
                 color: staffFilter === 'ALL' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
               }}
             >
@@ -618,13 +628,13 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
               style={{
                 fontSize: '11px',
                 padding: '3px 8px',
-                borderRadius: '4px',
+                borderRadius: '6px',
                 background: staffFilter === 'ACTIVE_ONLY' ? 'var(--notion-hover)' : 'transparent',
-                fontWeight: staffFilter === 'ACTIVE_ONLY' ? 600 : 400,
+                fontWeight: staffFilter === 'ACTIVE_ONLY' ? 700 : 500,
                 color: staffFilter === 'ACTIVE_ONLY' ? '#0284c7' : 'var(--notion-text-muted)',
               }}
             >
-              Has Active Tasks
+              Active Tasks
             </button>
             <button
               type="button"
@@ -633,13 +643,13 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
               style={{
                 fontSize: '11px',
                 padding: '3px 8px',
-                borderRadius: '4px',
+                borderRadius: '6px',
                 background: staffFilter === 'HAS_OPEN' ? 'var(--notion-hover)' : 'transparent',
-                fontWeight: staffFilter === 'HAS_OPEN' ? 600 : 400,
+                fontWeight: staffFilter === 'HAS_OPEN' ? 700 : 500,
                 color: staffFilter === 'HAS_OPEN' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
               }}
             >
-              ⚪ Has Open
+              Open
             </button>
             <button
               type="button"
@@ -648,13 +658,13 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
               style={{
                 fontSize: '11px',
                 padding: '3px 8px',
-                borderRadius: '4px',
+                borderRadius: '6px',
                 background: staffFilter === 'HAS_IN_PROGRESS' ? 'var(--notion-hover)' : 'transparent',
-                fontWeight: staffFilter === 'HAS_IN_PROGRESS' ? 600 : 400,
+                fontWeight: staffFilter === 'HAS_IN_PROGRESS' ? 700 : 500,
                 color: staffFilter === 'HAS_IN_PROGRESS' ? '#0284c7' : 'var(--notion-text-muted)',
               }}
             >
-              🔵 Has In Process
+              In Progress
             </button>
           </div>
         </div>
@@ -666,7 +676,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
             alignItems: 'center',
             gap: '6px',
             padding: '4px 10px',
-            borderRadius: '5px',
+            borderRadius: '6px',
             background: 'var(--notion-input-bg)',
             border: '1px solid var(--notion-border)',
             width: '240px',
@@ -675,7 +685,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
           <Search size={13} style={{ color: 'var(--notion-text-dim)' }} />
           <input
             type="text"
-            placeholder="Search staff in department..."
+            placeholder={t('searchStaffPlaceholder')}
             value={staffSearchQuery}
             onChange={(e) => setStaffSearchQuery(e.target.value)}
             style={{
@@ -690,7 +700,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
         </div>
       </div>
 
-      {/* STEP 3: THE TABLE - OPEN, IN PROCESS, COMPLETED ("that satff open and in preces and comple t like tabel make that") */}
+      {/* STEP 3: THE TABLE - OPEN, IN PROCESS, COMPLETED */}
       {viewMode === 'matrix' ? (
         <div
           style={{
@@ -723,29 +733,29 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                   <th style={{ padding: '12px 16px', width: '22%', minWidth: '220px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <UserIcon size={14} />
-                      <span>👤 Staff Member (Assignee)</span>
+                      <span>{t('staffMember')}</span>
                     </div>
                   </th>
                   <th style={{ padding: '12px 16px', width: '25%', minWidth: '240px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ color: '#64748b' }}>⚪</span>
-                      <span>Open Tasks (To Do / Requested)</span>
+                      <Clock size={14} style={{ color: '#64748b' }} />
+                      <span>{t('openTasks')}</span>
                     </div>
                   </th>
                   <th style={{ padding: '12px 16px', width: '25%', minWidth: '240px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ color: '#0284c7' }}>🔵</span>
-                      <span>In Process ("in preces" / In Progress)</span>
+                      <Flame size={14} style={{ color: '#0284c7' }} />
+                      <span>{t('inProgressTasks')}</span>
                     </div>
                   </th>
                   <th style={{ padding: '12px 16px', width: '20%', minWidth: '200px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ color: '#10b981' }}>🟢</span>
-                      <span>Completed ("comple t" / Verified)</span>
+                      <CheckCircle2 size={14} style={{ color: '#10b981' }} />
+                      <span>{t('completedTasks')}</span>
                     </div>
                   </th>
                   <th style={{ padding: '12px 16px', width: '8%', minWidth: '100px', textAlign: 'center' }}>
-                    <span>📊 Total</span>
+                    <span>{t('totalCount')}</span>
                   </th>
                 </tr>
               </thead>
@@ -839,7 +849,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                         </div>
                       </td>
 
-                      {/* COLUMN 2: OPEN TASKS ("open") */}
+                      {/* COLUMN 2: OPEN TASKS */}
                       <td style={{ padding: '12px 14px', borderRight: '1px solid var(--notion-border-subtle)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                           <span
@@ -850,7 +860,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                               padding: '2px 8px',
                             }}
                           >
-                            ⚪ {row.openTasks.length} Open
+                            {row.openTasks.length} Open
                           </span>
                         </div>
 
@@ -907,7 +917,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                                           fontWeight: isOverdue || isDueToday ? 700 : 400,
                                         }}
                                       >
-                                        📅 {task.due_date} {isOverdue ? '(Overdue)' : isDueToday ? '(Today)' : ''}
+                                        Due {task.due_date} {isOverdue ? '(Overdue)' : isDueToday ? '(Today)' : ''}
                                       </span>
                                     )}
                                   </div>
@@ -918,7 +928,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                         )}
                       </td>
 
-                      {/* COLUMN 3: IN PROCESS ("in preces") */}
+                      {/* COLUMN 3: IN PROGRESS */}
                       <td style={{ padding: '12px 14px', borderRight: '1px solid var(--notion-border-subtle)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                           <span
@@ -929,7 +939,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                               padding: '2px 8px',
                             }}
                           >
-                            🔵 {row.inProcessTasks.length} In Process
+                            {row.inProcessTasks.length} In Progress
                           </span>
                         </div>
 
@@ -976,12 +986,12 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                                   </div>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px' }}>
                                     {isReview ? (
-                                      <span className="notion-tag tag-yellow" style={{ fontSize: '9px', padding: '0 4px', fontWeight: 700 }}>
-                                        ⏳ Awaiting Signoff
+                                      <span className="notion-tag tag-yellow" style={{ fontSize: '9px', padding: '0 4px', fontWeight: 600 }}>
+                                        Pending Review
                                       </span>
                                     ) : (
                                       <span className="notion-tag tag-blue" style={{ fontSize: '9px', padding: '0 4px' }}>
-                                        ▶ In Progress
+                                        In Progress
                                       </span>
                                     )}
                                     {task.due_date && (
@@ -991,7 +1001,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                                           fontWeight: isOverdue || isDueToday ? 700 : 400,
                                         }}
                                       >
-                                        📅 {task.due_date} {isOverdue ? '(Overdue)' : isDueToday ? '(Today)' : ''}
+                                        Due {task.due_date} {isOverdue ? '(Overdue)' : isDueToday ? '(Today)' : ''}
                                       </span>
                                     )}
                                   </div>
@@ -1002,7 +1012,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                         )}
                       </td>
 
-                      {/* COLUMN 4: COMPLETED ("comple t") */}
+                      {/* COLUMN 4: COMPLETED */}
                       <td style={{ padding: '12px 14px', borderRight: '1px solid var(--notion-border-subtle)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                           <span
@@ -1013,7 +1023,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                               padding: '2px 8px',
                             }}
                           >
-                            🟢 {row.completedTasks.length} Completed
+                            {row.completedTasks.length} Completed
                           </span>
                         </div>
 
@@ -1058,7 +1068,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                                   </span>
                                 </div>
                                 <span className="notion-tag tag-green" style={{ fontSize: '8px', padding: '0 4px', flexShrink: 0 }}>
-                                  ✓ Signed
+                                  Completed
                                 </span>
                               </div>
                             ))}
@@ -1140,15 +1150,15 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                   >
                     <td style={{ padding: '14px 16px', borderRight: '1px solid var(--notion-border-subtle)' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                        <span style={{ fontSize: '18px' }}>⚠️</span>
+                        <AlertTriangle size={16} style={{ color: '#d97706', marginTop: '2px', flexShrink: 0 }} />
                         <div>
-                          <div style={{ fontWeight: 700, color: '#d97706', fontSize: '12px' }}>
+                          <div style={{ fontWeight: 700, color: '#d97706', fontSize: '12.5px' }}>
                             Unassigned Tasks
                           </div>
-                          <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>
-                            Needs staff assignee in {activeDepartment ? activeDepartment.name : 'Departments'}
+                          <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)', marginTop: '2px' }}>
+                            Needs staff assignment in {activeDepartment ? activeDepartment.name : 'departments'}
                           </div>
-                          <span className="notion-tag tag-yellow" style={{ fontSize: '9px', marginTop: '4px', display: 'inline-block' }}>
+                          <span className="notion-tag tag-yellow" style={{ fontSize: '9px', marginTop: '6px', display: 'inline-block' }}>
                             {unassignedTasks.total} unassigned
                           </span>
                         </div>
@@ -1158,7 +1168,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                     {/* Unassigned Open */}
                     <td style={{ padding: '12px 14px', borderRight: '1px solid var(--notion-border-subtle)' }}>
                       <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginBottom: '6px' }}>
-                        ⚪ {unassignedTasks.open.length} Open
+                        {unassignedTasks.open.length} Open
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {unassignedTasks.open.map((t) => (
@@ -1183,7 +1193,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                     {/* Unassigned In Process */}
                     <td style={{ padding: '12px 14px', borderRight: '1px solid var(--notion-border-subtle)' }}>
                       <div style={{ fontSize: '11px', fontWeight: 700, color: '#0284c7', marginBottom: '6px' }}>
-                        🔵 {unassignedTasks.inProcess.length} In Process
+                        {unassignedTasks.inProcess.length} In Progress
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {unassignedTasks.inProcess.map((t) => (
@@ -1208,7 +1218,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                     {/* Unassigned Completed */}
                     <td style={{ padding: '12px 14px', borderRight: '1px solid var(--notion-border-subtle)' }}>
                       <div style={{ fontSize: '11px', fontWeight: 700, color: '#10b981', marginBottom: '6px' }}>
-                        🟢 {unassignedTasks.completed.length} Completed
+                        {unassignedTasks.completed.length} Completed
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {unassignedTasks.completed.map((t) => (
@@ -1273,13 +1283,14 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                     fontWeight: 600,
                   }}
                 >
-                  <th style={{ padding: '10px 14px', width: '30%' }}>📄 Task Name</th>
-                  <th style={{ padding: '10px 14px' }}>🏢 Department</th>
-                  <th style={{ padding: '10px 14px' }}>🔵 Status</th>
-                  <th style={{ padding: '10px 14px' }}>⚡ Priority</th>
-                  <th style={{ padding: '10px 14px' }}>👤 Assignee</th>
-                  <th style={{ padding: '10px 14px' }}>📅 Due Date</th>
-                  <th style={{ padding: '10px 14px' }}>🛡️ Verified By</th>
+                  <th style={{ padding: '10px 14px', width: '30%' }}>{t('taskTitle')}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('department')}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('status')}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('priority')}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('assignedTo')}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('dueDate')}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('assignedBy')}</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'right' }}>{t('actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1296,20 +1307,17 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
                     <td style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--notion-text)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>📄</span>
-                        <span>{task.title}</span>
-                      </div>
+                      <span>{task.title}</span>
                     </td>
                     <td style={{ padding: '10px 14px' }}>
                       <span className="notion-tag tag-purple">{task.department_name}</span>
                     </td>
                     <td style={{ padding: '10px 14px' }}>
-                      {task.status === 'TODO' && <span className="notion-tag tag-gray">To Do</span>}
-                      {task.status === 'IN_PROGRESS' && <span className="notion-tag tag-blue">In Progress</span>}
-                      {task.status === 'PENDING_GM_APPROVAL' && <span className="notion-tag tag-yellow">Pending Review</span>}
-                      {task.status === 'CHANGES_REQUESTED' && <span className="notion-tag tag-red">Changes Needed</span>}
-                      {task.status === 'CLOSED' && <span className="notion-tag tag-green">Closed & Verified</span>}
+                      {task.status === 'TODO' && <span className="notion-tag tag-gray">{t('status_todo')}</span>}
+                      {task.status === 'IN_PROGRESS' && <span className="notion-tag tag-blue">{t('status_in_progress')}</span>}
+                      {task.status === 'PENDING_GM_APPROVAL' && <span className="notion-tag tag-yellow">{t('status_pending_gm_approval')}</span>}
+                      {task.status === 'CHANGES_REQUESTED' && <span className="notion-tag tag-red">{t('status_changes_requested')}</span>}
+                      {task.status === 'CLOSED' && <span className="notion-tag tag-green">{t('status_closed')}</span>}
                     </td>
                     <td style={{ padding: '10px 14px' }}>{getPriorityBadge(task.priority)}</td>
                     <td style={{ padding: '10px 14px', color: 'var(--notion-text-muted)' }}>
@@ -1346,6 +1354,49 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                     </td>
                     <td style={{ padding: '10px 14px', color: 'var(--notion-text-muted)', fontSize: '12px' }}>
                       {task.verified_by_name || '—'}
+                    </td>
+                    <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        {(currentUserRole === 'GENERAL_MANAGER' || currentUserRole === 'SUPER_ADMIN') && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (onEditTask) {
+                                onEditTask(task);
+                              } else {
+                                onSelectTask(task);
+                              }
+                            }}
+                            className="notion-btn notion-btn-bordered"
+                            style={{
+                              fontSize: '11px',
+                              padding: '3px 8px',
+                              color: 'var(--notion-accent, #2383e2)',
+                              borderColor: 'rgba(35, 131, 226, 0.4)',
+                              background: 'rgba(35, 131, 226, 0.08)',
+                              fontWeight: 600,
+                              borderRadius: '6px',
+                            }}
+                            title="Edit task specifications, priority, assignee, status, due date"
+                          >
+                            <Edit size={11} />
+                            <span>Edit</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectTask(task);
+                          }}
+                          className="notion-btn notion-btn-bordered"
+                          style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '6px' }}
+                          title="View task details"
+                        >
+                          Details
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1491,7 +1542,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                   {shareTargetTasks.urgent.length > 0 && (
                     <div style={{ marginBottom: '8px' }}>
                       <div style={{ fontWeight: 700, color: '#ef4444', marginBottom: '4px' }}>
-                        🚨 Urgent Work ({shareTargetTasks.urgent.length}):
+                        Urgent Work ({shareTargetTasks.urgent.length}):
                       </div>
                       {shareTargetTasks.urgent.map((t, idx) => (
                         <div key={t.id} style={{ paddingLeft: '8px', color: 'var(--notion-text)' }}>
@@ -1504,7 +1555,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                   {shareTargetTasks.inProcess.length > 0 && (
                     <div>
                       <div style={{ fontWeight: 700, color: '#0284c7', marginBottom: '4px' }}>
-                        🔵 In Process Work ({shareTargetTasks.inProcess.length}):
+                        In Progress Work ({shareTargetTasks.inProcess.length}):
                       </div>
                       {shareTargetTasks.inProcess.map((t, idx) => (
                         <div key={t.id} style={{ paddingLeft: '8px', color: 'var(--notion-text)' }}>
@@ -1541,8 +1592,8 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                   <Mail size={15} />
                   <span>
                     {sendingShare
-                      ? 'Dispatching Official Email...'
-                      : `📧 Send Official Digest Email to ${shareTargetStaff.email}`}
+                      ? 'Dispatching Email...'
+                      : `Send Digest Email to ${shareTargetStaff.email}`}
                   </span>
                 </button>
 
@@ -1560,7 +1611,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                     }}
                   >
                     {copiedSummary ? <Check size={14} /> : <Copy size={14} />}
-                    <span>{copiedSummary ? 'Copied Summary!' : '📋 Copy for WhatsApp/Slack'}</span>
+                    <span>{copiedSummary ? 'Copied Summary!' : 'Copy Work Summary'}</span>
                   </button>
 
                   <button
@@ -1576,7 +1627,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                     }}
                   >
                     {copiedLink ? <Check size={14} /> : <Copy size={14} />}
-                    <span>{copiedLink ? 'Copied Link!' : '🔗 Copy Direct Link'}</span>
+                    <span>{copiedLink ? 'Copied Link!' : 'Copy Direct Link'}</span>
                   </button>
                 </div>
               </div>

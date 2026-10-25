@@ -105,10 +105,10 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
           </div>
         </div>
 
-        {/* Daily 9:00 AM Morning Work Reminder Banner */}
+        {/* Hourly Work Check-in Banner */}
         <div style={{
           padding: '12px 20px',
-          background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%)',
+          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(99, 102, 241, 0.08) 100%)',
           borderBottom: '1px solid var(--notion-border)',
           display: 'flex',
           alignItems: 'center',
@@ -116,23 +116,23 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
           gap: '12px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-            <span style={{ fontSize: '18px' }}>☀️</span>
+            <span style={{ fontSize: '18px' }}>⏰</span>
             <div>
               <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--notion-text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                Daily 9:00 AM Work Reminder
+                Hourly Work Check-in
                 <span style={{
                   fontSize: '10px',
-                  fontWeight: 700,
-                  padding: '1px 6px',
-                  borderRadius: '4px',
+                  fontWeight: 800,
+                  padding: '2px 7px',
+                  borderRadius: '5px',
                   background: 'rgba(16, 185, 129, 0.15)',
                   color: '#10b981',
                 }}>
-                  09:00 AM DAILY
+                  EVERY 1 HOUR
                 </span>
               </div>
               <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)', marginTop: '2px' }}>
-                Alerts every morning to update your daily work reports & deliverables
+                Scheduled reminders to review and update your active deliverables.
               </div>
             </div>
           </div>
@@ -151,7 +151,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
               flexShrink: 0,
             }}
           >
-            {isTesting ? 'Sending...' : 'Test 9 AM Alert'}
+            {isTesting ? 'Sending...' : 'Test Reminder'}
           </button>
         </div>
 

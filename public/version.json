@@ -1,0 +1,14 @@
+{
+  "version": "2.2.5",
+  "versionCode": 10,
+  "apkUrl": "https://insight.rathinamtechzone.com/nextup/NextUp.apk",
+  "fallbackApkUrl": "http://192.168.0.101:8090/NextUp.apk",
+  "releaseNotes": [
+    "Login: Added eye visibility icon to view/hide password",
+    "Login: Fixed keyboard view resize & screen jump on typing",
+    "Settings: Modernized profile & app update checker",
+    "UI: Clean executive design and improved responsiveness"
+  ],
+  "publishedAt": "2026-10-24",
+  "mandatory": false
+}

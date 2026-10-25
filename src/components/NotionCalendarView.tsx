@@ -143,12 +143,9 @@ export const NotionCalendarView: React.FC<NotionCalendarViewProps> = ({
               <CalendarIcon size={20} />
             </div>
             <div>
-              <h2 style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0, color: 'var(--notion-text)', letterSpacing: '-0.02em' }}>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: 'var(--notion-text)', letterSpacing: '-0.02em' }}>
                 {monthLabel}
               </h2>
-              <div style={{ fontSize: '12px', color: 'var(--notion-text-dim)', marginTop: '1px' }}>
-                Operational Schedule & Due Date Tracking
-              </div>
             </div>
           </div>
 

@@ -19,6 +19,20 @@ export const NotionStaffView: React.FC<NotionStaffViewProps> = ({
 }) => {
   const canManage = currentUserRole === 'GENERAL_MANAGER' || currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'DEPT_MANAGER';
 
+  const canEditUser = (user: User) => {
+    if (currentUserRole === 'SUPER_ADMIN') return true;
+    if (currentUserRole === 'GENERAL_MANAGER') return user.role !== 'SUPER_ADMIN';
+    if (currentUserRole === 'DEPT_MANAGER') return user.role === 'STAFF';
+    return false;
+  };
+
+  const canDeleteUser = (user: User) => {
+    if (currentUserRole === 'SUPER_ADMIN') return user.role !== 'SUPER_ADMIN';
+    if (currentUserRole === 'GENERAL_MANAGER') return user.role === 'STAFF' || user.role === 'DEPT_MANAGER';
+    if (currentUserRole === 'DEPT_MANAGER') return user.role === 'STAFF';
+    return false;
+  };
+
   const getRoleTag = (role: string) => {
     switch (role) {
       case 'SUPER_ADMIN':
@@ -89,6 +103,7 @@ export const NotionStaffView: React.FC<NotionStaffViewProps> = ({
               <th style={{ padding: '12px 18px' }}>🔑 Username</th>
               <th style={{ padding: '12px 18px' }}>🏢 Department</th>
               <th style={{ padding: '12px 18px' }}>🏷️ Role</th>
+              <th style={{ padding: '12px 18px' }}>🛡️ Page Access</th>
               <th style={{ padding: '12px 18px' }}>💼 Job Title</th>
               <th style={{ padding: '12px 18px' }}>✉️ Institutional Email</th>
               {canManage && <th style={{ padding: '12px 18px', textAlign: 'right' }}>Actions</th>}
@@ -136,6 +151,30 @@ export const NotionStaffView: React.FC<NotionStaffViewProps> = ({
                   </span>
                 </td>
                 <td style={{ padding: '14px 18px' }}>{getRoleTag(user.role)}</td>
+                <td style={{ padding: '14px 18px' }}>
+                  <button
+                    type="button"
+                    onClick={() => canEditUser(user) && onEditStaff(user)}
+                    className="notion-btn"
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      background: (user.allowed_pages?.length ?? 0) > 0 ? 'rgba(79, 70, 229, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                      color: (user.allowed_pages?.length ?? 0) > 0 ? '#4f46e5' : '#ef4444',
+                      border: (user.allowed_pages?.length ?? 0) > 0 ? '1px solid rgba(79, 70, 229, 0.25)' : '1px solid rgba(239, 68, 68, 0.25)',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      cursor: canEditUser(user) ? 'pointer' : 'default',
+                    }}
+                    title="Click Edit to configure page view permissions"
+                  >
+                    {user.role === 'SUPER_ADMIN'
+                      ? 'All Pages (Full)'
+                      : user.allowed_pages
+                      ? `${user.allowed_pages.length} Pages View`
+                      : 'Default Pages'}
+                  </button>
+                </td>
                 <td style={{ padding: '14px 18px', color: 'var(--notion-text-muted)', fontSize: '12.5px' }}>
                   {user.job_title || 'Staff Member'}
                 </td>
@@ -144,26 +183,30 @@ export const NotionStaffView: React.FC<NotionStaffViewProps> = ({
                 </td>
                 {canManage && (
                   <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                    {user.role === 'STAFF' && (
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                      {canEditUser(user) && (
                         <button
                           onClick={() => onEditStaff(user)}
                           className="notion-btn notion-btn-bordered"
                           style={{ padding: '4px 10px', fontSize: '11.5px', borderRadius: '7px' }}
+                          title={`Edit ${user.full_name || user.username}`}
                         >
                           <Edit2 size={12} />
                           <span>Edit</span>
                         </button>
+                      )}
+                      {canDeleteUser(user) && (
                         <button
                           onClick={() => onDeleteStaff(user)}
                           className="notion-btn notion-btn-danger"
                           style={{ padding: '4px 10px', fontSize: '11.5px', borderRadius: '7px' }}
+                          title={`Remove ${user.full_name || user.username}`}
                         >
                           <Trash2 size={12} />
                           <span>Remove</span>
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </td>
                 )}
               </tr>

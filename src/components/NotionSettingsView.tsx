@@ -32,12 +32,15 @@ import {
   Send,
   ExternalLink,
   Eye,
+  EyeOff,
   X,
   Upload,
   FileUp,
   Bell,
 } from 'lucide-react';
 import { triggerTestWorkReminder } from '../services/notifications';
+import { useLanguage } from '../context/LanguageContext';
+import { LanguageToggle } from './LanguageToggle';
 
 interface NotionSettingsViewProps {
   currentUserRole: Role;
@@ -58,6 +61,7 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
   onOpenActivityLogs,
   onRefreshData,
 }) => {
+  const { t, isTamil } = useLanguage();
   const [activeTab, setActiveTab] = useState<'database' | 'users' | 'audit' | 'email'>('database');
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -104,6 +108,16 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
   const [testEmailResult, setTestEmailResult] = useState<any | null>(null);
   const [emailLogsList, setEmailLogsList] = useState<DispatchedEmail[]>([]);
   const [selectedEmailPreview, setSelectedEmailPreview] = useState<DispatchedEmail | null>(null);
+
+  // SMTP Live Configuration Form State
+  const [smtpUser, setSmtpUser] = useState('');
+  const [smtpPassword, setSmtpPassword] = useState('');
+  const [smtpHost, setSmtpHost] = useState('smtp.gmail.com');
+  const [smtpPort, setSmtpPort] = useState(587);
+  const [smtpUseTls, setSmtpUseTls] = useState(true);
+  const [savingSmtp, setSavingSmtp] = useState(false);
+  const [smtpSaveResult, setSmtpSaveResult] = useState<{ status: 'success' | 'error'; message: string } | null>(null);
+  const [showSmtpPassword, setShowSmtpPassword] = useState(false);
 
   // Daily 9:00 AM Work Reminder State
   const [testing9AmReminder, setTesting9AmReminder] = useState(false);
@@ -195,10 +209,41 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
       ]);
       setEmailStatus(status);
       setEmailLogsList(logs);
+      if (status) {
+        if (status.email_host_user) setSmtpUser(status.email_host_user);
+        else if (status.from_email && !status.from_email.includes('tasktracker.enterprise')) setSmtpUser(status.from_email);
+        if (status.host) setSmtpHost(status.host);
+        if (status.port) setSmtpPort(status.port);
+        if (status.use_tls !== undefined) setSmtpUseTls(status.use_tls);
+      }
     } catch (err) {
       console.error('Failed to load email status:', err);
     } finally {
       setLoadingEmailStatus(false);
+    }
+  };
+
+  const handleSaveSmtpSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSavingSmtp(true);
+      setSmtpSaveResult(null);
+      const res = await api.updateEmailSettings({
+        email_host_user: smtpUser.trim(),
+        email_host_password: smtpPassword.trim() || undefined,
+        email_host: smtpHost.trim(),
+        email_port: Number(smtpPort) || 587,
+        email_use_tls: smtpUseTls,
+        default_from_email: smtpUser.trim() || undefined,
+      });
+      setSmtpSaveResult({ status: 'success', message: res.message || 'SMTP settings updated successfully!' });
+      setEmailStatus(res.settings);
+      setSmtpPassword('');
+      fetchEmailStatus();
+    } catch (err: any) {
+      setSmtpSaveResult({ status: 'error', message: err.message || 'Failed to update SMTP settings.' });
+    } finally {
+      setSavingSmtp(false);
     }
   };
 
@@ -483,10 +528,12 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
               </div>
               <div>
                 <h1 style={{ fontSize: '1.65rem', fontWeight: 800, margin: 0, color: 'var(--notion-text)', letterSpacing: '-0.02em' }}>
-                  System Settings & Super Admin Control Panel
+                  {isTamil ? 'கணினி அமைப்புகள் & கட்டுப்பாட்டு தளம்' : 'System Settings & Super Admin Control Panel'}
                 </h1>
                 <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--notion-text-dim)' }}>
-                  PostgreSQL 16 database backups, SQL dump exports, and company-wide user credentials management.
+                  {isTamil
+                    ? 'PostgreSQL 16 தரவுத்தள காப்புநகல், SQL ஏற்றுமதி மற்றும் பணியாளர் நற்சான்றிதழ்கள் மேலாண்மை.'
+                    : 'PostgreSQL 16 database backups, SQL dump exports, and company-wide user credentials management.'}
                 </p>
               </div>
             </div>
@@ -495,7 +542,7 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span className="notion-tag tag-purple" style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '9999px', fontWeight: 700 }}>
               <Shield size={13} />
-              Super Admin Protected
+              {isTamil ? 'நிர்வாகி பாதுகாப்பு' : 'Super Admin Protected'}
             </span>
             <button
               onClick={() => {
@@ -508,9 +555,56 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
               style={{ padding: '7px 14px', fontSize: '12.5px', fontWeight: 600, gap: '6px' }}
             >
               <RefreshCw size={13} className={loadingStats ? 'animate-spin' : ''} />
-              <span>Refresh Metrics</span>
+              <span>{isTamil ? 'புதுப்பி' : 'Refresh Metrics'}</span>
             </button>
           </div>
+        </div>
+
+        {/* Language Preference Card */}
+        <div
+          style={{
+            marginTop: '20px',
+            marginBottom: '8px',
+            padding: '14px 20px',
+            borderRadius: '12px',
+            background: 'var(--notion-card)',
+            border: '1px solid var(--notion-border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '14px',
+            boxShadow: 'var(--notion-shadow-sm)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                background: 'rgba(35, 131, 226, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '18px',
+              }}
+            >
+              🌐
+            </div>
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--notion-text)' }}>
+                {isTamil ? 'இணையதள மொழி / Website Language' : 'Website Language / இணையதள மொழி'}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--notion-text-dim)' }}>
+                {isTamil
+                  ? 'எளிய ஆங்கிலம் அல்லது தமிழ் இடையே எந்த நேரத்திலும் மாற்றிக்கொள்ளலாம்.'
+                  : 'Switch anytime between simple everyday English and Tamil (தமிழ்).'}
+              </div>
+            </div>
+          </div>
+
+          <LanguageToggle compact={false} />
         </div>
 
         {/* Success toast notification */}
@@ -568,7 +662,7 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
           }}
         >
           <Database size={15} style={{ color: activeTab === 'database' ? 'var(--notion-blue)' : 'inherit' }} />
-          <span>Database & Backup</span>
+          <span>{isTamil ? 'தரவுத்தளம் & காப்புநகல்' : 'Database & Backup'}</span>
         </button>
 
         <button
@@ -589,7 +683,7 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
           }}
         >
           <Users size={15} style={{ color: activeTab === 'users' ? '#9333ea' : 'inherit' }} />
-          <span>User Manager ({users.length})</span>
+          <span>{isTamil ? `பயனர்கள் மேலாண்மை (${users.length})` : `User Manager (${users.length})`}</span>
         </button>
 
         <button
@@ -610,7 +704,7 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
           }}
         >
           <Activity size={15} style={{ color: activeTab === 'audit' ? '#f59e0b' : 'inherit' }} />
-          <span>Audit Logs</span>
+          <span>{isTamil ? 'செயல்பாட்டு பதிவுகள்' : 'Audit Logs'}</span>
         </button>
 
         <button
@@ -631,7 +725,7 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
           }}
         >
           <Mail size={15} style={{ color: activeTab === 'email' ? 'var(--notion-blue)' : 'inherit' }} />
-          <span>Email & SMTP ({emailLogsList.length})</span>
+          <span>{isTamil ? `மின்னஞ்சல் & SMTP (${emailLogsList.length})` : `Email & SMTP (${emailLogsList.length})`}</span>
         </button>
       </div>
 
@@ -2074,50 +2168,168 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
             )}
           </div>
 
-          {/* Setup Guide: Real Gmail SMTP Setup */}
+          {/* Interactive SMTP Credentials Configuration Card */}
           <div
             className="notion-card"
             style={{
-              padding: '22px',
+              padding: '24px',
               borderLeft: '4px solid #2383e2',
-              background: 'rgba(35, 131, 226, 0.03)',
+              background: 'rgba(35, 131, 226, 0.02)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <span style={{ fontSize: '18px' }}>💡</span>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--notion-text)' }}>
-                How to Enable Live Gmail Inbox Delivery
-              </h3>
-            </div>
-            <p style={{ fontSize: '13px', color: 'var(--notion-text-muted)', lineHeight: 1.6, margin: '0 0 14px' }}>
-              By default, TaskTracker runs in high-fidelity simulation mode, displaying and logging all dispatched emails in the database. To have emails actually reach inboxes like <strong>asanjayarumugam77@gmail.com</strong>:
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
-              <div style={{ padding: '12px 14px', background: 'var(--notion-item-bg)', borderRadius: '6px', border: '1px solid var(--notion-border-subtle)', fontSize: '12px' }}>
-                <strong style={{ display: 'block', color: 'var(--notion-text)', marginBottom: '4px' }}>
-                  Step 1: Get Google App Password
-                </strong>
-                <span style={{ color: 'var(--notion-text-dim)' }}>
-                  Go to Google Account &rarr; Security &rarr; 2-Step Verification &rarr; <strong>App Passwords</strong>. Generate a 16-character password for "Mail".
-                </span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '6px', background: 'rgba(35, 131, 226, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Server size={18} style={{ color: '#2383e2' }} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--notion-text)' }}>
+                    Configure SMTP Server &amp; Gmail Credentials
+                  </h3>
+                  <span style={{ fontSize: '12px', color: 'var(--notion-text-dim)' }}>
+                    Save your sender account and 16-character Google App Password to deliver live emails to staff personal inboxes
+                  </span>
+                </div>
               </div>
-              <div style={{ padding: '12px 14px', background: 'var(--notion-item-bg)', borderRadius: '6px', border: '1px solid var(--notion-border-subtle)', fontSize: '12px' }}>
-                <strong style={{ display: 'block', color: 'var(--notion-text)', marginBottom: '4px' }}>
-                  Step 2: Create .env Configuration
-                </strong>
-                <span style={{ color: 'var(--notion-text-dim)' }}>
-                  In <code style={{ color: '#2383e2' }}>task_tracker_backend/</code>, copy <code style={{ color: '#2383e2' }}>.env.example</code> to <code style={{ color: '#2383e2' }}>.env</code>.
-                </span>
-              </div>
-              <div style={{ padding: '12px 14px', background: 'var(--notion-item-bg)', borderRadius: '6px', border: '1px solid var(--notion-border-subtle)', fontSize: '12px' }}>
-                <strong style={{ display: 'block', color: 'var(--notion-text)', marginBottom: '4px' }}>
-                  Step 3: Fill in Credentials
-                </strong>
-                <span style={{ color: 'var(--notion-text-dim)' }}>
-                  Set <code style={{ color: '#2383e2' }}>EMAIL_HOST_USER=your_email@gmail.com</code> and <code style={{ color: '#2383e2' }}>EMAIL_HOST_PASSWORD=your_app_password</code>.
-                </span>
+
+              <div className="notion-tag" style={{ background: emailStatus?.has_smtp_password ? 'rgba(16, 185, 129, 0.12)' : 'rgba(35, 131, 226, 0.12)', color: emailStatus?.has_smtp_password ? '#10b981' : '#2383e2', fontWeight: 700, fontSize: '11px', padding: '4px 10px', borderRadius: '6px' }}>
+                {emailStatus?.has_smtp_password ? '🟢 Live SMTP Active' : '🔵 Simulation / Console Mode'}
               </div>
             </div>
+
+            <form onSubmit={handleSaveSmtpSettings}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text)', marginBottom: '6px' }}>
+                    Sender Email Address (Host User) *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={smtpUser}
+                    onChange={(e) => setSmtpUser(e.target.value)}
+                    placeholder="e.g. notifications@rathinam.in or your_email@gmail.com"
+                    className="notion-input"
+                    style={{ width: '100%', fontSize: '13px' }}
+                  />
+                  <span style={{ fontSize: '11px', color: 'var(--notion-text-muted)', marginTop: '4px', display: 'block' }}>
+                    Email address used as sender for all task deliverables &amp; reminders.
+                  </span>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text)', marginBottom: '6px' }}>
+                    Google App Password {emailStatus?.has_smtp_password ? '(Saved • Leave blank to keep)' : '*'}
+                  </label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type={showSmtpPassword ? 'text' : 'password'}
+                      value={smtpPassword}
+                      onChange={(e) => setSmtpPassword(e.target.value)}
+                      placeholder={emailStatus?.has_smtp_password ? '••••••••••••••••' : 'Enter 16-character Google App Password'}
+                      className="notion-input"
+                      style={{ width: '100%', paddingRight: '36px', fontSize: '13px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--notion-text-dim)',
+                        padding: '4px',
+                      }}
+                    >
+                      {showSmtpPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--notion-text-muted)', marginTop: '4px', display: 'block' }}>
+                    Generate at Google Account &rarr; Security &rarr; 2-Step Verification &rarr; App Passwords.
+                  </span>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text)', marginBottom: '6px' }}>
+                    SMTP Host Server
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={smtpHost}
+                    onChange={(e) => setSmtpHost(e.target.value)}
+                    placeholder="smtp.gmail.com"
+                    className="notion-input"
+                    style={{ width: '100%', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text)', marginBottom: '6px' }}>
+                    Port &amp; Security
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="number"
+                      required
+                      value={smtpPort}
+                      onChange={(e) => setSmtpPort(Number(e.target.value))}
+                      placeholder="587"
+                      className="notion-input"
+                      style={{ width: '90px', fontSize: '13px' }}
+                    />
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--notion-text)', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={smtpUseTls}
+                        onChange={(e) => setSmtpUseTls(e.target.checked)}
+                      />
+                      <span>STARTTLS Encryption</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <button
+                  type="submit"
+                  disabled={savingSmtp || (!smtpUser && !smtpPassword)}
+                  className="notion-btn notion-btn-primary"
+                  style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 700, borderRadius: '8px', gap: '6px' }}
+                >
+                  {savingSmtp ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Saving SMTP Credentials...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={15} />
+                      <span>Save SMTP Settings</span>
+                    </>
+                  )}
+                </button>
+
+                {smtpSaveResult && (
+                  <div
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      background: smtpSaveResult.status === 'success' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                      color: smtpSaveResult.status === 'success' ? '#10b981' : '#ef4444',
+                      border: smtpSaveResult.status === 'success' ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+                    }}
+                  >
+                    {smtpSaveResult.status === 'success' ? '✓ ' : '⚠️ '}
+                    {smtpSaveResult.message}
+                  </div>
+                )}
+              </div>
+            </form>
           </div>
 
           {/* Dispatched Emails Audit Table */}

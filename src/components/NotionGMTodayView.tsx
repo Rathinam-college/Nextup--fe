@@ -31,6 +31,7 @@ import {
   LayoutGrid,
   MessageCircle,
   Phone,
+  Edit,
 } from 'lucide-react';
 import {
   formatWhatsAppPhone,
@@ -45,6 +46,7 @@ interface NotionGMTodayViewProps {
   departments: Department[];
   staffList: User[];
   onSelectTask: (task: Task) => void;
+  onEditTask?: (task: Task) => void;
   onQuickApprove: (task: Task) => void;
   onOpenCreateTask?: (deptId?: number, isIssue?: boolean) => void;
   onRefresh?: () => void;
@@ -55,6 +57,7 @@ export const NotionGMTodayView: React.FC<NotionGMTodayViewProps> = ({
   departments,
   staffList,
   onSelectTask,
+  onEditTask,
   onQuickApprove,
   onOpenCreateTask,
   onRefresh,
@@ -601,32 +604,29 @@ export const NotionGMTodayView: React.FC<NotionGMTodayViewProps> = ({
                     border: '1px solid rgba(239, 68, 68, 0.25)',
                   }}
                 >
-                  ⚡ GM Priority Desk
+                  Priority Desk
                 </span>
                 <span style={{ fontSize: '12px', color: 'var(--notion-text-dim)' }}>
-                  {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+                  {new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
               </div>
-              <h1 style={{ fontSize: '1.85rem', fontWeight: 800, margin: '4px 0 0', color: 'var(--notion-text)', letterSpacing: '-0.03em' }}>
-                Today's Deliverables &amp; Urgent to Close
+              <h1 style={{ fontSize: '1.6rem', fontWeight: 800, margin: '4px 0 0', color: 'var(--notion-text)', letterSpacing: '-0.02em' }}>
+                Today &amp; Urgent
               </h1>
             </div>
           </div>
-          <p style={{ margin: '8px 0 0', fontSize: '13.5px', color: 'var(--notion-text-muted)', maxWidth: '780px' }}>
-            Executive GM command center. Monitor critical deadlines, sign off on pending verification tickets, and review work allocations isolated by department and staff.
-          </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {onRefresh && (
             <button
               onClick={onRefresh}
               className="notion-btn notion-btn-bordered"
-              style={{ gap: '7px', fontSize: '12.5px', padding: '8px 14px', borderRadius: '9px' }}
-              title="Refresh workspace status"
+              style={{ gap: '6px', fontSize: '12px', padding: '6px 12px', borderRadius: '8px' }}
+              title="Refresh"
             >
-              <RefreshCw size={14} />
-              <span>Refresh Desk</span>
+              <RefreshCw size={13} />
+              <span>Refresh</span>
             </button>
           )}
 
@@ -634,10 +634,10 @@ export const NotionGMTodayView: React.FC<NotionGMTodayViewProps> = ({
             <button
               onClick={() => onOpenCreateTask(selectedDeptId !== 'ALL' ? selectedDeptId : undefined, true)}
               className="notion-btn notion-btn-primary"
-              style={{ gap: '7px', fontSize: '12.5px', padding: '8px 16px', borderRadius: '9px', background: 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)', border: 'none' }}
+              style={{ gap: '6px', fontSize: '12px', padding: '6px 14px', borderRadius: '8px', background: 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)', border: 'none' }}
             >
-              <Plus size={15} />
-              <span>+ Add Urgent Issue</span>
+              <Plus size={14} />
+              <span>Urgent Issue</span>
             </button>
           )}
         </div>
@@ -2002,6 +2002,33 @@ export const NotionGMTodayView: React.FC<NotionGMTodayViewProps> = ({
                         <span>Verify &amp; Close</span>
                       </button>
                     )}
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onEditTask) {
+                          onEditTask(task);
+                        } else {
+                          onSelectTask(task);
+                        }
+                      }}
+                      className="notion-btn notion-btn-bordered"
+                      style={{
+                        fontSize: '11.5px',
+                        padding: '4px 9px',
+                        gap: '4px',
+                        borderRadius: '7px',
+                        color: 'var(--notion-accent, #2383e2)',
+                        borderColor: 'rgba(35, 131, 226, 0.4)',
+                        background: 'rgba(35, 131, 226, 0.08)',
+                        fontWeight: 600,
+                      }}
+                      title="Edit task specifications, priority, assignee, status, due date"
+                    >
+                      <Edit size={12} />
+                      <span>Edit</span>
+                    </button>
 
                     <button
                       type="button"
