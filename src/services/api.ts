@@ -32,9 +32,15 @@ export const getSavedActiveUserId = (): number | null => {
 };
 
 export const getApiUrl = (endpoint: string): string => {
-  const isNextup = typeof window !== 'undefined' && window.location.pathname.startsWith('/nextup');
-  const base = isNextup ? '/nextup' : '';
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  if (cleanEndpoint.startsWith('/nextup/')) {
+    return cleanEndpoint;
+  }
+  const isNextup =
+    typeof window !== 'undefined' &&
+    (window.location.pathname.startsWith('/nextup') ||
+      window.location.pathname.includes('/nextup'));
+  const base = isNextup ? '/nextup' : '';
   return `${base}${cleanEndpoint}`;
 };
 
@@ -226,18 +232,27 @@ export const api = {
   // Export CSV download URL helper
   getCsvExportUrl: () => {
     const currentId = activeUserId || getSavedActiveUserId();
-    return `/api/tasks/export-csv/${currentId ? `?active_user_id=${currentId}` : ''}`;
+    return getApiUrl(`/api/tasks/export-csv/${currentId ? `?active_user_id=${currentId}` : ''}`);
   },
 
   // Super Admin System & Database Backup
   getAdminSystemStats: () => request<SystemStats>('/api/admin/system-stats/'),
   downloadSqlBackup: async () => {
     const activeId = activeUserId || getSavedActiveUserId();
-    const res = await fetch('/api/admin/backup/sql/', {
+    const endpoint = `/api/admin/backup/sql/${activeId ? `?active_user_id=${activeId}` : ''}`;
+    const res = await fetch(getApiUrl(endpoint), {
       headers: activeId ? { 'X-Active-User-Id': activeId.toString() } : {},
       credentials: 'include',
     });
-    if (!res.ok) throw new Error('Failed to generate SQL dump backup');
+    if (!res.ok) {
+      let errorMsg = `Failed to generate SQL dump backup (status ${res.status})`;
+      try {
+        const errJson = await res.json();
+        if (errJson.detail) errorMsg = errJson.detail;
+        else if (errJson.error) errorMsg = errJson.error;
+      } catch (_) {}
+      throw new Error(errorMsg);
+    }
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -256,11 +271,20 @@ export const api = {
   },
   downloadJsonBackup: async () => {
     const activeId = activeUserId || getSavedActiveUserId();
-    const res = await fetch('/api/admin/backup/json/', {
+    const endpoint = `/api/admin/backup/json/${activeId ? `?active_user_id=${activeId}` : ''}`;
+    const res = await fetch(getApiUrl(endpoint), {
       headers: activeId ? { 'X-Active-User-Id': activeId.toString() } : {},
       credentials: 'include',
     });
-    if (!res.ok) throw new Error('Failed to generate JSON backup');
+    if (!res.ok) {
+      let errorMsg = `Failed to generate JSON backup (status ${res.status})`;
+      try {
+        const errJson = await res.json();
+        if (errJson.detail) errorMsg = errJson.detail;
+        else if (errJson.error) errorMsg = errJson.error;
+      } catch (_) {}
+      throw new Error(errorMsg);
+    }
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -287,19 +311,28 @@ export const api = {
       formData.append('sql_content', options.sqlContent);
     }
     formData.append('wipe_before_restore', options.wipeBeforeRestore ?? true ? 'true' : 'false');
+    if (activeId) {
+      formData.append('active_user_id', activeId.toString());
+    }
 
     const headers: Record<string, string> = {};
     if (activeId) headers['X-Active-User-Id'] = activeId.toString();
 
-    const res = await fetch('/api/admin/restore/sql/', {
+    const endpoint = `/api/admin/restore/sql/${activeId ? `?active_user_id=${activeId}` : ''}`;
+    const res = await fetch(getApiUrl(endpoint), {
       method: 'POST',
       headers,
       credentials: 'include',
       body: formData,
     });
-    const data = await res.json();
+    let data: any;
+    try {
+      data = await res.json();
+    } catch (_) {
+      throw new Error(`Failed to restore database from SQL (status ${res.status} ${res.statusText})`);
+    }
     if (!res.ok) {
-      throw new Error(data.error || 'Failed to restore database from SQL');
+      throw new Error(data.error || data.detail || 'Failed to restore database from SQL');
     }
     return data as {
       status: string;
@@ -325,19 +358,28 @@ export const api = {
     const activeId = activeUserId || getSavedActiveUserId();
     const formData = new FormData();
     formData.append('file', file);
+    if (activeId) {
+      formData.append('active_user_id', activeId.toString());
+    }
 
     const headers: Record<string, string> = {};
     if (activeId) headers['X-Active-User-Id'] = activeId.toString();
 
-    const res = await fetch('/api/admin/restore/json/', {
+    const endpoint = `/api/admin/restore/json/${activeId ? `?active_user_id=${activeId}` : ''}`;
+    const res = await fetch(getApiUrl(endpoint), {
       method: 'POST',
       headers,
       credentials: 'include',
       body: formData,
     });
-    const data = await res.json();
+    let data: any;
+    try {
+      data = await res.json();
+    } catch (_) {
+      throw new Error(`Failed to restore database from JSON (status ${res.status} ${res.statusText})`);
+    }
     if (!res.ok) {
-      throw new Error(data.error || 'Failed to restore database from JSON fixture');
+      throw new Error(data.error || data.detail || 'Failed to restore database from JSON fixture');
     }
     return data as {
       status: string;
