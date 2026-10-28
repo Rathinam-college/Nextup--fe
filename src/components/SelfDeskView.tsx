@@ -27,13 +27,18 @@ import {
   LayoutGrid,
   Table as TableIcon,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Sparkles,
   Flag,
   Lightbulb,
   Users,
   Briefcase,
   ListChecks,
+  Bell,
+  BellRing,
 } from 'lucide-react';
+import { notifyNoteReminder, requestBrowserNotificationPermission } from '../services/notifications';
 
 interface SelfDeskViewProps {
   currentUser: User;
@@ -44,8 +49,10 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
   // Active desk tab: 'tasks' | 'notes'
   const [activeTab, setActiveTab] = useState<'tasks' | 'notes'>('tasks');
 
-  // Notes view format: 'table' | 'cards'
-  const [notesViewFormat, setNotesViewFormat] = useState<'table' | 'cards'>('table');
+  // Notes view format: 'table' | 'cards' | 'calendar'
+  const [notesViewFormat, setNotesViewFormat] = useState<'table' | 'cards' | 'calendar'>('table');
+  const [noteCalendarDate, setNoteCalendarDate] = useState(() => new Date());
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
 
   // Loading & error state
   const [loadingTasks, setLoadingTasks] = useState(false);
@@ -85,6 +92,12 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
   const [noteFormCategory, setNoteFormCategory] = useState<'GENERAL' | 'WORK' | 'MEETING' | 'IDEA' | 'CHECKLIST'>('WORK');
   const [noteFormColor, setNoteFormColor] = useState('#4f46e5');
   const [noteFormPinned, setNoteFormPinned] = useState(false);
+  const [noteFormReminderEnabled, setNoteFormReminderEnabled] = useState(false);
+  const [noteFormReminderDate, setNoteFormReminderDate] = useState('');
+  const [noteFormReminderTime, setNoteFormReminderTime] = useState('09:30');
+  const [noteFormReminderSent, setNoteFormReminderSent] = useState(false);
+  const [sendingReminderId, setSendingReminderId] = useState<number | null>(null);
+  const [reminderToast, setReminderToast] = useState<string | null>(null);
   const [savingNote, setSavingNote] = useState(false);
 
   // Today normalized
@@ -133,9 +146,27 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
     }
   };
 
+  // Periodic check for due note reminders & automatic notifications
+  const checkNoteReminders = async () => {
+    try {
+      const res = await api.checkSelfNoteReminders();
+      if (res && res.triggered_count > 0 && Array.isArray(res.triggered_notes)) {
+        res.triggered_notes.forEach((tn) => {
+          notifyNoteReminder(tn.title, tn.content);
+        });
+        fetchNotes();
+      }
+    } catch (err) {
+      // non-blocking
+    }
+  };
+
   useEffect(() => {
     fetchTasks();
     fetchNotes();
+    checkNoteReminders();
+    const interval = setInterval(checkNoteReminders, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   // -------------------------------------------------------------
@@ -290,16 +321,24 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
     setNoteFormCategory(note.category);
     setNoteFormColor(note.color || '#4f46e5');
     setNoteFormPinned(note.is_pinned);
+    setNoteFormReminderEnabled(!!note.reminder_enabled);
+    setNoteFormReminderDate(note.reminder_date || '');
+    setNoteFormReminderTime(note.reminder_time ? note.reminder_time.slice(0, 5) : '09:30');
+    setNoteFormReminderSent(!!note.is_reminder_sent);
     setIsNoteModalOpen(true);
   };
 
-  const handleOpenCreateNote = () => {
+  const handleOpenCreateNote = (presetDate?: string) => {
     setEditingNote(null);
     setNoteFormTitle('');
     setNoteFormContent('');
     setNoteFormCategory('WORK');
     setNoteFormColor('#4f46e5');
     setNoteFormPinned(false);
+    setNoteFormReminderEnabled(!!presetDate);
+    setNoteFormReminderDate(presetDate || todayStr);
+    setNoteFormReminderTime('09:30');
+    setNoteFormReminderSent(false);
     setIsNoteModalOpen(true);
   };
 
@@ -315,7 +354,14 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
         category: noteFormCategory,
         color: noteFormColor,
         is_pinned: noteFormPinned,
+        reminder_enabled: noteFormReminderEnabled,
+        reminder_date: noteFormReminderEnabled && noteFormReminderDate ? noteFormReminderDate : null,
+        reminder_time: noteFormReminderEnabled && noteFormReminderTime ? noteFormReminderTime : null,
       };
+
+      if (noteFormReminderEnabled) {
+        requestBrowserNotificationPermission().catch(() => {});
+      }
 
       if (editingNote) {
         const updated = await api.updateSelfNote(editingNote.id, payload);
@@ -330,6 +376,23 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
       alert('Could not save note. Please try again.');
     } finally {
       setSavingNote(false);
+    }
+  };
+
+  const handleSendImmediateReminder = async (note: SelfNote) => {
+    try {
+      setSendingReminderId(note.id);
+      await requestBrowserNotificationPermission();
+      await api.sendSelfNoteReminder(note.id);
+      notifyNoteReminder(note.title, note.content);
+      setReminderToast(`🔔 Reminder dispatched for "${note.title}"! Notification sent to your device.`);
+      setTimeout(() => setReminderToast(null), 4500);
+      setNotes((prev) => prev.map((n) => (n.id === note.id ? { ...n, is_reminder_sent: true } : n)));
+    } catch (err) {
+      console.error('Failed to send immediate reminder:', err);
+      alert('Could not send reminder notification. Please check permissions.');
+    } finally {
+      setSendingReminderId(null);
     }
   };
 
@@ -375,6 +438,73 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
       });
   }, [notes, noteSearch, noteCategory]);
 
+  // Calendar days grid computation for Notes Calendar View
+  const calendarDays = useMemo(() => {
+    const yr = noteCalendarDate.getFullYear();
+    const mo = noteCalendarDate.getMonth();
+    const firstDay = new Date(yr, mo, 1);
+    const startingDayOfWeek = firstDay.getDay();
+    const daysInMonth = new Date(yr, mo + 1, 0).getDate();
+    const daysInPrevMonth = new Date(yr, mo, 0).getDate();
+
+    const days: { dateStr: string; dayNumber: number; isCurrentMonth: boolean; isToday: boolean }[] = [];
+
+    // Prev month trailing days
+    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+      const dNum = daysInPrevMonth - i;
+      const prevDate = new Date(yr, mo - 1, dNum);
+      const dateStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(dNum).padStart(2, '0')}`;
+      days.push({
+        dateStr,
+        dayNumber: dNum,
+        isCurrentMonth: false,
+        isToday: dateStr === todayStr,
+      });
+    }
+
+    // Current month days
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${yr}-${String(mo + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      days.push({
+        dateStr,
+        dayNumber: d,
+        isCurrentMonth: true,
+        isToday: dateStr === todayStr,
+      });
+    }
+
+    // Next month leading days to complete 35 or 42 grid slots
+    const remainingSlots = (days.length <= 35 ? 35 : 42) - days.length;
+    for (let d = 1; d <= remainingSlots; d++) {
+      const nextDate = new Date(yr, mo + 1, d);
+      const dateStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      days.push({
+        dateStr,
+        dayNumber: d,
+        isCurrentMonth: false,
+        isToday: dateStr === todayStr,
+      });
+    }
+
+    return days;
+  }, [noteCalendarDate, todayStr]);
+
+  // Group notes by reminder_date (or created_at date as fallback)
+  const notesByDate = useMemo(() => {
+    const map: Record<string, SelfNote[]> = {};
+    filteredNotes.forEach((note) => {
+      let targetDate = note.reminder_date;
+      if (!targetDate && note.created_at) {
+        targetDate = note.created_at.split('T')[0];
+      }
+      if (targetDate) {
+        if (!map[targetDate]) map[targetDate] = [];
+        map[targetDate].push(note);
+      }
+    });
+    return map;
+  }, [filteredNotes]);
+
   // Task metrics
   const totalTasksCount = tasks.length;
   const pendingTasksCount = tasks.filter((t) => !t.is_completed).length;
@@ -401,6 +531,56 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
         background: 'var(--notion-bg)',
       }}
     >
+      {/* Reminder Notification Banner */}
+      {reminderToast && (
+        <div
+          style={{
+            marginBottom: '18px',
+            padding: '12px 18px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(79, 70, 229, 0.15))',
+            border: '1px solid rgba(139, 92, 246, 0.4)',
+            color: 'var(--notion-text)',
+            fontSize: '13px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 4px 14px rgba(139, 92, 246, 0.15)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '30px',
+                height: '30px',
+                borderRadius: '8px',
+                background: '#8b5cf6',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+              }}
+            >
+              <BellRing size={16} />
+            </div>
+            <span>{reminderToast}</span>
+          </div>
+          <button
+            onClick={() => setReminderToast(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--notion-text-muted)',
+              cursor: 'pointer',
+              padding: '4px',
+            }}
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
       {/* Top Banner / Personal Desk Header */}
       <div
         style={{
@@ -675,10 +855,31 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                   <LayoutGrid size={13} />
                   <span>Cards</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setNotesViewFormat('calendar')}
+                  style={{
+                    background: notesViewFormat === 'calendar' ? 'var(--notion-card)' : 'transparent',
+                    border: notesViewFormat === 'calendar' ? '1px solid var(--notion-border)' : '1px solid transparent',
+                    color: notesViewFormat === 'calendar' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
+                    borderRadius: '7px',
+                    padding: '4px 8px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: 'pointer',
+                  }}
+                  title="Notes Calendar View"
+                >
+                  <Calendar size={13} style={{ color: notesViewFormat === 'calendar' ? '#8b5cf6' : 'inherit' }} />
+                  <span>Calendar</span>
+                </button>
               </div>
 
               <button
-                onClick={handleOpenCreateNote}
+                onClick={() => handleOpenCreateNote(selectedCalendarDate || undefined)}
                 className="notion-btn"
                 style={{
                   background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
@@ -1302,24 +1503,25 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                         letterSpacing: '0.05em',
                       }}
                     >
-                      <th style={{ width: '48px', padding: '12px 14px', textAlign: 'center' }}>Pin</th>
-                      <th style={{ width: '120px', padding: '12px 14px' }}>Category</th>
+                      <th style={{ width: '44px', padding: '12px 12px', textAlign: 'center' }}>Pin</th>
+                      <th style={{ width: '110px', padding: '12px 12px' }}>Category</th>
                       <th style={{ padding: '12px 16px' }}>Note Title &amp; Content Snippet</th>
-                      <th style={{ width: '160px', padding: '12px 14px' }}>Last Updated</th>
-                      <th style={{ width: '110px', padding: '12px 14px', textAlign: 'right' }}>Actions</th>
+                      <th style={{ width: '190px', padding: '12px 12px' }}>Calendar &amp; Reminder</th>
+                      <th style={{ width: '120px', padding: '12px 12px' }}>Last Updated</th>
+                      <th style={{ width: '110px', padding: '12px 12px', textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loadingNotes ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: 'center', padding: '40px', color: 'var(--notion-text-dim)' }}>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--notion-text-dim)' }}>
                           <RefreshCw size={20} className="animate-spin" style={{ margin: '0 auto 8px' }} />
                           <div>Loading personal notes...</div>
                         </td>
                       </tr>
                     ) : filteredNotes.length === 0 ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--notion-text-dim)' }}>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--notion-text-dim)' }}>
                           <StickyNote size={36} style={{ margin: '0 auto 10px', opacity: 0.3 }} />
                           <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--notion-text)' }}>
                             No notes found
@@ -1427,6 +1629,62 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                             )}
                           </td>
 
+                          {/* Calendar & Reminder Schedule Column */}
+                          <td style={{ padding: '12px 12px', fontSize: '12px' }}>
+                            {n.reminder_date ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '3px 8px',
+                                    borderRadius: '8px',
+                                    background: n.is_reminder_sent ? 'var(--notion-item-bg)' : 'rgba(139, 92, 246, 0.12)',
+                                    border: `1px solid ${n.is_reminder_sent ? 'var(--notion-border)' : 'rgba(139, 92, 246, 0.3)'}`,
+                                    color: n.is_reminder_sent ? 'var(--notion-text-muted)' : '#8b5cf6',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                  }}
+                                  title={n.is_reminder_sent ? 'Reminder previously sent' : 'Reminder alert active'}
+                                >
+                                  <Bell size={11} style={{ color: n.is_reminder_sent ? 'inherit' : '#8b5cf6' }} />
+                                  <span>{n.reminder_date}{n.reminder_time ? ` • ${n.reminder_time.slice(0, 5)}` : ''}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSendImmediateReminder(n)}
+                                  disabled={sendingReminderId === n.id}
+                                  className="notion-btn notion-btn-bordered"
+                                  style={{ padding: '3px 6px', borderRadius: '6px', color: '#8b5cf6' }}
+                                  title="Send notification alert now"
+                                >
+                                  <BellRing size={12} className={sendingReminderId === n.id ? 'animate-spin' : ''} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditNote(n)}
+                                style={{
+                                  background: 'transparent',
+                                  border: '1px dashed var(--notion-border)',
+                                  borderRadius: '7px',
+                                  padding: '2px 8px',
+                                  fontSize: '11px',
+                                  color: 'var(--notion-text-dim)',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <Calendar size={11} />
+                                <span>+ Schedule</span>
+                              </button>
+                            )}
+                          </td>
+
                           {/* Updated Date */}
                           <td style={{ padding: '12px 14px', fontSize: '12px', color: 'var(--notion-text-dim)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1485,7 +1743,7 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                 </span>
               </div>
             </div>
-          ) : (
+          ) : notesViewFormat === 'cards' ? (
             /* CARDS FORMAT FOR NOTES */
             <div
               style={{
@@ -1576,6 +1834,49 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                     >
                       {n.content || <em style={{ color: 'var(--notion-text-dim)' }}>Empty note</em>}
                     </div>
+
+                    {/* Scheduled Reminder Badge on Card */}
+                    {n.reminder_date && (
+                      <div
+                        style={{
+                          marginTop: '10px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '3px 9px',
+                          borderRadius: '8px',
+                          background: n.is_reminder_sent ? 'var(--notion-item-bg)' : 'rgba(139, 92, 246, 0.1)',
+                          border: `1px solid ${n.is_reminder_sent ? 'var(--notion-border)' : 'rgba(139, 92, 246, 0.3)'}`,
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          color: n.is_reminder_sent ? 'var(--notion-text-muted)' : '#8b5cf6',
+                          width: 'fit-content',
+                        }}
+                      >
+                        <Bell size={11} />
+                        <span>📅 {n.reminder_date}{n.reminder_time ? ` at ${n.reminder_time.slice(0, 5)}` : ''}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSendImmediateReminder(n);
+                          }}
+                          disabled={sendingReminderId === n.id}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            padding: '0 2px',
+                            color: '#8b5cf6',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                          title="Notify me now"
+                        >
+                          <BellRing size={11} className={sendingReminderId === n.id ? 'animate-spin' : ''} />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Card Footer */}
@@ -1613,6 +1914,481 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                   </div>
                 </div>
               ))}
+            </div>
+          ) : (
+            /* ========================================================================= */
+            /* CALENDAR VIEW FOR PERSONAL NOTES                                          */
+            /* ========================================================================= */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Calendar Header Controls */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  padding: '16px 20px',
+                  background: 'var(--notion-card)',
+                  borderRadius: '16px',
+                  border: '1px solid var(--notion-border)',
+                  boxShadow: 'var(--notion-shadow-sm)',
+                }}
+              >
+                {/* Month navigator */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setNoteCalendarDate(new Date(noteCalendarDate.getFullYear(), noteCalendarDate.getMonth() - 1, 1))
+                      }
+                      className="notion-btn notion-btn-bordered"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        padding: 0,
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      title="Previous Month"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNoteCalendarDate(new Date())}
+                      className="notion-btn notion-btn-bordered"
+                      style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700 }}
+                    >
+                      Today
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setNoteCalendarDate(new Date(noteCalendarDate.getFullYear(), noteCalendarDate.getMonth() + 1, 1))
+                      }
+                      className="notion-btn notion-btn-bordered"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        padding: 0,
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      title="Next Month"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: '17px',
+                      fontWeight: 800,
+                      color: 'var(--notion-text)',
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    {noteCalendarDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+                  </h3>
+                </div>
+
+                {/* Info Pills & Actions */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: 'var(--notion-text-dim)',
+                      padding: '5px 12px',
+                      borderRadius: '9px',
+                      background: 'var(--notion-item-bg)',
+                      border: '1px solid var(--notion-border-subtle)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <Calendar size={13} style={{ color: '#8b5cf6' }} />
+                    <span>{filteredNotes.filter((n) => n.reminder_date).length} Notes Scheduled</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenCreateNote(selectedCalendarDate || todayStr)}
+                    className="notion-btn"
+                    style={{
+                      background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '6px 14px',
+                      borderRadius: '9px',
+                      gap: '5px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      boxShadow: '0 2px 8px rgba(139, 92, 246, 0.25)',
+                    }}
+                  >
+                    <Plus size={14} />
+                    <span>Schedule Note for {selectedCalendarDate || 'Today'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Calendar Month Grid */}
+              <div
+                style={{
+                  background: 'var(--notion-card)',
+                  borderRadius: '16px',
+                  border: '1px solid var(--notion-border)',
+                  overflow: 'hidden',
+                  boxShadow: 'var(--notion-shadow-sm)',
+                }}
+              >
+                {/* Weekday Row */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(7, 1fr)',
+                    background: 'var(--notion-item-bg)',
+                    borderBottom: '1px solid var(--notion-border)',
+                  }}
+                >
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                    <div
+                      key={day}
+                      style={{
+                        padding: '10px 8px',
+                        textAlign: 'center',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        color: 'var(--notion-text-dim)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Grid Days */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(7, 1fr)',
+                    minHeight: '520px',
+                  }}
+                >
+                  {calendarDays.map((day, idx) => {
+                    const isSelected = selectedCalendarDate === day.dateStr;
+                    const dayNotes = notesByDate[day.dateStr] || [];
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => setSelectedCalendarDate(day.dateStr)}
+                        style={{
+                          minHeight: '105px',
+                          padding: '8px',
+                          borderRight: (idx + 1) % 7 !== 0 ? '1px solid var(--notion-border-subtle)' : 'none',
+                          borderBottom: idx < calendarDays.length - 7 ? '1px solid var(--notion-border-subtle)' : 'none',
+                          background: isSelected
+                            ? 'rgba(139, 92, 246, 0.08)'
+                            : day.isToday
+                            ? 'rgba(59, 130, 246, 0.04)'
+                            : !day.isCurrentMonth
+                            ? 'var(--notion-item-bg)'
+                            : 'transparent',
+                          opacity: day.isCurrentMonth ? 1 : 0.45,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px',
+                          cursor: 'pointer',
+                          transition: 'background 0.15s ease',
+                          position: 'relative',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) e.currentTarget.style.background = 'var(--notion-hover)';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.background = day.isToday
+                              ? 'rgba(59, 130, 246, 0.04)'
+                              : !day.isCurrentMonth
+                              ? 'var(--notion-item-bg)'
+                              : 'transparent';
+                          }
+                        }}
+                      >
+                        {/* Day Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span
+                            style={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '12px',
+                              fontWeight: day.isToday ? 800 : 600,
+                              background: day.isToday ? '#2563eb' : isSelected ? '#8b5cf6' : 'transparent',
+                              color: day.isToday || isSelected ? '#ffffff' : 'var(--notion-text)',
+                            }}
+                          >
+                            {day.dayNumber}
+                          </span>
+
+                          {/* Quick Add Note on Hover */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenCreateNote(day.dateStr);
+                            }}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              borderRadius: '5px',
+                              color: 'var(--notion-text-dim)',
+                              cursor: 'pointer',
+                              padding: '2px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                            title={`Add note on ${day.dateStr}`}
+                          >
+                            <Plus size={13} />
+                          </button>
+                        </div>
+
+                        {/* Day Notes Pill List */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '3px',
+                            marginTop: '2px',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {dayNotes.slice(0, 3).map((dn) => (
+                            <div
+                              key={dn.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEditNote(dn);
+                              }}
+                              style={{
+                                padding: '3px 6px',
+                                borderRadius: '6px',
+                                background: dn.color ? `${dn.color}20` : 'rgba(139, 92, 246, 0.15)',
+                                borderLeft: `3px solid ${dn.color || '#8b5cf6'}`,
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                color: 'var(--notion-text)',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '4px',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                              }}
+                              title={dn.title}
+                            >
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {dn.is_pinned ? '📌 ' : ''}
+                                {dn.title}
+                              </span>
+                              {dn.reminder_time && (
+                                <span style={{ fontSize: '9px', opacity: 0.8, color: '#8b5cf6', flexShrink: 0 }}>
+                                  {dn.reminder_time.slice(0, 5)}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+
+                          {dayNotes.length > 3 && (
+                            <div style={{ fontSize: '10px', color: 'var(--notion-text-dim)', fontWeight: 700, paddingLeft: '4px' }}>
+                              +{dayNotes.length - 3} more
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Selected Date Drawer or Quick Actions */}
+              {selectedCalendarDate && (
+                <div
+                  style={{
+                    background: 'var(--notion-card)',
+                    borderRadius: '16px',
+                    border: '1px solid var(--notion-border)',
+                    padding: '18px 22px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Calendar size={16} style={{ color: '#8b5cf6' }} />
+                      <span style={{ fontSize: '14.5px', fontWeight: 800, color: 'var(--notion-text)' }}>
+                        Notes scheduled for{' '}
+                        {new Date(selectedCalendarDate + 'T00:00:00').toLocaleDateString(undefined, {
+                          weekday: 'long',
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '10px',
+                          background: 'rgba(139, 92, 246, 0.12)',
+                          color: '#8b5cf6',
+                        }}
+                      >
+                        {(notesByDate[selectedCalendarDate] || []).length} Notes
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCreateNote(selectedCalendarDate)}
+                        className="notion-btn"
+                        style={{
+                          background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '5px 12px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <Plus size={13} />
+                        <span>Add Note</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCalendarDate(null)}
+                        className="notion-btn notion-btn-bordered"
+                        style={{ padding: '5px 10px', borderRadius: '8px', fontSize: '11.5px' }}
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Notes on this day */}
+                  {(notesByDate[selectedCalendarDate] || []).length === 0 ? (
+                    <div style={{ fontSize: '12.5px', color: 'var(--notion-text-dim)', fontStyle: 'italic', padding: '6px 0' }}>
+                      No notes scheduled for this date. Click "+ Add Note" to schedule ideas, checklist, or reminders.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
+                      {(notesByDate[selectedCalendarDate] || []).map((dn) => (
+                        <div
+                          key={dn.id}
+                          onClick={() => handleOpenEditNote(dn)}
+                          style={{
+                            background: 'var(--notion-item-bg)',
+                            border: dn.is_pinned ? '1.5px solid #f59e0b' : '1px solid var(--notion-border)',
+                            borderRadius: '12px',
+                            padding: '12px 14px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            gap: '8px',
+                          }}
+                        >
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '10.5px', fontWeight: 800, color: dn.color || '#8b5cf6' }}>
+                                {dn.category}
+                              </span>
+                              {dn.is_pinned && <span style={{ fontSize: '10px', color: '#f59e0b' }}>📌 PINNED</span>}
+                            </div>
+                            <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--notion-text)', marginTop: '4px' }}>
+                              {dn.title}
+                            </div>
+                            {dn.content && (
+                              <div
+                                style={{
+                                  fontSize: '12px',
+                                  color: 'var(--notion-text-muted)',
+                                  marginTop: '2px',
+                                  maxHeight: '36px',
+                                  overflow: 'hidden',
+                                }}
+                              >
+                                {dn.content}
+                              </div>
+                            )}
+                          </div>
+
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              borderTop: '1px solid var(--notion-border-subtle)',
+                              paddingTop: '6px',
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                color: '#8b5cf6',
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                              }}
+                            >
+                              <Bell size={11} />
+                              {dn.reminder_time ? dn.reminder_time.slice(0, 5) : 'Reminder set'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSendImmediateReminder(dn);
+                              }}
+                              disabled={sendingReminderId === dn.id}
+                              className="notion-btn notion-btn-bordered"
+                              style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11px', color: '#8b5cf6' }}
+                              title="Notify Now"
+                            >
+                              <BellRing size={11} className={sendingReminderId === dn.id ? 'animate-spin' : ''} />
+                              <span style={{ marginLeft: '4px' }}>Alert Me</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -2272,6 +3048,218 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Calendar Date & Notification Reminder Section */}
+              <div
+                style={{
+                  marginBottom: '18px',
+                  padding: '14px',
+                  borderRadius: '12px',
+                  border: noteFormReminderEnabled ? '1.5px solid rgba(139, 92, 246, 0.4)' : '1px solid var(--notion-border)',
+                  background: noteFormReminderEnabled ? 'rgba(139, 92, 246, 0.05)' : 'var(--notion-item-bg)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: noteFormReminderEnabled ? '12px' : 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '7px',
+                        background: noteFormReminderEnabled ? '#8b5cf6' : 'var(--notion-input-bg)',
+                        color: noteFormReminderEnabled ? '#ffffff' : 'var(--notion-text-dim)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Bell size={14} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--notion-text)' }}>
+                        Calendar Schedule &amp; Notification Reminder
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>
+                        Pin to calendar dates and send push &amp; desktop alerts
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Toggle Switch */}
+                  <div
+                    onClick={() => {
+                      const next = !noteFormReminderEnabled;
+                      setNoteFormReminderEnabled(next);
+                      if (next && !noteFormReminderDate) {
+                        setNoteFormReminderDate(todayStr);
+                      }
+                      if (next) {
+                        requestBrowserNotificationPermission().catch(() => {});
+                      }
+                    }}
+                    style={{
+                      width: '36px',
+                      height: '20px',
+                      borderRadius: '10px',
+                      background: noteFormReminderEnabled ? '#8b5cf6' : 'var(--notion-border)',
+                      position: 'relative',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        background: '#ffffff',
+                        position: 'absolute',
+                        top: '2px',
+                        left: noteFormReminderEnabled ? '18px' : '2px',
+                        transition: 'all 0.2s ease',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {noteFormReminderEnabled && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--notion-border-subtle)' }}>
+                    {/* Date Presets */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--notion-text-dim)' }}>Quick:</span>
+                      {[
+                        { label: 'Today', days: 0 },
+                        { label: 'Tomorrow', days: 1 },
+                        { label: 'In 3 Days', days: 3 },
+                        { label: 'Next Week', days: 7 },
+                      ].map((preset) => {
+                        const d = new Date();
+                        d.setDate(d.getDate() + preset.days);
+                        const dStr = d.toISOString().split('T')[0];
+                        const isSelected = noteFormReminderDate === dStr;
+                        return (
+                          <button
+                            key={preset.label}
+                            type="button"
+                            onClick={() => setNoteFormReminderDate(dStr)}
+                            style={{
+                              fontSize: '11px',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              border: isSelected ? '1px solid #8b5cf6' : '1px solid var(--notion-border-subtle)',
+                              background: isSelected ? 'rgba(139, 92, 246, 0.15)' : 'var(--notion-input-bg)',
+                              color: isSelected ? '#8b5cf6' : 'var(--notion-text-muted)',
+                              cursor: 'pointer',
+                              fontWeight: isSelected ? 700 : 500,
+                            }}
+                          >
+                            {preset.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px' }}>
+                      {/* Reminder Date Picker */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--notion-text-muted)', marginBottom: '4px' }}>
+                          SCHEDULE DATE
+                        </label>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px 12px',
+                            borderRadius: '9px',
+                            border: '1px solid var(--notion-border)',
+                            background: 'var(--notion-input-bg)',
+                          }}
+                        >
+                          <Calendar size={14} style={{ color: '#8b5cf6' }} />
+                          <input
+                            type="date"
+                            value={noteFormReminderDate}
+                            onChange={(e) => setNoteFormReminderDate(e.target.value)}
+                            style={{
+                              width: '100%',
+                              border: 'none',
+                              background: 'transparent',
+                              color: 'var(--notion-text)',
+                              fontSize: '12.5px',
+                              outline: 'none',
+                              cursor: 'pointer',
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Reminder Time Picker */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--notion-text-muted)', marginBottom: '4px' }}>
+                          ALERT TIME
+                        </label>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px 12px',
+                            borderRadius: '9px',
+                            border: '1px solid var(--notion-border)',
+                            background: 'var(--notion-input-bg)',
+                          }}
+                        >
+                          <Clock size={14} style={{ color: '#8b5cf6' }} />
+                          <input
+                            type="time"
+                            value={noteFormReminderTime}
+                            onChange={(e) => setNoteFormReminderTime(e.target.value)}
+                            style={{
+                              width: '100%',
+                              border: 'none',
+                              background: 'transparent',
+                              color: 'var(--notion-text)',
+                              fontSize: '12.5px',
+                              outline: 'none',
+                              cursor: 'pointer',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Immediate Dispatch Button if editing */}
+                    {editingNote && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '6px' }}>
+                        <span style={{ fontSize: '11px', color: noteFormReminderSent ? '#10b981' : 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {noteFormReminderSent ? '✓ Reminder previously sent' : 'Reminder pending trigger'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleSendImmediateReminder(editingNote)}
+                          disabled={sendingReminderId === editingNote.id}
+                          className="notion-btn notion-btn-bordered"
+                          style={{
+                            fontSize: '11.5px',
+                            padding: '4px 10px',
+                            borderRadius: '7px',
+                            color: '#8b5cf6',
+                            borderColor: 'rgba(139, 92, 246, 0.4)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                          }}
+                        >
+                          <BellRing size={12} className={sendingReminderId === editingNote.id ? 'animate-spin' : ''} />
+                          <span>{sendingReminderId === editingNote.id ? 'Sending...' : 'Test / Send Alert Now'}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Note Content with Writing Toolbar */}

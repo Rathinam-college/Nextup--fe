@@ -214,6 +214,10 @@ export interface SelfNote {
   category_display: string;
   color?: string;
   is_pinned: boolean;
+  reminder_date?: string | null;
+  reminder_time?: string | null;
+  reminder_enabled?: boolean;
+  is_reminder_sent?: boolean;
   created_at: string;
   updated_at: string;
 }

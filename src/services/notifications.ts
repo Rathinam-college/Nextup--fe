@@ -226,3 +226,14 @@ export async function triggerTestWorkReminder(): Promise<{ success: boolean; mes
   }
 }
 
+/**
+ * Dispatch desktop browser notification & sound chime for a note reminder
+ */
+export function notifyNoteReminder(noteTitle: string, noteContent?: string): void {
+  playNotificationChime();
+  showBrowserNotification(`⏰ Note Reminder: ${noteTitle}`, {
+    body: noteContent ? (noteContent.length > 140 ? `${noteContent.slice(0, 140)}...` : noteContent) : `You have a scheduled reminder for note: ${noteTitle}`,
+    tag: `note-reminder-${Date.now()}`,
+  });
+}
+

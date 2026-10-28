@@ -442,4 +442,14 @@ export const api = {
     request<SelfNote>(`/api/self-notes/${id}/toggle-pin/`, {
       method: 'POST',
     }),
+  checkSelfNoteReminders: () =>
+    request<{ triggered_count: number; triggered_notes: SelfNote[] }>(
+      '/api/self-notes/check-reminders/',
+      { method: 'POST' }
+    ),
+  sendSelfNoteReminder: (id: number) =>
+    request<{ status: string; message: string; note: SelfNote }>(
+      `/api/self-notes/${id}/send-reminder/`,
+      { method: 'POST' }
+    ),
 };
