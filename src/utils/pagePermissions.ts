@@ -121,7 +121,7 @@ export const getDefaultAllowedPagesForRole = (role?: Role): ViewType[] => {
     return ['board', 'table', 'list', 'calendar', 'self_desk', 'departments', 'staff', 'report'];
   }
   // Standard Staff
-  return ['board', 'table', 'list', 'calendar', 'self_desk'];
+  return ['board', 'table', 'list', 'calendar', 'self_desk', 'staff'];
 };
 
 export const isUserAllowedToViewPage = (user: User | null | undefined, view: ViewType): boolean => {

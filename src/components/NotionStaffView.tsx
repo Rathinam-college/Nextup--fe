@@ -1,6 +1,6 @@
 import React from 'react';
 import { User, Role } from '../types';
-import { Plus, Trash2, Edit2, Users, Mail, Shield, Building2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, Mail, Shield, Building2, Phone } from 'lucide-react';
 
 interface NotionStaffViewProps {
   staffList: User[];
@@ -103,6 +103,7 @@ export const NotionStaffView: React.FC<NotionStaffViewProps> = ({
               <th style={{ padding: '12px 18px' }}>🔑 Username</th>
               <th style={{ padding: '12px 18px' }}>🏢 Department</th>
               <th style={{ padding: '12px 18px' }}>🏷️ Role</th>
+              <th style={{ padding: '12px 18px' }}>📞 Contact Phone</th>
               <th style={{ padding: '12px 18px' }}>🛡️ Page Access</th>
               <th style={{ padding: '12px 18px' }}>💼 Job Title</th>
               <th style={{ padding: '12px 18px' }}>✉️ Institutional Email</th>
@@ -151,6 +152,31 @@ export const NotionStaffView: React.FC<NotionStaffViewProps> = ({
                   </span>
                 </td>
                 <td style={{ padding: '14px 18px' }}>{getRoleTag(user.role)}</td>
+                <td style={{ padding: '14px 18px', fontFamily: 'JetBrains Mono', fontSize: '12px' }}>
+                  {user.phone ? (
+                    <a
+                      href={`tel:${user.phone.replace(/\s+/g, '')}`}
+                      style={{
+                        color: '#0284c7',
+                        textDecoration: 'none',
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        background: 'rgba(2, 132, 199, 0.08)',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(2, 132, 199, 0.2)',
+                      }}
+                      title={`Call ${user.full_name || user.username} (${user.phone})`}
+                    >
+                      <Phone size={12} />
+                      <span>{user.phone}</span>
+                    </a>
+                  ) : (
+                    <span style={{ color: 'var(--notion-text-dim)', fontSize: '11.5px' }}>—</span>
+                  )}
+                </td>
                 <td style={{ padding: '14px 18px' }}>
                   <button
                     type="button"

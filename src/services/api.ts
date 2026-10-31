@@ -223,6 +223,11 @@ export const api = {
       '/api/notifications/trigger-hourly-reminder/',
       { method: 'POST', body: JSON.stringify({ all: targetAll }) }
     ),
+  triggerUrgentReminders: (targetAll = true) =>
+    request<{ status: string; message: string; count: number; tasks: any[] }>(
+      '/api/notifications/trigger-urgent-reminders/',
+      { method: 'POST', body: JSON.stringify({ all: targetAll }) }
+    ),
 
 
   // Dispatched Email Logs & Audit Logs
@@ -494,4 +499,65 @@ export const api = {
       `/api/self-notes/${id}/send-reminder/`,
       { method: 'POST' }
     ),
+
+  // Admin User Sessions & Mobile Device Push Center
+  getAdminUserSessions: () =>
+    request<{
+      stats: {
+        total_users: number;
+        online_users_count: number;
+        total_registered_devices: number;
+        mobile_apk_users_count: number;
+        active_sessions_count: number;
+      };
+      users: Array<{
+        id: number;
+        username: string;
+        full_name: string;
+        role: string;
+        role_display: string;
+        department_name: string;
+        is_online: boolean;
+        last_seen: string | null;
+        latest_platform: string;
+        latest_device: string;
+        devices_count: number;
+        devices: Array<any>;
+      }>;
+      recent_sessions: Array<{
+        id: number;
+        user: number;
+        user_name: string;
+        department_name: string;
+        role_display: string;
+        platform: string;
+        device_info: string;
+        ip_address: string;
+        user_agent: string;
+        login_time: string;
+        logout_time: string | null;
+        last_activity: string;
+        is_active: boolean;
+      }>;
+      devices: Array<{
+        id: number;
+        user: number;
+        user_name: string;
+        department_name: string;
+        role_display: string;
+        device_token: string;
+        device_type: string;
+        device_name: string;
+        app_version: string;
+        is_active: boolean;
+        last_seen: string;
+        created_at: string;
+      }>;
+    }>('/api/admin/user-sessions/'),
+
+  sendTestPush: (data: { user_id?: number; send_to_all?: boolean; title?: string; body?: string }) =>
+    request<{ success: boolean; sent_count: number; message: string }>('/api/devices/test-push/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };

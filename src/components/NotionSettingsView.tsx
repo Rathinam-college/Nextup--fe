@@ -37,6 +37,11 @@ import {
   Upload,
   FileUp,
   Bell,
+  Smartphone,
+  LogIn,
+  LogOut,
+  Radio,
+  Wifi,
 } from 'lucide-react';
 import { triggerTestWorkReminder } from '../services/notifications';
 import { useLanguage } from '../context/LanguageContext';
@@ -62,7 +67,7 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
   onRefreshData,
 }) => {
   const { t, isTamil } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'database' | 'users' | 'audit' | 'email'>('database');
+  const [activeTab, setActiveTab] = useState<'database' | 'users' | 'audit' | 'email' | 'app_usage'>('database');
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
@@ -123,6 +128,105 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
   const [testing9AmReminder, setTesting9AmReminder] = useState(false);
   const [dispatching9AmToAll, setDispatching9AmToAll] = useState(false);
   const [reminderActionMsg, setReminderActionMsg] = useState<string | null>(null);
+
+  // Mobile App & User Sessions State
+  const [appUsageData, setAppUsageData] = useState<{
+    stats: {
+      total_users: number;
+      online_users_count: number;
+      total_registered_devices: number;
+      mobile_apk_users_count: number;
+      active_sessions_count: number;
+    };
+    users: Array<any>;
+    recent_sessions: Array<any>;
+    devices: Array<any>;
+  } | null>(null);
+  const [loadingAppUsage, setLoadingAppUsage] = useState(false);
+  const [testingPushUserId, setTestingPushUserId] = useState<number | null>(null);
+  const [broadcastingPush, setBroadcastingPush] = useState(false);
+  const [pushStatusMessage, setPushStatusMessage] = useState<string | null>(null);
+  const [appUsageFilter, setAppUsageFilter] = useState<'all' | 'online' | 'mobile'>('all');
+  const [appUsageSearch, setAppUsageSearch] = useState('');
+  const [sessionSubTab, setSessionSubTab] = useState<'users' | 'history' | 'devices'>('users');
+
+  const fetchAppUsageData = async () => {
+    try {
+      setLoadingAppUsage(true);
+      const data = await api.getAdminUserSessions();
+      setAppUsageData(data);
+    } catch (err: any) {
+      console.error('Failed to load app usage and session logs:', err);
+    } finally {
+      setLoadingAppUsage(false);
+    }
+  };
+
+  const handleSendTestPush = async (userId?: number, userName?: string) => {
+    try {
+      if (userId) setTestingPushUserId(userId);
+      const res = await api.sendTestPush({
+        user_id: userId,
+        title: '🔔 NextUp Live Alert',
+        body: `Test push notification to ${userName || 'user'}! Your mobile APK notifications are verified & active!`,
+      });
+      setPushStatusMessage(res.message);
+      setTimeout(() => setPushStatusMessage(null), 7000);
+      fetchAppUsageData();
+    } catch (err: any) {
+      alert(`Push test notice: ${err.message}`);
+    } finally {
+      setTestingPushUserId(null);
+    }
+  };
+
+  const [dispatchingUrgentReminders, setDispatchingUrgentReminders] = useState(false);
+
+  const handleDispatchUrgentReminders = async () => {
+    try {
+      setDispatchingUrgentReminders(true);
+      const res = await api.triggerUrgentReminders(true);
+      const msg = `Dispatched high-priority push & email alerts for ${res.count} urgent & due deliverable(s)!`;
+      setPushStatusMessage(msg);
+      setReminderActionMsg(msg);
+      setTimeout(() => {
+        setPushStatusMessage(null);
+        setReminderActionMsg(null);
+      }, 7000);
+      fetchAppUsageData();
+    } catch (err: any) {
+      alert(`Urgent dispatch notice: ${err.message}`);
+    } finally {
+      setDispatchingUrgentReminders(false);
+    }
+  };
+
+  const handleBroadcastPush = async () => {
+    if (!window.confirm('Broadcast a test notification to all registered mobile APK devices now?')) return;
+    try {
+      setBroadcastingPush(true);
+      const res = await api.sendTestPush({
+        send_to_all: true,
+        title: '📢 NextUp Campus Alert',
+        body: 'Campus Broadcast: Push notifications are fully connected and active on your mobile app!',
+      });
+      setPushStatusMessage(res.message);
+      setTimeout(() => setPushStatusMessage(null), 7000);
+      fetchAppUsageData();
+    } catch (err: any) {
+      alert(`Broadcast failed: ${err.message}`);
+    } finally {
+      setBroadcastingPush(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'app_usage') {
+      fetchAppUsageData();
+      const interval = setInterval(fetchAppUsageData, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
 
   const handleTest9AmReminder = async () => {
     try {
@@ -726,6 +830,29 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
         >
           <Mail size={15} style={{ color: activeTab === 'email' ? 'var(--notion-blue)' : 'inherit' }} />
           <span>{isTamil ? `மின்னஞ்சல் & SMTP (${emailLogsList.length})` : `Email & SMTP (${emailLogsList.length})`}</span>
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('app_usage');
+            fetchAppUsageData();
+          }}
+          className="notion-btn"
+          style={{
+            padding: '7px 14px',
+            fontSize: '12.5px',
+            fontWeight: activeTab === 'app_usage' ? 700 : 500,
+            color: activeTab === 'app_usage' ? 'var(--notion-text)' : 'var(--notion-text-dim)',
+            borderRadius: '9px',
+            background: activeTab === 'app_usage' ? 'var(--notion-card)' : 'transparent',
+            boxShadow: activeTab === 'app_usage' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            border: 'none',
+          }}
+        >
+          <Smartphone size={15} style={{ color: activeTab === 'app_usage' ? '#10b981' : 'inherit' }} />
+          <span>{isTamil ? `மொபைல் & அமர்வுகள் (${appUsageData?.devices?.length ?? 0})` : `Mobile App & Sessions (${appUsageData?.devices?.length ?? 0})`}</span>
         </button>
       </div>
 
@@ -1988,7 +2115,30 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
                   style={{ padding: '7px 16px', fontSize: '12.5px', fontWeight: 600, borderRadius: '8px', gap: '6px' }}
                 >
                   <Send size={14} />
-                  <span>{dispatching9AmToAll ? 'Dispatching...' : 'Dispatch to All Staff'}</span>
+                  <span>{dispatching9AmToAll ? 'Dispatching...' : 'Dispatch 9AM-6PM Check-In'}</span>
+                </button>
+
+                <button
+                  onClick={handleDispatchUrgentReminders}
+                  disabled={dispatchingUrgentReminders}
+                  className="notion-btn"
+                  style={{
+                    padding: '7px 16px',
+                    fontSize: '12.5px',
+                    fontWeight: 600,
+                    borderRadius: '8px',
+                    gap: '6px',
+                    borderColor: 'rgba(239, 68, 68, 0.4)',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    color: '#ef4444',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Bell size={14} />
+                  <span>{dispatchingUrgentReminders ? 'Dispatching...' : '🚨 Push Urgent & Due Tasks'}</span>
                 </button>
               </div>
             </div>
@@ -2406,6 +2556,482 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Mobile App Usage, Online Sessions & Push Notifications Tab */}
+      {activeTab === 'app_usage' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+          {/* Header & Live Actions Bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px', background: 'var(--notion-card)', padding: '18px 22px', borderRadius: '12px', border: '1px solid var(--notion-border)' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Smartphone size={22} style={{ color: '#10b981' }} />
+                <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, color: 'var(--notion-text)', letterSpacing: '-0.02em' }}>
+                  Mobile App &amp; Real-Time User Sessions
+                </h2>
+                <span className="notion-tag tag-green" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, padding: '2px 8px' }}>
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 6px #10b981' }} />
+                  Live Sync (15s)
+                </span>
+              </div>
+              <p style={{ fontSize: '12.5px', color: 'var(--notion-text-muted)', margin: '6px 0 0' }}>
+                Track who is logged in, monitor mobile APK devices, send push reminders (9 AM – 6 PM check-ins), and dispatch urgent task notifications.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={fetchAppUsageData}
+                disabled={loadingAppUsage}
+                className="notion-btn notion-btn-bordered"
+                style={{ fontSize: '12px', padding: '6px 12px', gap: '6px' }}
+                title="Refresh sessions & device status now"
+              >
+                <RefreshCw size={13} className={loadingAppUsage ? 'animate-spin' : ''} />
+                <span>Refresh Live</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDispatch9AmAll}
+                disabled={dispatching9AmToAll}
+                className="notion-btn"
+                style={{
+                  fontSize: '12px',
+                  padding: '6px 12px',
+                  gap: '6px',
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  color: '#2563eb',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  fontWeight: 700,
+                  borderRadius: '7px',
+                }}
+                title="Dispatch 9 AM – 6 PM hourly work reminder to all staff"
+              >
+                <Clock size={13} />
+                <span>{dispatching9AmToAll ? 'Sending...' : '⏰ 9-6 Work Remind'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDispatchUrgentReminders}
+                disabled={dispatchingUrgentReminders}
+                className="notion-btn"
+                style={{
+                  fontSize: '12px',
+                  padding: '6px 12px',
+                  gap: '6px',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: '#dc2626',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  fontWeight: 700,
+                  borderRadius: '7px',
+                }}
+                title="Send high-priority push & email alerts for urgent & due date tasks"
+              >
+                <AlertTriangle size={13} />
+                <span>{dispatchingUrgentReminders ? 'Alerting...' : '🚨 Urgent & Due Push'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleBroadcastPush}
+                disabled={broadcastingPush}
+                className="notion-btn notion-btn-primary"
+                style={{ fontSize: '12px', padding: '6px 14px', gap: '6px' }}
+                title="Broadcast a test notification to all 10+ mobile APK phones"
+              >
+                <Bell size={13} />
+                <span>{broadcastingPush ? 'Broadcasting...' : '📢 Broadcast Test Push'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Feedback Notice */}
+          {pushStatusMessage && (
+            <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#059669', padding: '10px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CheckCircle2 size={16} />
+              <span>{pushStatusMessage}</span>
+            </div>
+          )}
+
+          {/* Metrics Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+            <div className="notion-card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Total Staff Accounts</div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--notion-text)', marginTop: '2px' }}>{appUsageData?.stats.total_users ?? '—'}</div>
+              </div>
+            </div>
+
+            <div className="notion-card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Radio size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Online Staff (Last 5m)</div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#10b981', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>{appUsageData?.stats.online_users_count ?? 0}</span>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-muted)' }}>active</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="notion-card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(14, 165, 233, 0.1)', color: '#0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Smartphone size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Mobile APK Devices</div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#0ea5e9', marginTop: '2px' }}>{appUsageData?.stats.total_registered_devices ?? 0}</div>
+              </div>
+            </div>
+
+            <div className="notion-card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Activity size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Active Sessions</div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#f59e0b', marginTop: '2px' }}>{appUsageData?.stats.active_sessions_count ?? 0}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sub Navigation Tabs */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--notion-border)', paddingBottom: '10px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setSessionSubTab('users')}
+                className="notion-btn"
+                style={{
+                  fontSize: '12.5px',
+                  fontWeight: sessionSubTab === 'users' ? 700 : 500,
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  background: sessionSubTab === 'users' ? 'var(--notion-card)' : 'transparent',
+                  color: sessionSubTab === 'users' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
+                  border: sessionSubTab === 'users' ? '1px solid var(--notion-border)' : '1px solid transparent',
+                  boxShadow: sessionSubTab === 'users' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Users size={14} style={{ color: sessionSubTab === 'users' ? '#10b981' : 'inherit' }} />
+                <span>Live Users &amp; Devices ({appUsageData?.users?.length || 0})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSessionSubTab('history')}
+                className="notion-btn"
+                style={{
+                  fontSize: '12.5px',
+                  fontWeight: sessionSubTab === 'history' ? 700 : 500,
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  background: sessionSubTab === 'history' ? 'var(--notion-card)' : 'transparent',
+                  color: sessionSubTab === 'history' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
+                  border: sessionSubTab === 'history' ? '1px solid var(--notion-border)' : '1px solid transparent',
+                  boxShadow: sessionSubTab === 'history' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Clock size={14} style={{ color: sessionSubTab === 'history' ? '#6366f1' : 'inherit' }} />
+                <span>Login / Logout Audit ({appUsageData?.recent_sessions?.length || 0})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSessionSubTab('devices')}
+                className="notion-btn"
+                style={{
+                  fontSize: '12.5px',
+                  fontWeight: sessionSubTab === 'devices' ? 700 : 500,
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  background: sessionSubTab === 'devices' ? 'var(--notion-card)' : 'transparent',
+                  color: sessionSubTab === 'devices' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
+                  border: sessionSubTab === 'devices' ? '1px solid var(--notion-border)' : '1px solid transparent',
+                  boxShadow: sessionSubTab === 'devices' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Smartphone size={14} style={{ color: sessionSubTab === 'devices' ? '#0ea5e9' : 'inherit' }} />
+                <span>Registered Push Tokens ({appUsageData?.devices?.length || 0})</span>
+              </button>
+            </div>
+
+            {/* Filter and Search */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ position: 'relative', width: '220px' }}>
+                <Search size={13} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--notion-text-dim)' }} />
+                <input
+                  type="text"
+                  placeholder="Search user, device, dept..."
+                  value={appUsageSearch}
+                  onChange={(e) => setAppUsageSearch(e.target.value)}
+                  className="notion-input"
+                  style={{ paddingLeft: '30px', fontSize: '11.5px', height: '32px' }}
+                />
+              </div>
+
+              {sessionSubTab === 'users' && (
+                <select
+                  value={appUsageFilter}
+                  onChange={(e) => setAppUsageFilter(e.target.value as any)}
+                  className="notion-select"
+                  style={{ fontSize: '11.5px', height: '32px', width: '130px' }}
+                >
+                  <option value="all">All Users</option>
+                  <option value="online">🟢 Online Now</option>
+                  <option value="mobile">📱 Mobile APK</option>
+                </select>
+              )}
+            </div>
+          </div>
+
+          {/* Sub Tab 1: Live Users & Devices */}
+          {sessionSubTab === 'users' && (
+            <div className="notion-card" style={{ padding: 0, overflow: 'hidden' }}>
+              <table className="notion-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+                <thead>
+                  <tr style={{ background: 'var(--notion-hover)', borderBottom: '1px solid var(--notion-border)' }}>
+                    <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Staff User</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Department &amp; Role</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Live Status</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Platform &amp; Device</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Push Token</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Last Heartbeat</th>
+                    <th style={{ padding: '10px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(appUsageData?.users || [])
+                    .filter((u) => {
+                      if (appUsageFilter === 'online' && !u.is_online) return false;
+                      if (appUsageFilter === 'mobile' && u.latest_platform !== 'mobile_apk' && u.devices_count === 0) return false;
+                      if (appUsageSearch.trim()) {
+                        const q = appUsageSearch.toLowerCase();
+                        return (
+                          (u.full_name || '').toLowerCase().includes(q) ||
+                          (u.username || '').toLowerCase().includes(q) ||
+                          (u.department_name || '').toLowerCase().includes(q) ||
+                          (u.latest_device || '').toLowerCase().includes(q)
+                        );
+                      }
+                      return true;
+                    })
+                    .map((user) => (
+                      <tr key={user.id} style={{ borderBottom: '1px solid var(--notion-border-subtle)', background: user.is_online ? 'rgba(16, 185, 129, 0.03)' : 'transparent' }}>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: user.is_online ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#94a3b8', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px', boxShadow: user.is_online ? '0 0 8px rgba(16, 185, 129, 0.4)' : 'none' }}>
+                              {user.full_name ? user.full_name.charAt(0).toUpperCase() : user.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 600, color: 'var(--notion-text)' }}>{user.full_name || user.username}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--notion-text-muted)', fontFamily: 'JetBrains Mono' }}>@{user.username}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <span className="notion-tag tag-blue" style={{ fontSize: '11px', marginBottom: '3px', display: 'inline-block' }}>{user.department_name || 'Global'}</span>
+                          <div style={{ fontSize: '10.5px', color: 'var(--notion-text-dim)' }}>{user.role_display}</div>
+                        </td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                          {user.is_online ? (
+                            <span className="notion-tag tag-green" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700 }}>
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 6px #10b981' }} />
+                              ONLINE
+                            </span>
+                          ) : (
+                            <span className="notion-tag tag-gray" style={{ fontSize: '11px' }}>Offline</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {user.latest_platform === 'mobile_apk' ? (
+                              <span className="notion-tag tag-purple" style={{ fontSize: '10.5px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <Smartphone size={11} /> Android APK
+                              </span>
+                            ) : (
+                              <span className="notion-tag tag-gray" style={{ fontSize: '10.5px', fontWeight: 500 }}>
+                                💻 Web
+                              </span>
+                            )}
+                          </div>
+                          {user.latest_device && (
+                            <div style={{ fontSize: '10.5px', color: 'var(--notion-text-muted)', marginTop: '2px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={user.latest_device}>
+                              {user.latest_device}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                          {user.devices_count > 0 ? (
+                            <span className="notion-tag tag-green" style={{ fontSize: '10.5px', fontWeight: 700 }}>
+                              ✓ Registered ({user.devices_count})
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>None</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px 14px', fontSize: '11.5px', color: 'var(--notion-text-dim)' }}>
+                          {user.last_seen ? new Date(user.last_seen).toLocaleString() : 'Never'}
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleSendTestPush(user.id, user.full_name || user.username)}
+                            disabled={testingPushUserId === user.id}
+                            className="notion-btn notion-btn-bordered"
+                            style={{ fontSize: '11px', padding: '4px 10px', gap: '4px' }}
+                            title={`Send test push notification to ${user.full_name || user.username}`}
+                          >
+                            <Bell size={11} />
+                            <span>{testingPushUserId === user.id ? 'Sending...' : 'Test Push'}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Sub Tab 2: Login / Logout Session History */}
+          {sessionSubTab === 'history' && (
+            <div className="notion-card" style={{ padding: 0, overflow: 'hidden' }}>
+              <table className="notion-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                <thead>
+                  <tr style={{ background: 'var(--notion-hover)', borderBottom: '1px solid var(--notion-border)' }}>
+                    <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Staff User</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Action</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Platform &amp; Device</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>IP Address</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Logged In At</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Logged Out At</th>
+                    <th style={{ padding: '10px 16px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(appUsageData?.recent_sessions || []).length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: 'var(--notion-text-muted)' }}>
+                        No session records logged yet. Sessions will appear automatically as staff log in and out.
+                      </td>
+                    </tr>
+                  ) : (
+                    (appUsageData?.recent_sessions || []).map((sess) => (
+                      <tr key={sess.id} style={{ borderBottom: '1px solid var(--notion-border-subtle)' }}>
+                        <td style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--notion-text)' }}>
+                          {sess.full_name || sess.username}
+                          <div style={{ fontSize: '10.5px', color: 'var(--notion-text-muted)', fontFamily: 'JetBrains Mono' }}>@{sess.username}</div>
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <span className={`notion-tag ${sess.action === 'LOGGED_IN' ? 'tag-green' : sess.action === 'LOGGED_OUT' ? 'tag-gray' : 'tag-blue'}`} style={{ fontSize: '10px' }}>
+                            {sess.action}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 14px', color: 'var(--notion-text)' }}>
+                          <span style={{ fontWeight: 600 }}>{sess.platform === 'mobile_apk' ? '📱 Mobile APK' : '💻 Web'}</span>
+                          {sess.device_info && <div style={{ fontSize: '10.5px', color: 'var(--notion-text-muted)' }}>{sess.device_info}</div>}
+                        </td>
+                        <td style={{ padding: '10px 14px', fontFamily: 'JetBrains Mono', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
+                          {sess.ip_address || '—'}
+                        </td>
+                        <td style={{ padding: '10px 14px', color: 'var(--notion-text-muted)' }}>
+                          {new Date(sess.logged_in_at).toLocaleString()}
+                        </td>
+                        <td style={{ padding: '10px 14px', color: 'var(--notion-text-muted)' }}>
+                          {sess.logged_out_at ? new Date(sess.logged_out_at).toLocaleString() : '—'}
+                        </td>
+                        <td style={{ padding: '10px 16px', textAlign: 'center' }}>
+                          {sess.is_active ? (
+                            <span className="notion-tag tag-green" style={{ fontSize: '10px', fontWeight: 700 }}>Active</span>
+                          ) : (
+                            <span className="notion-tag tag-gray" style={{ fontSize: '10px' }}>Closed</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Sub Tab 3: Registered Devices */}
+          {sessionSubTab === 'devices' && (
+            <div className="notion-card" style={{ padding: 0, overflow: 'hidden' }}>
+              <table className="notion-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                <thead>
+                  <tr style={{ background: 'var(--notion-hover)', borderBottom: '1px solid var(--notion-border)' }}>
+                    <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Staff User</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Device Name / Model</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Platform</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>App Version</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Device Push Token</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Last Connected</th>
+                    <th style={{ padding: '10px 16px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--notion-text-dim)', textTransform: 'uppercase' }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(appUsageData?.devices || []).length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: 'var(--notion-text-muted)' }}>
+                        No mobile push tokens registered yet. When staff log in from the installed Android APK, their devices appear here automatically.
+                      </td>
+                    </tr>
+                  ) : (
+                    (appUsageData?.devices || []).map((dev) => (
+                      <tr key={dev.id} style={{ borderBottom: '1px solid var(--notion-border-subtle)' }}>
+                        <td style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--notion-text)' }}>
+                          {dev.full_name || dev.username}
+                          <div style={{ fontSize: '10.5px', color: 'var(--notion-text-muted)', fontFamily: 'JetBrains Mono' }}>@{dev.username}</div>
+                        </td>
+                        <td style={{ padding: '10px 14px', color: 'var(--notion-text)' }}>
+                          {dev.device_name || 'Android Device'}
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <span className="notion-tag tag-purple" style={{ fontSize: '10.5px' }}>{dev.device_type}</span>
+                        </td>
+                        <td style={{ padding: '10px 14px', fontFamily: 'JetBrains Mono', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
+                          {dev.app_version || '2.2.5'}
+                        </td>
+                        <td style={{ padding: '10px 14px', fontFamily: 'JetBrains Mono', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
+                          <span title={dev.device_token}>
+                            {dev.device_token ? `${dev.device_token.slice(0, 18)}...${dev.device_token.slice(-8)}` : '—'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 14px', color: 'var(--notion-text-muted)' }}>
+                          {new Date(dev.last_seen).toLocaleString()}
+                        </td>
+                        <td style={{ padding: '10px 16px', textAlign: 'center' }}>
+                          {dev.is_active ? (
+                            <span className="notion-tag tag-green" style={{ fontSize: '10px', fontWeight: 700 }}>Active</span>
+                          ) : (
+                            <span className="notion-tag tag-gray" style={{ fontSize: '10px' }}>Inactive</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
