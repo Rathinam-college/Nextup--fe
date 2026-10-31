@@ -47,7 +47,7 @@ export const formatWhatsAppUrgentTasksMessage = (staffName: string, tasks: Task[
   });
 
   msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
-  msg += `🔗 *Open in NextUp*: https://insight.rathinamtechzone.com/nextup/\n\n`;
+  msg += `🔗 *Open in NextUp*: https://www.rguedu.in/nextup/\n\n`;
   msg += `_Please attend to these immediately and update your progress or submit proof for GM sign-off._\n`;
   msg += `— *Office of the General Manager*`;
 
@@ -70,7 +70,7 @@ export const formatWhatsAppSingleTaskMessage = (staffName: string, task: Task): 
     msg += `📝 *Instructions*: ${task.description.trim()}\n`;
   }
   msg += `\n━━━━━━━━━━━━━━━━━━━━━\n`;
-  msg += `🔗 *Open Task*: https://insight.rathinamtechzone.com/nextup/\n\n`;
+  msg += `🔗 *Open Task*: https://www.rguedu.in/nextup/\n\n`;
   msg += `_Please review and update progress in NextUp._\n`;
   msg += `— *Office of the General Manager*`;
   return msg;
