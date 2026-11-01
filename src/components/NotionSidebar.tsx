@@ -30,6 +30,7 @@ import {
   Briefcase,
   Compass,
   Lock,
+  Smartphone,
 } from 'lucide-react';
 
 interface NotionSidebarProps {
@@ -742,6 +743,27 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
                 <Download size={14} style={{ color: 'var(--notion-text-muted)' }} />
                 <span>{t('exportCsv')}</span>
               </button>
+
+              <a
+                href={typeof window !== 'undefined' && window.location.pathname.includes('/nextup') ? '/nextup/NextUp.apk' : './NextUp.apk'}
+                download="NextUp.apk"
+                className="notion-btn"
+                style={{
+                  width: '100%',
+                  justifyContent: 'flex-start',
+                  padding: '7px 12px',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+                title="Download NextUp Android APK"
+              >
+                <Smartphone size={14} style={{ color: '#22c55e' }} />
+                <span>{isTamil ? 'மொபைல் செயலி (APK)' : 'Download Mobile APK'}</span>
+              </a>
             </>
           )}
         </div>

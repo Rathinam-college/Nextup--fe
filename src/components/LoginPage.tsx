@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { Lock, User as UserIcon, Eye, EyeOff, AlertCircle, ArrowRight } from 'lucide-react';
+import { Lock, User as UserIcon, Eye, EyeOff, AlertCircle, ArrowRight, Smartphone, Download } from 'lucide-react';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { LanguageToggle } from './LanguageToggle';
 import nextupLogo from '../image/nextup-logo.png';
@@ -269,6 +269,72 @@ export const LoginPage: React.FC = () => {
               )}
             </button>
           </form>
+
+          {/* Divider */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              margin: '22px 0 16px',
+              color: 'var(--notion-text-dim)',
+              fontSize: '11px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
+            <div style={{ flex: 1, height: '1px', background: 'var(--notion-border)' }} />
+            <span style={{ padding: '0 10px', fontWeight: 600 }}>
+              {isTamil ? 'அல்லது மொபைல் செயலி' : 'OR ON MOBILE'}
+            </span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--notion-border)' }} />
+          </div>
+
+          {/* Download NextUp Android APK Button */}
+          <a
+            href={typeof window !== 'undefined' && window.location.pathname.includes('/nextup') ? '/nextup/NextUp.apk' : './NextUp.apk'}
+            download="NextUp.apk"
+            className="notion-apk-download-card"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px 16px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(16, 185, 129, 0.04) 100%)',
+              border: '1px solid rgba(34, 197, 94, 0.28)',
+              textDecoration: 'none',
+              color: 'var(--notion-text)',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 8px rgba(34, 197, 94, 0.06)',
+            }}
+          >
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                flexShrink: 0,
+                boxShadow: '0 2px 6px rgba(34, 197, 94, 0.3)',
+              }}
+            >
+              <Smartphone size={20} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--notion-text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>{isTamil ? 'ஆண்ட்ராய்டு செயலி (APK)' : 'Download Android App (APK)'}</span>
+                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: '#22c55e', color: '#fff', fontWeight: 800 }}>v2.2.6</span>
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--notion-text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {isTamil ? 'அறிவிப்புகளுக்கு போனில் நிறுவவும்' : 'For live push notifications & task alerts'}
+              </div>
+            </div>
+            <Download size={18} style={{ color: '#22c55e', flexShrink: 0 }} />
+          </a>
         </div>
       </div>
     </div>
