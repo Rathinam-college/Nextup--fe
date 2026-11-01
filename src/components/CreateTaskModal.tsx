@@ -328,27 +328,46 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           : `📋 Co-Assigned Departments & Staff Members:\n${teamText}\n<!-- CO_ASSIGN_TEAM:${metadataJson} -->`;
       }
 
-      const createdTasks: any[] = [];
-      for (const target of validAssignments) {
-        const isGmOwn = itemType === 'GM_TASK' || (isGM && target.assigned_to === String(currentUserId));
+      // Create EXACTLY ONE unified task with the primary department and primary assignee
+      const primaryTarget = validAssignments[0];
+      const isGmOwn = itemType === 'GM_TASK' || (isGM && primaryTarget.assigned_to === String(currentUserId));
 
-        const payload: any = {
-          title: finalTitle,
-          description: finalDescription,
-          department: Number(target.department),
-          priority: formData.priority,
-          assigned_to: target.assigned_to ? Number(target.assigned_to) : null,
-          due_date: formData.due_date || null,
-          attachment_image: attachmentImage || '',
-          is_gm_own_task: isGmOwn,
-        };
+      const payload: any = {
+        title: finalTitle,
+        description: finalDescription,
+        department: Number(primaryTarget.department),
+        priority: formData.priority,
+        assigned_to: primaryTarget.assigned_to ? Number(primaryTarget.assigned_to) : null,
+        due_date: formData.due_date || null,
+        attachment_image: attachmentImage || '',
+        is_gm_own_task: isGmOwn,
+      };
 
-        const res = await api.createTask(payload);
-        createdTasks.push(res);
+      const res = await api.createTask(payload);
+
+      // If additional staff members were co-assigned, post an audit record to the task's activity log
+      if (validAssignments.length > 1) {
+        try {
+          const otherCoAssigned = validAssignments.slice(1).map((t) => {
+            const deptObj = departments.find((d) => String(d.id) === String(t.department));
+            const staffObj = (staffCache[Number(t.department)] || departmentStaff).find(
+              (s) => String(s.id) === String(t.assigned_to)
+            );
+            return `${staffObj ? staffObj.full_name || staffObj.username : 'Unassigned'} (${deptObj ? deptObj.name : 'Dept'})`;
+          }).join(', ');
+          await api.addComment(res.id, `Multi-assignment: Co-assigned to ${otherCoAssigned}.`);
+        } catch {}
       }
 
-      if (createdTasks.length > 1) {
-        setSuccessNotice(`✅ Successfully created ${createdTasks.length} tasks! Assigned simultaneously to ${validAssignments.length} selected staff & departments.`);
+      if (validAssignments.length > 1) {
+        const teamTextSummary = validAssignments.map((t) => {
+          const deptObj = departments.find((d) => String(d.id) === String(t.department));
+          const staffObj = (staffCache[Number(t.department)] || departmentStaff).find(
+            (s) => String(s.id) === String(t.assigned_to)
+          );
+          return `${staffObj ? staffObj.full_name || staffObj.username : 'Unassigned'} (${deptObj ? deptObj.name : 'Dept'})`;
+        }).join(', ');
+        setSuccessNotice(`✅ 1 Task created! Assigned to team: ${teamTextSummary}.`);
       } else if (itemType === 'GM_TASK' || (isGM && validAssignments[0]?.assigned_to === String(currentUserId))) {
         setSuccessNotice(`🔒 GM Personal Task created! Strictly private — will not be shown to any staff or department managers.`);
       } else if (itemType === 'ISSUE') {
@@ -1049,7 +1068,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   {itemType === 'ISSUE'
                     ? '🚨 Automated Department Issue Alerts'
                     : assignments.length > 1
-                    ? `✉️ Multi-Department & Staff Assignment (${assignments.length} Targets)`
+                    ? `✉️ Single Task with Multi-Staff Assignment (${assignments.length} Assignees)`
                     : selectedStaff
                     ? `✉️ Direct Email Dispatch to ${selectedStaff.full_name}`
                     : 'Automated Timeline Mail Dispatch'}
@@ -1058,7 +1077,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   {itemType === 'ISSUE' ? (
                     'When submitted, an incident alert email with priority details will be dispatched immediately to the Department Manager and General Manager.'
                   ) : assignments.length > 1 ? (
-                    `When submitted, ${assignments.length} separate tasks will be created simultaneously across the selected departments, and each assigned staff member will receive their official notification email and in-app alert.`
+                    `When submitted, 1 single task will be created with all ${assignments.length} selected staff members and departments assigned and displayed in the task details.`
                   ) : selectedStaff ? (
                     <>
                       When created, an email with task specifications and timeline will be sent to{' '}
@@ -1117,7 +1136,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 : itemType === 'ISSUE'
                 ? (isTamil ? '🚨 பிரச்சனையைப் பதிவு செய்' : '🚨 Report Problem')
                 : assignments.length > 1
-                ? (isTamil ? `${assignments.length} பணிகளை உருவாக்கு` : `Create Tasks (${assignments.length})`)
+                ? (isTamil ? `பணியை உருவாக்கு (${assignments.length} பேர்)` : `Create Task (${assignments.length} Assignees)`)
                 : (isTamil ? 'பணியை உருவாக்கு' : 'Create Task')}
             </button>
           </div>

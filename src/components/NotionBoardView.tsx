@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Task, TaskStatus, Role, Department, User } from '../types';
+import { parseCoAssignedTeam } from '../utils/coAssignUtils';
 import {
   Plus,
   Calendar,
@@ -775,27 +776,64 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                         }}
                       >
                         {/* Assignee */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          <span
-                            style={{
-                              width: '18px',
-                              height: '18px',
-                              borderRadius: '50%',
-                              background: getAvatarBg(t.assigned_to_name),
-                              color: '#fff',
-                              fontSize: '9px',
-                              fontWeight: 800,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            {getInitials(t.assigned_to_name)}
-                          </span>
-                          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--notion-text)' }}>
-                            {t.assigned_to_name || 'Unassigned'}
-                          </span>
-                        </div>
+                        {(() => {
+                          const { team } = parseCoAssignedTeam(t.description);
+                          if (team.length > 1) {
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <span
+                                  style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '50%',
+                                    background: getAvatarBg(team[0].staffName),
+                                    color: '#fff',
+                                    fontSize: '9px',
+                                    fontWeight: 800,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                >
+                                  {getInitials(team[0].staffName)}
+                                </span>
+                                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--notion-text)' }}>
+                                  {team[0].staffName}
+                                </span>
+                                <span
+                                  className="notion-tag tag-blue"
+                                  style={{ fontSize: '9px', padding: '0 4px', fontWeight: 700 }}
+                                  title={team.map((m) => `${m.staffName} (${m.deptName})`).join(', ')}
+                                >
+                                  +{team.length - 1}
+                                </span>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                              <span
+                                style={{
+                                  width: '18px',
+                                  height: '18px',
+                                  borderRadius: '50%',
+                                  background: getAvatarBg(t.assigned_to_name),
+                                  color: '#fff',
+                                  fontSize: '9px',
+                                  fontWeight: 800,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                {getInitials(t.assigned_to_name)}
+                              </span>
+                              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--notion-text)' }}>
+                                {t.assigned_to_name || 'Unassigned'}
+                              </span>
+                            </div>
+                          );
+                        })()}
 
                         {/* Due Date or Action */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

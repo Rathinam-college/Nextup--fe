@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Task, Department, User, Role } from '../types';
+import { parseCoAssignedTeam } from '../utils/coAssignUtils';
 import {
   Building,
   User as UserIcon,
@@ -2962,33 +2963,78 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                         </td>
 
                         <td style={{ padding: '12px 14px', color: 'var(--notion-text-muted)' }}>
-                          {task.assigned_to ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span
-                                style={{
-                                  width: '22px',
-                                  height: '22px',
-                                  borderRadius: '50%',
-                                  background: 'linear-gradient(135deg, #0284c7, #6366f1)',
-                                  color: '#fff',
-                                  fontSize: '10px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {(task.assigned_to_name || '?').charAt(0).toUpperCase()}
+                          {(() => {
+                            const { team } = parseCoAssignedTeam(task.description);
+                            if (team.length > 1) {
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <span
+                                      style={{
+                                        width: '20px',
+                                        height: '20px',
+                                        borderRadius: '50%',
+                                        background: 'linear-gradient(135deg, #0284c7, #6366f1)',
+                                        color: '#fff',
+                                        fontSize: '10px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: 700,
+                                      }}
+                                    >
+                                      {(team[0].staffName || '?').charAt(0).toUpperCase()}
+                                    </span>
+                                    <span style={{ fontWeight: 600, color: 'var(--notion-text)', fontSize: '12px' }}>
+                                      {team[0].staffName}
+                                    </span>
+                                    <span
+                                      className="notion-tag tag-blue"
+                                      style={{ fontSize: '10px', padding: '1px 5px', fontWeight: 600, cursor: 'default' }}
+                                      title={team.map((m) => `${m.staffName} (${m.deptName})`).join(', ')}
+                                    >
+                                      +{team.length - 1} more
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: '10px', color: 'var(--notion-text-dim)', paddingLeft: '25px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {team.map((m) => m.staffName).join(', ')}
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            if (task.assigned_to) {
+                              return (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span
+                                    style={{
+                                      width: '22px',
+                                      height: '22px',
+                                      borderRadius: '50%',
+                                      background: 'linear-gradient(135deg, #0284c7, #6366f1)',
+                                      color: '#fff',
+                                      fontSize: '10px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    {(task.assigned_to_name || '?').charAt(0).toUpperCase()}
+                                  </span>
+                                  <span style={{ fontWeight: 600, color: 'var(--notion-text)', fontSize: '12px' }}>
+                                    {task.assigned_to_name}
+                                  </span>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <span className="notion-tag tag-gray" style={{ fontSize: '10px' }}>
+                                Unassigned
                               </span>
-                              <span style={{ fontWeight: 600, color: 'var(--notion-text)', fontSize: '12px' }}>
-                                {task.assigned_to_name}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="notion-tag tag-gray" style={{ fontSize: '10px' }}>
-                              Unassigned
-                            </span>
-                          )}
+                            );
+                          })()}
                         </td>
 
                         <td style={{ padding: '12px 14px', fontSize: '12px' }}>

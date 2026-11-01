@@ -3,6 +3,7 @@ import { Task, Role, User, Department, Priority, TaskStatus } from '../types';
 import { api } from '../services/api';
 import { useLanguage, getTranslatedStatus, getTranslatedPriority } from '../context/LanguageContext';
 import { getCleanMediaUrl } from '../utils/mediaUrl';
+import { parseCoAssignedTeam } from '../utils/coAssignUtils';
 import {
   X,
   Calendar,
@@ -317,44 +318,6 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
     }
   };
 
-  // Parse Co-Assigned Team from description if present
-  const parseCoAssignedTeam = (desc?: string | null) => {
-    if (!desc) return { team: [] as Array<{ deptName: string; staffName: string; staffEmail?: string; deptCode?: string }>, cleanDesc: '' };
-
-    // Check if JSON metadata comment exists
-    const match = desc.match(/<!-- CO_ASSIGN_TEAM:(.*?) -->/);
-    if (match) {
-      try {
-        const parsed = JSON.parse(match[1]);
-        const cleanDesc = desc.replace(/\n*📋 Co-Assigned Departments & Staff Members:[\s\S]*?<!-- CO_ASSIGN_TEAM:.*?-->/g, '').trim();
-        return { team: parsed, cleanDesc };
-      } catch {}
-    }
-
-    // Fallback: plain text block parsing
-    if (desc.includes('📋 Co-Assigned Departments & Staff Members:')) {
-      const parts = desc.split('📋 Co-Assigned Departments & Staff Members:');
-      const cleanDesc = parts[0].trim();
-      const lines = parts[1].split('\n').map((l) => l.trim()).filter((l) => l.startsWith('•'));
-      const team = lines.map((line) => {
-        const item = line.replace(/^•\s*/, '');
-        const deptMatch = item.match(/^\[(.*?)\]\s*:\s*(.*)/);
-        if (deptMatch) {
-          const deptName = deptMatch[1];
-          const staffPart = deptMatch[2];
-          const emailMatch = staffPart.match(/^(.*?)\s*\((.*?)\)$/);
-          const staffName = emailMatch ? emailMatch[1].trim() : staffPart.trim();
-          const staffEmail = emailMatch ? emailMatch[2].trim() : '';
-          return { deptName, staffName, staffEmail };
-        }
-        return { deptName: '', staffName: item, staffEmail: '' };
-      });
-      return { team, cleanDesc };
-    }
-
-    return { team: [] as Array<{ deptName: string; staffName: string; staffEmail?: string; deptCode?: string }>, cleanDesc: desc };
-  };
-
   const handleCreateCoTask = async () => {
     if (!task || !coAssignDeptId) return;
     setCoAssigning(true);
@@ -405,35 +368,22 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
         ? `${baseDesc}\n\n📋 Co-Assigned Departments & Staff Members:\n${teamText}\n<!-- CO_ASSIGN_TEAM:${metadataJson} -->`
         : `📋 Co-Assigned Departments & Staff Members:\n${teamText}\n<!-- CO_ASSIGN_TEAM:${metadataJson} -->`;
 
-      // 1. Create the new co-task
-      const payload: any = {
-        title: task.title,
-        description: updatedDescription,
-        department: coAssignDeptId,
-        priority: task.priority,
-        assigned_to: coAssignStaffId ? Number(coAssignStaffId) : null,
-        due_date: task.due_date || null,
-        attachment_image: activeAttachment || '',
-        is_gm_own_task: false,
-      };
-      await api.createTask(payload);
-
-      // 2. Also update current task with the updated team list
+      // 1. Update current task with the updated team list (Single unified task)
       await api.updateTask(task.id, { description: updatedDescription });
 
-      // 3. Post audit comment on current task
+      // 2. Post audit comment on current task
       try {
-        await api.addComment(task.id, `Task also co-assigned to ${targetStaffName} in ${targetDeptName}.`);
+        await api.addComment(task.id, `Task co-assigned to ${targetStaffName} in ${targetDeptName}.`);
       } catch {}
 
       setAssigneeSuccessNotice(
-        `✅ Co-task created! Assigned to ${targetStaffName} in ${targetDeptName}. Both tasks updated with team details!`
+        `✅ Added ${targetStaffName} (${targetDeptName}) to this task!`
       );
       setTimeout(() => setAssigneeSuccessNotice(null), 4500);
       setIsAddCoAssigneeOpen(false);
       onTaskUpdated();
     } catch (err: any) {
-      setError(err.message || 'Failed to create co-task');
+      setError(err.message || 'Failed to add co-assignee');
     } finally {
       setCoAssigning(false);
     }
@@ -1128,45 +1078,101 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      {task.assigned_to ? (
-                        <div
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '7px',
-                            padding: '3px 9px 3px 4px',
-                            borderRadius: '6px',
-                            background: 'var(--notion-card)',
-                            border: '1px solid var(--notion-border)',
-                          }}
-                        >
-                          <span
-                            style={{
-                              width: '22px',
-                              height: '22px',
-                              borderRadius: '50%',
-                              background: '#2383e2',
-                              color: '#ffffff',
-                              fontSize: '10px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontWeight: 700,
-                            }}
-                          >
-                            {(task.assigned_to_name || '?').charAt(0).toUpperCase()}
-                          </span>
-                          <span style={{ fontWeight: 600, fontSize: '12.5px', color: 'var(--notion-text)' }}>
-                            {task.assigned_to_name}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="notion-tag tag-yellow" style={{ fontSize: '11px' }}>
-                          Unassigned
-                        </span>
-                      )}
+                      {(() => {
+                        const { team: coAssignedTeam } = parseCoAssignedTeam(task.description);
+                        if (coAssignedTeam.length > 0) {
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              {coAssignedTeam.map((member: any, idx: number) => (
+                                <div
+                                  key={idx}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: '3px 8px 3px 4px',
+                                    borderRadius: '6px',
+                                    background: idx === 0 ? 'rgba(35, 131, 226, 0.08)' : 'rgba(139, 92, 246, 0.08)',
+                                    border: `1px solid ${idx === 0 ? 'rgba(35, 131, 226, 0.3)' : 'rgba(139, 92, 246, 0.3)'}`,
+                                  }}
+                                  title={`${member.deptName}${member.staffEmail ? ` (${member.staffEmail})` : ''}`}
+                                >
+                                  <span
+                                    style={{
+                                      width: '20px',
+                                      height: '20px',
+                                      borderRadius: '50%',
+                                      background: idx === 0 ? '#2383e2' : '#8b5cf6',
+                                      color: '#ffffff',
+                                      fontSize: '10px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    {(member.staffName || '?').charAt(0).toUpperCase()}
+                                  </span>
+                                  <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
+                                    <span style={{ fontWeight: 600, fontSize: '12px', color: 'var(--notion-text)' }}>
+                                      {member.staffName}
+                                    </span>
+                                    {member.deptName && (
+                                      <span style={{ fontSize: '9.5px', color: 'var(--notion-text-dim)', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {member.deptName}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        }
 
-                      {task.assigned_to_email && (
+                        if (task.assigned_to) {
+                          return (
+                            <div
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '7px',
+                                padding: '3px 9px 3px 4px',
+                                borderRadius: '6px',
+                                background: 'var(--notion-card)',
+                                border: '1px solid var(--notion-border)',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: '22px',
+                                  height: '22px',
+                                  borderRadius: '50%',
+                                  background: '#2383e2',
+                                  color: '#ffffff',
+                                  fontSize: '10px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {(task.assigned_to_name || '?').charAt(0).toUpperCase()}
+                              </span>
+                              <span style={{ fontWeight: 600, fontSize: '12.5px', color: 'var(--notion-text)' }}>
+                                {task.assigned_to_name}
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <span className="notion-tag tag-yellow" style={{ fontSize: '11px' }}>
+                            Unassigned
+                          </span>
+                        );
+                      })()}
+
+                      {(!task.description?.includes('CO_ASSIGN_TEAM') && task.assigned_to_email) && (
                         <span style={{ fontSize: '12px', color: 'var(--notion-text-dim)' }}>
                           &lt;{task.assigned_to_email}&gt;
                         </span>
@@ -1363,7 +1369,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                           }}
                         >
                           <UserPlus size={12} />
-                          <span>{coAssigning ? 'Assigning...' : 'Assign & Create Task'}</span>
+                          <span>{coAssigning ? 'Adding...' : 'Add Co-Assignee'}</span>
                         </button>
                       </div>
                     </div>

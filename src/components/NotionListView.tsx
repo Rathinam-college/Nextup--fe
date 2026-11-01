@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Task, TaskStatus, Role } from '../types';
+import { parseCoAssignedTeam } from '../utils/coAssignUtils';
 import { Plus, Calendar, Clock, User, CheckCircle2, AlertCircle, ChevronRight, Filter, Play, Send, RotateCcw, CheckSquare, Edit } from 'lucide-react';
 
 interface NotionListViewProps {
@@ -253,34 +254,69 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
 
                 {/* Assignee Avatar */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '110px' }}>
-                  {task.assigned_to ? (
-                    <>
-                      <span
-                        style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          background: '#3373ba',
-                          color: '#fff',
-                          fontSize: '10px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 700,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {(task.assigned_to_name || '?').charAt(0).toUpperCase()}
+                  {(() => {
+                    const { team } = parseCoAssignedTeam(task.description);
+                    if (team.length > 1) {
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <span
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: '#3373ba',
+                              color: '#fff',
+                              fontSize: '10px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {(team[0].staffName || '?').charAt(0).toUpperCase()}
+                          </span>
+                          <span
+                            style={{ fontSize: '12px', color: 'var(--notion-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}
+                            title={team.map((m) => `${m.staffName} (${m.deptName})`).join(', ')}
+                          >
+                            {team.map((m) => m.staffName).join(', ')}
+                          </span>
+                        </div>
+                      );
+                    }
+                    if (task.assigned_to) {
+                      return (
+                        <>
+                          <span
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: '#3373ba',
+                              color: '#fff',
+                              fontSize: '10px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {(task.assigned_to_name || '?').charAt(0).toUpperCase()}
+                          </span>
+                          <span style={{ fontSize: '12px', color: 'var(--notion-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {task.assigned_to_name}
+                          </span>
+                        </>
+                      );
+                    }
+                    return (
+                      <span className="notion-tag tag-gray" style={{ fontSize: '10px', padding: '1px 6px' }}>
+                        Unassigned
                       </span>
-                      <span style={{ fontSize: '12px', color: 'var(--notion-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {task.assigned_to_name}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="notion-tag tag-gray" style={{ fontSize: '10px', padding: '1px 6px' }}>
-                      Unassigned
-                    </span>
-                  )}
+                    );
+                  })()}
                 </div>
 
                 {/* Inline 1-Click Action Buttons */}
