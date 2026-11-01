@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Department, User, Role, Priority } from '../types';
 import { api } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
-import { X, Plus, AlertCircle, Calendar, Clock, Mail, ShieldAlert, CheckCircle2, UserCheck, Wrench, AlertTriangle, Camera, Star, ShieldCheck } from 'lucide-react';
+import { X, Plus, AlertCircle, Calendar, Clock, Mail, ShieldAlert, CheckCircle2, UserCheck, Wrench, AlertTriangle, Camera, Star, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -48,6 +48,13 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     due_date: '',
   });
 
+  // Multiple Department & Staff Assignment state
+  const [assignments, setAssignments] = useState<Array<{ id: string; department: string; assigned_to: string }>>([
+    { id: '1', department: '', assigned_to: '' },
+  ]);
+  const [staffCache, setStaffCache] = useState<Record<number, User[]>>({});
+  const [loadingStaffMap, setLoadingStaffMap] = useState<Record<number, boolean>>({});
+
   const [attachmentImage, setAttachmentImage] = useState<string>('');
   const [departmentStaff, setDepartmentStaff] = useState<User[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(false);
@@ -55,7 +62,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
-  const selectedStaff = departmentStaff.find((s) => s.id === Number(formData.assigned_to));
+  const selectedStaff = (staffCache[Number(assignments[0]?.department)] || departmentStaff).find(
+    (s) => s.id === Number(assignments[0]?.assigned_to)
+  );
 
   // Determine active department object
   const activeDept = departments.find((d) => String(d.id) === String(formData.department)) ||
@@ -87,20 +96,92 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         targetDeptId = departments[0].id;
       }
 
+      const targetDeptStr = String(targetDeptId);
+      const targetAssignedToStr = (targetType === 'GM_TASK' && currentUserId) ? String(currentUserId) : '';
+
       setFormData({
         title: targetType === 'ISSUE' ? '[ISSUE] ' : '',
         description: '',
-        department: String(targetDeptId),
-        assigned_to: (targetType === 'GM_TASK' && currentUserId) ? String(currentUserId) : '',
+        department: targetDeptStr,
+        assigned_to: targetAssignedToStr,
         priority: targetType === 'ISSUE' || targetType === 'GM_TASK' ? 'HIGH' : 'MEDIUM',
         due_date: '',
       });
 
+      setAssignments([
+        { id: '1', department: targetDeptStr, assigned_to: targetAssignedToStr },
+      ]);
+
       if (targetDeptId) {
         loadDepartmentStaff(Number(targetDeptId));
+        loadStaffForDept(Number(targetDeptId));
       }
     }
   }, [isOpen, departments, currentUserRole, currentUserDeptId, initialDeptId, initialIsIssue, initialIsGmOwnTask, currentUserId]);
+
+  // Load staff for specific department and cache it
+  const loadStaffForDept = async (deptId: number) => {
+    if (!deptId) return [];
+    if (staffCache[deptId]) return staffCache[deptId];
+    setLoadingStaffMap((prev) => ({ ...prev, [deptId]: true }));
+    try {
+      const users = await api.getUsers({ department: deptId });
+      const activeUsers = users.filter((u) => u.is_active !== false);
+      setStaffCache((prev) => ({ ...prev, [deptId]: activeUsers }));
+      return activeUsers;
+    } catch (err) {
+      console.error('Failed to load department staff for dept', deptId, err);
+      return [];
+    } finally {
+      setLoadingStaffMap((prev) => ({ ...prev, [deptId]: false }));
+    }
+  };
+
+  const handleAddAssignment = () => {
+    const defaultDept = assignments[0]?.department || (departments[0] ? String(departments[0].id) : '');
+    const newTarget = {
+      id: String(Date.now() + Math.random()),
+      department: defaultDept,
+      assigned_to: '',
+    };
+    setAssignments((prev) => [...prev, newTarget]);
+    if (defaultDept) {
+      loadStaffForDept(Number(defaultDept));
+    }
+  };
+
+  const handleRemoveAssignment = (index: number) => {
+    if (assignments.length <= 1) return;
+    setAssignments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAssignmentDeptChange = (index: number, newDeptId: string) => {
+    setAssignments((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], department: newDeptId, assigned_to: '' };
+      return next;
+    });
+    if (index === 0) {
+      setFormData((prev) => ({ ...prev, department: newDeptId, assigned_to: '' }));
+      if (newDeptId) {
+        loadDepartmentStaff(Number(newDeptId));
+      }
+    }
+    if (newDeptId) {
+      loadStaffForDept(Number(newDeptId));
+    }
+  };
+
+  const handleAssignmentStaffChange = (index: number, newStaffId: string) => {
+    setAssignments((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], assigned_to: newStaffId };
+      return next;
+    });
+    if (index === 0) {
+      setFormData((prev) => ({ ...prev, assigned_to: newStaffId }));
+    }
+  };
 
   // Load staff for specific department
   const loadDepartmentStaff = async (deptId: number) => {
@@ -109,6 +190,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       const users = await api.getUsers({ department: deptId });
       const activeUsers = users.filter((u) => u.is_active !== false);
       setDepartmentStaff(activeUsers);
+      setStaffCache((prev) => ({ ...prev, [deptId]: activeUsers }));
     } catch (err) {
       console.error('Failed to load department staff:', err);
     } finally {
@@ -198,29 +280,47 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         finalTitle = `[ISSUE] ${finalTitle}`;
       }
 
-      const isGmOwn = itemType === 'GM_TASK' || (isGM && formData.assigned_to === String(currentUserId));
+      const validAssignments = assignments.filter((a) => a.department);
+      if (validAssignments.length === 0) {
+        setError('Please select at least one department.');
+        setLoading(false);
+        return;
+      }
 
-      const payload: any = {
-        title: finalTitle,
-        description: formData.description,
-        department: Number(formData.department),
-        priority: formData.priority,
-        assigned_to: formData.assigned_to ? Number(formData.assigned_to) : null,
-        due_date: formData.due_date || null,
-        attachment_image: attachmentImage || '',
-        is_gm_own_task: isGmOwn,
-      };
+      const createdTasks: any[] = [];
+      for (const target of validAssignments) {
+        const isGmOwn = itemType === 'GM_TASK' || (isGM && target.assigned_to === String(currentUserId));
 
-      await api.createTask(payload);
+        const payload: any = {
+          title: finalTitle,
+          description: formData.description,
+          department: Number(target.department),
+          priority: formData.priority,
+          assigned_to: target.assigned_to ? Number(target.assigned_to) : null,
+          due_date: formData.due_date || null,
+          attachment_image: attachmentImage || '',
+          is_gm_own_task: isGmOwn,
+        };
 
-      if (isGmOwn) {
+        const res = await api.createTask(payload);
+        createdTasks.push(res);
+      }
+
+      if (createdTasks.length > 1) {
+        setSuccessNotice(`✅ Successfully created ${createdTasks.length} tasks! Assigned simultaneously to ${validAssignments.length} selected staff & departments.`);
+      } else if (itemType === 'GM_TASK' || (isGM && validAssignments[0]?.assigned_to === String(currentUserId))) {
         setSuccessNotice(`🔒 GM Personal Task created! Strictly private — will not be shown to any staff or department managers.`);
       } else if (itemType === 'ISSUE') {
         setSuccessNotice(`🚨 Department Issue logged successfully! Manager and staff in ${activeDept?.name || 'department'} have been alerted.`);
-      } else if (selectedStaff) {
-        setSuccessNotice(`✅ Task created! Assignment email dispatched to ${selectedStaff.full_name} (${selectedStaff.email}).`);
       } else {
-        setSuccessNotice(`✅ Task created in department queue!`);
+        const firstStaff = (staffCache[Number(validAssignments[0].department)] || departmentStaff).find(
+          (s) => s.id === Number(validAssignments[0].assigned_to)
+        );
+        if (firstStaff) {
+          setSuccessNotice(`✅ Task created! Assignment email dispatched to ${firstStaff.full_name} (${firstStaff.email}).`);
+        } else {
+          setSuccessNotice(`✅ Task created in department queue!`);
+        }
       }
 
       setTimeout(() => {
@@ -502,101 +602,202 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               />
             </div>
 
-            {/* Department and Assignee Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--notion-text-dim)', marginBottom: '5px' }}>
-                  {t('department')} {isRestrictedDept && <span style={{ color: 'var(--notion-text-dim)', fontSize: '11px' }}>({isTamil ? 'பூட்டப்பட்டது' : 'Locked'})</span>}
-                </label>
-                <select
-                  className="notion-select"
-                  disabled={isRestrictedDept}
-                  value={formData.department}
-                  onChange={(e) => handleDepartmentChange(e.target.value)}
-                >
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name} ({d.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
-                  <label style={{ fontSize: '12px', color: 'var(--notion-text-dim)' }}>
-                    {t('assignedTo')}
-                  </label>
-                  {isStaff && currentUserId && (
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, assigned_to: String(currentUserId) })}
-                      className="notion-btn"
-                      style={{ fontSize: '11px', padding: '1px 6px', color: '#2383e2' }}
-                    >
-                      {isTamil ? 'எனக்கு ஒதுக்கு' : 'Assign to me'}
-                    </button>
+            {/* Department and Assignee Multi-Assignment Section */}
+            <div style={{ marginBottom: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={15} style={{ color: '#2383e2' }} />
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--notion-text)' }}>
+                    {t('department')} &amp; {t('assignedTo')}
+                  </span>
+                  {assignments.length > 1 && (
+                    <span className="notion-tag tag-blue" style={{ fontSize: '10.5px', padding: '1px 7px', fontWeight: 700 }}>
+                      {assignments.length} Targets
+                    </span>
                   )}
                 </div>
-                <select
-                  className="notion-select"
-                  value={formData.assigned_to}
-                  onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-                  style={{ width: '100%' }}
-                >
-                  <option value="">
-                    {itemType === 'ISSUE'
-                      ? (isTamil ? '— ஒதுக்கப்படவில்லை (மேலாளர் பார்வைக்கு) —' : '— Unassigned (Department Queue) —')
-                      : (isTamil ? '— ஒதுக்கப்படவில்லை (யாருக்கும் தரப்படவில்லை) —' : '— Unassigned (Department Backlog) —')}
-                  </option>
-                  {isGM && currentUserId && (
-                    <option value={String(currentUserId)}>
-                      {isTamil ? '⭐ நானே செய்துகொள்கிறேன் (எனது சொந்த மேசை)' : '⭐ General Manager (Myself) — Assign to my own desk'}
-                    </option>
-                  )}
-                  {departmentStaff.filter((s) => s.id !== currentUserId).map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.full_name || s.username} ({s.role === 'DEPT_MANAGER' ? 'Manager' : s.job_title || 'Staff'}) {s.email ? `— ${s.email}` : ''}
-                    </option>
-                  ))}
-                </select>
-                {loadingStaff && (
-                  <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)', marginTop: '4px' }}>
-                    Loading departmental staff...
-                  </div>
-                )}
-                {!loadingStaff && departmentStaff.length === 0 && formData.department && (
-                  <div style={{ fontSize: '11px', color: 'var(--tag-orange-text)', marginTop: '4px' }}>
-                    ⚠️ No staff members assigned to this department yet.
-                  </div>
-                )}
-                {selectedStaff && (
-                  <div
+
+                {!isRestrictedDept && itemType !== 'GM_TASK' && (
+                  <button
+                    type="button"
+                    onClick={handleAddAssignment}
+                    className="notion-btn notion-btn-bordered"
                     style={{
-                      marginTop: '8px',
-                      padding: '8px 10px',
-                      borderRadius: '5px',
+                      fontSize: '11px',
+                      padding: '3px 8px',
+                      color: '#2383e2',
+                      borderColor: 'rgba(35, 131, 226, 0.4)',
                       background: 'rgba(35, 131, 226, 0.08)',
-                      border: '1px solid rgba(35, 131, 226, 0.25)',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '11px',
-                      color: 'var(--notion-text)',
+                      gap: '4px',
+                      fontWeight: 600,
                     }}
+                    title="Add another staff member or department to assign this task at the same time"
                   >
-                    <Mail size={14} style={{ color: '#2383e2', flexShrink: 0 }} />
-                    <div>
-                      <div>
-                        Assigned to: <strong>{selectedStaff.full_name || selectedStaff.username}</strong> ({selectedStaff.role === 'DEPT_MANAGER' ? 'Manager' : selectedStaff.job_title || 'Staff'})
-                      </div>
-                      <div style={{ color: 'var(--notion-text-muted)', marginTop: '2px' }}>
-                        Assignment email will be dispatched to: <strong style={{ color: '#2383e2' }}>{selectedStaff.email || 'No email registered'}</strong>
-                      </div>
-                    </div>
-                  </div>
+                    <Plus size={12} />
+                    <span>+ Add More Assignee</span>
+                  </button>
                 )}
               </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {assignments.map((assignment, index) => {
+                  const deptStaff = staffCache[Number(assignment.department)] || (index === 0 ? departmentStaff : []);
+                  const isLoadingThisStaff = loadingStaffMap[Number(assignment.department)];
+                  const currentSelectedStaff = deptStaff.find((s) => s.id === Number(assignment.assigned_to));
+
+                  return (
+                    <div
+                      key={assignment.id}
+                      style={{
+                        background: assignments.length > 1 ? 'var(--notion-item-bg)' : 'transparent',
+                        border: assignments.length > 1 ? '1px solid var(--notion-border-subtle)' : 'none',
+                        borderRadius: '9px',
+                        padding: assignments.length > 1 ? '10px 12px' : '0',
+                      }}
+                    >
+                      {assignments.length > 1 && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--notion-text-dim)' }}>
+                            Target #{index + 1} {index === 0 ? '(Primary Assignment)' : '(Co-Assignee)'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAssignment(index)}
+                            className="notion-btn notion-btn-ghost"
+                            style={{ fontSize: '11px', padding: '2px 6px', color: '#ef4444' }}
+                            title="Remove this assignment target"
+                          >
+                            <Trash2 size={12} style={{ marginRight: '4px' }} />
+                            <span>Remove</span>
+                          </button>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', color: 'var(--notion-text-dim)', marginBottom: '5px' }}>
+                            {t('department')} {index === 0 && isRestrictedDept && <span style={{ color: 'var(--notion-text-dim)', fontSize: '11px' }}>({isTamil ? 'பூட்டப்பட்டது' : 'Locked'})</span>}
+                          </label>
+                          <select
+                            className="notion-select"
+                            disabled={index === 0 && isRestrictedDept}
+                            value={assignment.department}
+                            onChange={(e) => handleAssignmentDeptChange(index, e.target.value)}
+                            style={{ width: '100%' }}
+                          >
+                            {departments.map((d) => (
+                              <option key={d.id} value={d.id}>
+                                {d.name} ({d.code})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
+                            <label style={{ fontSize: '12px', color: 'var(--notion-text-dim)' }}>
+                              {t('assignedTo')}
+                            </label>
+                            {isStaff && currentUserId && index === 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleAssignmentStaffChange(index, String(currentUserId))}
+                                className="notion-btn"
+                                style={{ fontSize: '11px', padding: '1px 6px', color: '#2383e2' }}
+                              >
+                                {isTamil ? 'எனக்கு ஒதுக்கு' : 'Assign to me'}
+                              </button>
+                            )}
+                          </div>
+                          <select
+                            className="notion-select"
+                            value={assignment.assigned_to}
+                            onChange={(e) => handleAssignmentStaffChange(index, e.target.value)}
+                            style={{ width: '100%' }}
+                          >
+                            <option value="">
+                              {itemType === 'ISSUE'
+                                ? (isTamil ? '— ஒதுக்கப்படவில்லை (மேலாளர் பார்வைக்கு) —' : '— Unassigned (Department Queue) —')
+                                : (isTamil ? '— ஒதுக்கப்படவில்லை (யாருக்கும் தரப்படவில்லை) —' : '— Unassigned (Department Backlog) —')}
+                            </option>
+                            {isGM && currentUserId && (
+                              <option value={String(currentUserId)}>
+                                {isTamil ? '⭐ நானே செய்துகொள்கிறேன் (எனது சொந்த மேசை)' : '⭐ General Manager (Myself) — Assign to my own desk'}
+                              </option>
+                            )}
+                            {deptStaff.filter((s) => s.id !== currentUserId).map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.full_name || s.username} ({s.role === 'DEPT_MANAGER' ? 'Manager' : s.job_title || 'Staff'}) {s.email ? `— ${s.email}` : ''}
+                              </option>
+                            ))}
+                          </select>
+
+                          {isLoadingThisStaff && (
+                            <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)', marginTop: '4px' }}>
+                              Loading departmental staff...
+                            </div>
+                          )}
+                          {!isLoadingThisStaff && deptStaff.length === 0 && assignment.department && (
+                            <div style={{ fontSize: '11px', color: 'var(--tag-orange-text)', marginTop: '4px' }}>
+                              ⚠️ No staff members in this department yet.
+                            </div>
+                          )}
+
+                          {currentSelectedStaff && (
+                            <div
+                              style={{
+                                marginTop: '8px',
+                                padding: '6px 10px',
+                                borderRadius: '5px',
+                                background: 'rgba(35, 131, 226, 0.08)',
+                                border: '1px solid rgba(35, 131, 226, 0.25)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '11px',
+                                color: 'var(--notion-text)',
+                              }}
+                            >
+                              <Mail size={13} style={{ color: '#2383e2', flexShrink: 0 }} />
+                              <div>
+                                <div>
+                                  Assigned: <strong>{currentSelectedStaff.full_name || currentSelectedStaff.username}</strong>
+                                </div>
+                                <div style={{ color: 'var(--notion-text-muted)', fontSize: '10.5px' }}>
+                                  Email notification: <strong style={{ color: '#2383e2' }}>{currentSelectedStaff.email || 'None'}</strong>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {!isRestrictedDept && itemType !== 'GM_TASK' && assignments.length === 1 && (
+                <div style={{ marginTop: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={handleAddAssignment}
+                    className="notion-btn notion-btn-ghost"
+                    style={{
+                      fontSize: '11.5px',
+                      padding: '4px 8px',
+                      color: '#2383e2',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                  >
+                    <Plus size={12} />
+                    <span>+ Add More (Assign to 2 or more staff / departments simultaneously)</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Priority & Due Date */}
@@ -790,6 +991,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 <strong style={{ color: 'var(--notion-text)', display: 'block', marginBottom: '2px' }}>
                   {itemType === 'ISSUE'
                     ? '🚨 Automated Department Issue Alerts'
+                    : assignments.length > 1
+                    ? `✉️ Multi-Department & Staff Assignment (${assignments.length} Targets)`
                     : selectedStaff
                     ? `✉️ Direct Email Dispatch to ${selectedStaff.full_name}`
                     : 'Automated Timeline Mail Dispatch'}
@@ -797,6 +1000,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 <span style={{ color: 'var(--notion-text-muted)' }}>
                   {itemType === 'ISSUE' ? (
                     'When submitted, an incident alert email with priority details will be dispatched immediately to the Department Manager and General Manager.'
+                  ) : assignments.length > 1 ? (
+                    `When submitted, ${assignments.length} separate tasks will be created simultaneously across the selected departments, and each assigned staff member will receive their official notification email and in-app alert.`
                   ) : selectedStaff ? (
                     <>
                       When created, an email with task specifications and timeline will be sent to{' '}
@@ -854,6 +1059,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 ? (isTamil ? 'உருவாக்குகிறது...' : 'Submitting...')
                 : itemType === 'ISSUE'
                 ? (isTamil ? '🚨 பிரச்சனையைப் பதிவு செய்' : '🚨 Report Problem')
+                : assignments.length > 1
+                ? (isTamil ? `${assignments.length} பணிகளை உருவாக்கு` : `Create Tasks (${assignments.length})`)
                 : (isTamil ? 'பணியை உருவாக்கு' : 'Create Task')}
             </button>
           </div>

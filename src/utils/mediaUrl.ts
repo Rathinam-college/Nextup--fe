@@ -13,6 +13,13 @@ export function getCleanMediaUrl(rawUrl?: string | null): string {
     return trimmed;
   }
 
+  // Already a complete correct API media URL
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    if (trimmed.includes('/nextup/api/media/')) {
+      return trimmed.replace('http://', 'https://');
+    }
+  }
+
   // Extract relative file path after /media/
   let subPath = trimmed;
   if (subPath.includes('/media/')) {

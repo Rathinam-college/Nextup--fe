@@ -30,6 +30,9 @@ import {
   Activity,
   FileText,
   ShieldCheck,
+  Plus,
+  Users,
+  UserPlus,
 } from 'lucide-react';
 
 interface NotionTaskModalProps {
@@ -85,6 +88,14 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
   const [updatingAssignee, setUpdatingAssignee] = useState(false);
   const [assigneeSuccessNotice, setAssigneeSuccessNotice] = useState<string | null>(null);
 
+  // Add Co-Assignee / Another Dept Task state
+  const [isAddCoAssigneeOpen, setIsAddCoAssigneeOpen] = useState(false);
+  const [coAssignDeptId, setCoAssignDeptId] = useState<number>(0);
+  const [coAssignStaffId, setCoAssignStaffId] = useState<string>('');
+  const [coAssignStaffList, setCoAssignStaffList] = useState<User[]>([]);
+  const [loadingCoAssignStaff, setLoadingCoAssignStaff] = useState(false);
+  const [coAssigning, setCoAssigning] = useState(false);
+
   // Push Message to Assigned Staff state
   const [isPushMessageOpen, setIsPushMessageOpen] = useState(false);
   const [pushMessageText, setPushMessageText] = useState('');
@@ -99,6 +110,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageSuccessNotice, setImageSuccessNotice] = useState<string | null>(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const activeAttachment = (task?.attachment_image || task?.image || '').trim();
 
   // Sync edit form state when task loads or changes
   useEffect(() => {
@@ -279,6 +291,60 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
       setError(`Failed to update assignee: ${err.message}`);
     } finally {
       setUpdatingAssignee(false);
+    }
+  };
+
+  const handleOpenCoAssign = (initialDept?: number) => {
+    const targetDept = initialDept || task?.department || (departments[0]?.id || 0);
+    setCoAssignDeptId(targetDept);
+    setCoAssignStaffId('');
+    setIsAddCoAssigneeOpen(true);
+    if (targetDept) {
+      loadCoAssignStaff(targetDept);
+    }
+  };
+
+  const loadCoAssignStaff = async (deptId: number) => {
+    if (!deptId) return;
+    setLoadingCoAssignStaff(true);
+    try {
+      const users = await api.getUsers({ department: deptId });
+      setCoAssignStaffList(users.filter((u) => u.is_active !== false));
+    } catch (err) {
+      console.error('Failed to load co-assign staff', err);
+    } finally {
+      setLoadingCoAssignStaff(false);
+    }
+  };
+
+  const handleCreateCoTask = async () => {
+    if (!task || !coAssignDeptId) return;
+    setCoAssigning(true);
+    setError(null);
+    try {
+      const payload: any = {
+        title: task.title,
+        description: task.description,
+        department: coAssignDeptId,
+        priority: task.priority,
+        assigned_to: coAssignStaffId ? Number(coAssignStaffId) : null,
+        due_date: task.due_date || null,
+        attachment_image: activeAttachment || '',
+        is_gm_own_task: false,
+      };
+      await api.createTask(payload);
+      const assignedUser = coAssignStaffList.find((s) => s.id === Number(coAssignStaffId));
+      const targetDeptObj = departments.find((d) => d.id === coAssignDeptId);
+      setAssigneeSuccessNotice(
+        `✅ Co-task created! Assigned to ${assignedUser ? assignedUser.full_name : 'department queue'} in ${targetDeptObj?.name || 'department'}.`
+      );
+      setTimeout(() => setAssigneeSuccessNotice(null), 4000);
+      setIsAddCoAssigneeOpen(false);
+      onTaskUpdated();
+    } catch (err: any) {
+      setError(err.message || 'Failed to create co-task');
+    } finally {
+      setCoAssigning(false);
     }
   };
 
@@ -1032,6 +1098,29 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                         </button>
                       )}
 
+                      {isGM && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenCoAssign()}
+                          className="notion-btn notion-btn-bordered"
+                          style={{
+                            fontSize: '11px',
+                            padding: '2px 8px',
+                            color: '#10b981',
+                            borderColor: 'rgba(16, 185, 129, 0.35)',
+                            background: 'rgba(16, 185, 129, 0.06)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontWeight: 600,
+                          }}
+                          title="Assign this task to another staff member or department as well"
+                        >
+                          <Plus size={11} />
+                          <span>+ Add More Assignee</span>
+                        </button>
+                      )}
+
                       {task.assigned_to && (
                         <>
                           <button
@@ -1080,6 +1169,109 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                           </button>
                         </>
                       )}
+                    </div>
+                  )}
+
+                  {isAddCoAssigneeOpen && (
+                    <div
+                      style={{
+                        marginTop: '10px',
+                        padding: '12px 14px',
+                        borderRadius: '9px',
+                        background: 'var(--notion-item-bg)',
+                        border: '1px solid rgba(16, 185, 129, 0.35)',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <UserPlus size={14} style={{ color: '#10b981' }} />
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#10b981' }}>
+                            Assign to Another Staff / Department
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddCoAssigneeOpen(false)}
+                          className="notion-btn notion-btn-ghost"
+                          style={{ fontSize: '11px', padding: '1px 6px' }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', color: 'var(--notion-text-dim)', marginBottom: '4px' }}>
+                            Target Department
+                          </label>
+                          <select
+                            className="notion-select"
+                            value={coAssignDeptId}
+                            onChange={(e) => {
+                              const newDept = Number(e.target.value);
+                              setCoAssignDeptId(newDept);
+                              setCoAssignStaffId('');
+                              loadCoAssignStaff(newDept);
+                            }}
+                            style={{ fontSize: '12px', padding: '5px 8px', width: '100%' }}
+                          >
+                            {departments.map((d) => (
+                              <option key={d.id} value={d.id}>
+                                {d.name} ({d.code})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', color: 'var(--notion-text-dim)', marginBottom: '4px' }}>
+                            Target Staff Member
+                          </label>
+                          <select
+                            className="notion-select"
+                            value={coAssignStaffId}
+                            onChange={(e) => setCoAssignStaffId(e.target.value)}
+                            style={{ fontSize: '12px', padding: '5px 8px', width: '100%' }}
+                          >
+                            <option value="">— Unassigned (Department Queue) —</option>
+                            {coAssignStaffList.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.full_name || s.username} ({s.role === 'DEPT_MANAGER' ? 'Manager' : s.job_title || 'Staff'}) {s.email ? `— ${s.email}` : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddCoAssigneeOpen(false)}
+                          className="notion-btn notion-btn-ghost"
+                          style={{ fontSize: '11px', padding: '4px 10px' }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          disabled={coAssigning}
+                          onClick={handleCreateCoTask}
+                          className="notion-btn notion-btn-primary"
+                          style={{
+                            fontSize: '11.5px',
+                            padding: '4px 12px',
+                            background: '#10b981',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            fontWeight: 700,
+                          }}
+                        >
+                          <UserPlus size={12} />
+                          <span>{coAssigning ? 'Assigning...' : 'Assign & Create Task'}</span>
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -1157,7 +1349,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                   <span>{isTamil ? 'இணைப்பு' : 'Attachment'}</span>
                 </div>
                 <div>
-                  {task.attachment_image ? (
+                  {activeAttachment ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span className="notion-tag tag-green" style={{ fontSize: '11px' }}>
                         {isTamil ? 'படம் இணைக்கப்பட்டுள்ளது' : 'Image Attached'}
