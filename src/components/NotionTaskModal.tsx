@@ -1235,11 +1235,14 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                             style={{ fontSize: '12px', padding: '5px 8px', width: '100%' }}
                           >
                             <option value="">— Unassigned (Department Queue) —</option>
-                            {coAssignStaffList.map((s) => (
-                              <option key={s.id} value={s.id}>
-                                {s.full_name || s.username} ({s.role === 'DEPT_MANAGER' ? 'Manager' : s.job_title || 'Staff'}) {s.email ? `— ${s.email}` : ''}
-                              </option>
-                            ))}
+                            {coAssignStaffList.map((s) => {
+                              const isAlreadyAssigned = s.id === task.assigned_to;
+                              return (
+                                <option key={s.id} value={s.id} disabled={isAlreadyAssigned}>
+                                  {s.full_name || s.username} ({s.role === 'DEPT_MANAGER' ? 'Manager' : s.job_title || 'Staff'}) {s.email ? `— ${s.email}` : ''} {isAlreadyAssigned ? '⚠️ (Currently assigned)' : ''}
+                                </option>
+                              );
+                            })}
                           </select>
                         </div>
                       </div>

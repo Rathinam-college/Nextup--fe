@@ -176,6 +176,14 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     setAssignments((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], assigned_to: newStaffId };
+      // Prevent duplicate staff across multiple targets: clear from any other target
+      if (newStaffId) {
+        for (let i = 0; i < next.length; i++) {
+          if (i !== index && next[i].assigned_to === newStaffId) {
+            next[i] = { ...next[i], assigned_to: '' };
+          }
+        }
+      }
       return next;
     });
     if (index === 0) {
@@ -646,6 +654,12 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   const deptStaff = staffCache[Number(assignment.department)] || (index === 0 ? departmentStaff : []);
                   const isLoadingThisStaff = loadingStaffMap[Number(assignment.department)];
                   const currentSelectedStaff = deptStaff.find((s) => s.id === Number(assignment.assigned_to));
+                  const otherSelectedStaffIds = new Set(
+                    assignments
+                      .filter((_, i) => i !== index)
+                      .map((a) => a.assigned_to)
+                      .filter(Boolean)
+                  );
 
                   return (
                     <div
@@ -723,15 +737,25 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                 : (isTamil ? '— ஒதுக்கப்படவில்லை (யாருக்கும் தரப்படவில்லை) —' : '— Unassigned (Department Backlog) —')}
                             </option>
                             {isGM && currentUserId && (
-                              <option value={String(currentUserId)}>
-                                {isTamil ? '⭐ நானே செய்துகொள்கிறேன் (எனது சொந்த மேசை)' : '⭐ General Manager (Myself) — Assign to my own desk'}
+                              <option
+                                value={String(currentUserId)}
+                                disabled={otherSelectedStaffIds.has(String(currentUserId))}
+                              >
+                                {isTamil ? '⭐ நானே செய்துகொள்கிறேன் (எனது சொந்த மேசை)' : '⭐ General Manager (Myself) — Assign to my own desk'} {otherSelectedStaffIds.has(String(currentUserId)) ? '(Already selected)' : ''}
                               </option>
                             )}
-                            {deptStaff.filter((s) => s.id !== currentUserId).map((s) => (
-                              <option key={s.id} value={s.id}>
-                                {s.full_name || s.username} ({s.role === 'DEPT_MANAGER' ? 'Manager' : s.job_title || 'Staff'}) {s.email ? `— ${s.email}` : ''}
-                              </option>
-                            ))}
+                            {deptStaff.filter((s) => s.id !== currentUserId).map((s) => {
+                              const isAlreadySelected = otherSelectedStaffIds.has(String(s.id));
+                              return (
+                                <option
+                                  key={s.id}
+                                  value={s.id}
+                                  disabled={isAlreadySelected}
+                                >
+                                  {s.full_name || s.username} ({s.role === 'DEPT_MANAGER' ? 'Manager' : s.job_title || 'Staff'}) {s.email ? `— ${s.email}` : ''} {isAlreadySelected ? '⚠️ (Already selected)' : ''}
+                                </option>
+                              );
+                            })}
                           </select>
 
                           {isLoadingThisStaff && (
