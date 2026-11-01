@@ -295,13 +295,46 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         return;
       }
 
+      // If multiple people/departments are assigned, compile full team details and embed into task description
+      let finalDescription = formData.description.trim();
+      if (validAssignments.length > 1) {
+        const teamInfo = validAssignments.map((target, idx) => {
+          const deptObj = departments.find((d) => String(d.id) === String(target.department));
+          const deptName = deptObj ? deptObj.name : `Dept #${target.department}`;
+          const deptCode = deptObj ? deptObj.code : '';
+          const staffObj = (staffCache[Number(target.department)] || departmentStaff).find(
+            (s) => String(s.id) === String(target.assigned_to)
+          );
+          const staffName = staffObj ? staffObj.full_name || staffObj.username : 'Unassigned (Queue)';
+          const staffEmail = staffObj?.email || '';
+          return {
+            index: idx + 1,
+            deptName,
+            deptCode,
+            departmentId: target.department,
+            staffName,
+            staffEmail,
+            staffId: target.assigned_to,
+          };
+        });
+
+        const teamText = teamInfo
+          .map((t) => `• [${t.deptName}${t.deptCode ? ` - ${t.deptCode}` : ''}] : ${t.staffName}${t.staffEmail ? ` (${t.staffEmail})` : ''}`)
+          .join('\n');
+        const metadataJson = JSON.stringify(teamInfo);
+
+        finalDescription = finalDescription
+          ? `${finalDescription}\n\n📋 Co-Assigned Departments & Staff Members:\n${teamText}\n<!-- CO_ASSIGN_TEAM:${metadataJson} -->`
+          : `📋 Co-Assigned Departments & Staff Members:\n${teamText}\n<!-- CO_ASSIGN_TEAM:${metadataJson} -->`;
+      }
+
       const createdTasks: any[] = [];
       for (const target of validAssignments) {
         const isGmOwn = itemType === 'GM_TASK' || (isGM && target.assigned_to === String(currentUserId));
 
         const payload: any = {
           title: finalTitle,
-          description: formData.description,
+          description: finalDescription,
           department: Number(target.department),
           priority: formData.priority,
           assigned_to: target.assigned_to ? Number(target.assigned_to) : null,

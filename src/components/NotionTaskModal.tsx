@@ -317,14 +317,98 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
     }
   };
 
+  // Parse Co-Assigned Team from description if present
+  const parseCoAssignedTeam = (desc?: string | null) => {
+    if (!desc) return { team: [] as Array<{ deptName: string; staffName: string; staffEmail?: string; deptCode?: string }>, cleanDesc: '' };
+
+    // Check if JSON metadata comment exists
+    const match = desc.match(/<!-- CO_ASSIGN_TEAM:(.*?) -->/);
+    if (match) {
+      try {
+        const parsed = JSON.parse(match[1]);
+        const cleanDesc = desc.replace(/\n*📋 Co-Assigned Departments & Staff Members:[\s\S]*?<!-- CO_ASSIGN_TEAM:.*?-->/g, '').trim();
+        return { team: parsed, cleanDesc };
+      } catch {}
+    }
+
+    // Fallback: plain text block parsing
+    if (desc.includes('📋 Co-Assigned Departments & Staff Members:')) {
+      const parts = desc.split('📋 Co-Assigned Departments & Staff Members:');
+      const cleanDesc = parts[0].trim();
+      const lines = parts[1].split('\n').map((l) => l.trim()).filter((l) => l.startsWith('•'));
+      const team = lines.map((line) => {
+        const item = line.replace(/^•\s*/, '');
+        const deptMatch = item.match(/^\[(.*?)\]\s*:\s*(.*)/);
+        if (deptMatch) {
+          const deptName = deptMatch[1];
+          const staffPart = deptMatch[2];
+          const emailMatch = staffPart.match(/^(.*?)\s*\((.*?)\)$/);
+          const staffName = emailMatch ? emailMatch[1].trim() : staffPart.trim();
+          const staffEmail = emailMatch ? emailMatch[2].trim() : '';
+          return { deptName, staffName, staffEmail };
+        }
+        return { deptName: '', staffName: item, staffEmail: '' };
+      });
+      return { team, cleanDesc };
+    }
+
+    return { team: [] as Array<{ deptName: string; staffName: string; staffEmail?: string; deptCode?: string }>, cleanDesc: desc };
+  };
+
   const handleCreateCoTask = async () => {
     if (!task || !coAssignDeptId) return;
     setCoAssigning(true);
     setError(null);
     try {
+      const targetDeptObj = departments.find((d) => d.id === coAssignDeptId);
+      const assignedUser = coAssignStaffList.find((s) => s.id === Number(coAssignStaffId));
+      const targetDeptName = targetDeptObj ? `${targetDeptObj.name} (${targetDeptObj.code})` : `Dept #${coAssignDeptId}`;
+      const targetStaffName = assignedUser ? assignedUser.full_name || assignedUser.username : 'Unassigned (Queue)';
+      const targetStaffEmail = assignedUser?.email || '';
+
+      // Existing team from task description
+      const { team: existingTeam, cleanDesc: baseDesc } = parseCoAssignedTeam(task.description);
+
+      const currentDeptObj = departments.find((d) => d.id === task.department);
+      const currentDeptName = currentDeptObj ? `${currentDeptObj.name} (${currentDeptObj.code})` : task.department_name || `Dept #${task.department}`;
+      const currentStaffName = task.assigned_to_name || 'Unassigned';
+      const currentStaffEmail = task.assigned_to_email || '';
+
+      const updatedTeamMap = new Map<string, { deptName: string; staffName: string; staffEmail?: string }>();
+
+      // Seed with current task
+      updatedTeamMap.set(`${currentDeptName}::${currentStaffName}`, {
+        deptName: currentDeptName,
+        staffName: currentStaffName,
+        staffEmail: currentStaffEmail,
+      });
+
+      // Add existing team members
+      for (const m of existingTeam) {
+        updatedTeamMap.set(`${m.deptName}::${m.staffName}`, m);
+      }
+
+      // Add the newly co-assigned target
+      updatedTeamMap.set(`${targetDeptName}::${targetStaffName}`, {
+        deptName: targetDeptName,
+        staffName: targetStaffName,
+        staffEmail: targetStaffEmail,
+      });
+
+      const updatedTeamList = Array.from(updatedTeamMap.values());
+      const teamText = updatedTeamList
+        .map((t) => `• [${t.deptName}] : ${t.staffName}${t.staffEmail ? ` (${t.staffEmail})` : ''}`)
+        .join('\n');
+      const metadataJson = JSON.stringify(updatedTeamList);
+
+      const updatedDescription = baseDesc
+        ? `${baseDesc}\n\n📋 Co-Assigned Departments & Staff Members:\n${teamText}\n<!-- CO_ASSIGN_TEAM:${metadataJson} -->`
+        : `📋 Co-Assigned Departments & Staff Members:\n${teamText}\n<!-- CO_ASSIGN_TEAM:${metadataJson} -->`;
+
+      // 1. Create the new co-task
       const payload: any = {
         title: task.title,
-        description: task.description,
+        description: updatedDescription,
         department: coAssignDeptId,
         priority: task.priority,
         assigned_to: coAssignStaffId ? Number(coAssignStaffId) : null,
@@ -333,12 +417,19 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
         is_gm_own_task: false,
       };
       await api.createTask(payload);
-      const assignedUser = coAssignStaffList.find((s) => s.id === Number(coAssignStaffId));
-      const targetDeptObj = departments.find((d) => d.id === coAssignDeptId);
+
+      // 2. Also update current task with the updated team list
+      await api.updateTask(task.id, { description: updatedDescription });
+
+      // 3. Post audit comment on current task
+      try {
+        await api.addComment(task.id, `Task also co-assigned to ${targetStaffName} in ${targetDeptName}.`);
+      } catch {}
+
       setAssigneeSuccessNotice(
-        `✅ Co-task created! Assigned to ${assignedUser ? assignedUser.full_name : 'department queue'} in ${targetDeptObj?.name || 'department'}.`
+        `✅ Co-task created! Assigned to ${targetStaffName} in ${targetDeptName}. Both tasks updated with team details!`
       );
-      setTimeout(() => setAssigneeSuccessNotice(null), 4000);
+      setTimeout(() => setAssigneeSuccessNotice(null), 4500);
       setIsAddCoAssigneeOpen(false);
       onTaskUpdated();
     } catch (err: any) {
@@ -1468,27 +1559,105 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
             </div>
           )}
 
-          {/* Task Description / Deliverables */}
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: 'var(--notion-text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
-              <FileText size={13} />
-              <span>{isTamil ? 'பணியின் விவரம் & குறிப்புகள்' : 'Description & Notes'}</span>
-            </div>
-            <div
-              style={{
-                fontSize: '13.5px',
-                lineHeight: 1.65,
-                color: 'var(--notion-text)',
-                whiteSpace: 'pre-wrap',
-                background: 'var(--notion-item-bg)',
-                padding: '14px 16px',
-                borderRadius: '8px',
-                border: '1px solid var(--notion-border-subtle)',
-              }}
-            >
-              {task.description || (isTamil ? 'விவரம் எதுவும் இல்லை.' : 'No description provided.')}
-            </div>
-          </div>
+          {/* Task Description / Deliverables & Co-Assigned Team */}
+          {(() => {
+            const { team: coAssignedTeam, cleanDesc: cleanDescriptionText } = parseCoAssignedTeam(task.description);
+            return (
+              <>
+                {coAssignedTeam.length > 0 && (
+                  <div
+                    style={{
+                      marginBottom: '20px',
+                      padding: '14px 16px',
+                      borderRadius: '9px',
+                      background: 'rgba(35, 131, 226, 0.05)',
+                      border: '1px solid rgba(35, 131, 226, 0.25)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                        <Users size={16} style={{ color: '#2383e2' }} />
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--notion-text)' }}>
+                          {isTamil ? 'இணைத்து ஒதுக்கப்பட்ட குழு & துறைகள்' : 'Co-Assigned Team & Departments'}
+                        </span>
+                        <span className="notion-tag tag-blue" style={{ fontSize: '10.5px', padding: '1px 6px', fontWeight: 700 }}>
+                          {coAssignedTeam.length} {isTamil ? 'உறுப்பினர்கள்' : 'Assignees'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '8px' }}>
+                      {coAssignedTeam.map((member: any, idx: number) => (
+                        <div
+                          key={idx}
+                          style={{
+                            background: 'var(--notion-card)',
+                            border: '1px solid var(--notion-border)',
+                            borderRadius: '8px',
+                            padding: '9px 11px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '9px',
+                            boxShadow: 'var(--notion-shadow-sm)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #2563eb, #6366f1)',
+                              color: '#fff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              fontSize: '11px',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {(member.staffName || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, fontSize: '12px', color: 'var(--notion-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {member.staffName}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px' }}>
+                              <span className="notion-tag tag-purple" style={{ fontSize: '9.5px', padding: '0 5px' }}>
+                                {member.deptName}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Task Description / Deliverables */}
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: 'var(--notion-text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
+                    <FileText size={13} />
+                    <span>{isTamil ? 'பணியின் விவரம் & குறிப்புகள்' : 'Description & Notes'}</span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '13.5px',
+                      lineHeight: 1.65,
+                      color: 'var(--notion-text)',
+                      whiteSpace: 'pre-wrap',
+                      background: 'var(--notion-item-bg)',
+                      padding: '14px 16px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--notion-border-subtle)',
+                    }}
+                  >
+                    {cleanDescriptionText || (isTamil ? 'விவரம் எதுவும் இல்லை.' : 'No description provided.')}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
             </>
           )}
 
