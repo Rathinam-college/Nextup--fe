@@ -14,6 +14,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const normalizeUser = (user: User): User => ({
+  ...user,
+  department: user.department !== undefined && user.department !== null ? user.department : ((user as any).department_id ?? null),
+  department_id: (user as any).department_id ?? user.department ?? null,
+});
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [personas, setPersonas] = useState<User[]>([]);
@@ -23,14 +29,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       const personaList = await api.getPersonas();
-      setPersonas(personaList);
+      setPersonas(personaList.map(normalizeUser));
 
       const savedId = getSavedActiveUserId();
       if (savedId) {
         const matchedUser = personaList.find((p) => p.id === savedId);
         if (matchedUser) {
           setActiveUserHeader(matchedUser.id);
-          setCurrentUser(matchedUser);
+          setCurrentUser(normalizeUser(matchedUser));
         } else {
           setActiveUserHeader(null);
           setCurrentUser(null);
@@ -56,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password: string) => {
     const user = await api.login(username, password);
     setActiveUserHeader(user.id);
-    setCurrentUser(user);
+    setCurrentUser(normalizeUser(user));
     return user;
   };
 
@@ -77,13 +83,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     setActiveUserHeader(user.id);
-    setCurrentUser(user);
+    setCurrentUser(normalizeUser(user));
   };
 
   const refreshUser = async () => {
     try {
       const me = await api.getCurrentUser();
-      setCurrentUser(me);
+      setCurrentUser(normalizeUser(me));
     } catch (err) {
       console.error('Failed to refresh user:', err);
     }

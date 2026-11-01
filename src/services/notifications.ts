@@ -37,6 +37,27 @@ export async function requestBrowserNotificationPermission(): Promise<boolean> {
 export function playNotificationChime(): void {
   if (typeof window === 'undefined') return;
   try {
+    // Attempt playback of default notification audio chime file
+    const soundUrls = ['/nextup/notification.wav', '/notification.wav'];
+    const audio = new Audio(window.location.pathname.startsWith('/nextup') ? soundUrls[0] : soundUrls[1]);
+    audio.volume = 0.8;
+    const playPromise = audio.play();
+    if (playPromise) {
+      playPromise.catch(() => {
+        // Fallback to Web Audio synthesis if HTML5 audio fails
+        playWebAudioSynth();
+      });
+      return;
+    }
+  } catch {
+    // Fallback to Web Audio synthesis
+  }
+  playWebAudioSynth();
+}
+
+function playWebAudioSynth(): void {
+  if (typeof window === 'undefined') return;
+  try {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContextClass) return;
     const ctx = new AudioContextClass();

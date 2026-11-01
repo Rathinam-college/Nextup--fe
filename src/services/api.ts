@@ -32,9 +32,15 @@ export const getSavedActiveUserId = (): number | null => {
 };
 
 export const getApiUrl = (endpoint: string): string => {
-  const isNextup = typeof window !== 'undefined' && window.location.pathname.startsWith('/nextup');
-  const base = isNextup ? '/nextup' : '';
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  if (cleanEndpoint.startsWith('/nextup/')) {
+    return cleanEndpoint;
+  }
+  const isNextup =
+    typeof window !== 'undefined' &&
+    (window.location.pathname.startsWith('/nextup') ||
+      window.location.pathname.includes('/nextup'));
+  const base = isNextup ? '/nextup' : '';
   return `${base}${cleanEndpoint}`;
 };
 
@@ -217,6 +223,11 @@ export const api = {
       '/api/notifications/trigger-hourly-reminder/',
       { method: 'POST', body: JSON.stringify({ all: targetAll }) }
     ),
+  triggerUrgentReminders: (targetAll = true) =>
+    request<{ status: string; message: string; count: number; tasks: any[] }>(
+      '/api/notifications/trigger-urgent-reminders/',
+      { method: 'POST', body: JSON.stringify({ all: targetAll }) }
+    ),
 
 
   // Dispatched Email Logs & Audit Logs
@@ -226,18 +237,27 @@ export const api = {
   // Export CSV download URL helper
   getCsvExportUrl: () => {
     const currentId = activeUserId || getSavedActiveUserId();
-    return `/api/tasks/export-csv/${currentId ? `?active_user_id=${currentId}` : ''}`;
+    return getApiUrl(`/api/tasks/export-csv/${currentId ? `?active_user_id=${currentId}` : ''}`);
   },
 
   // Super Admin System & Database Backup
   getAdminSystemStats: () => request<SystemStats>('/api/admin/system-stats/'),
   downloadSqlBackup: async () => {
     const activeId = activeUserId || getSavedActiveUserId();
-    const res = await fetch('/api/admin/backup/sql/', {
+    const endpoint = `/api/admin/backup/sql/${activeId ? `?active_user_id=${activeId}` : ''}`;
+    const res = await fetch(getApiUrl(endpoint), {
       headers: activeId ? { 'X-Active-User-Id': activeId.toString() } : {},
       credentials: 'include',
     });
-    if (!res.ok) throw new Error('Failed to generate SQL dump backup');
+    if (!res.ok) {
+      let errorMsg = `Failed to generate SQL dump backup (status ${res.status})`;
+      try {
+        const errJson = await res.json();
+        if (errJson.detail) errorMsg = errJson.detail;
+        else if (errJson.error) errorMsg = errJson.error;
+      } catch (_) {}
+      throw new Error(errorMsg);
+    }
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -256,11 +276,20 @@ export const api = {
   },
   downloadJsonBackup: async () => {
     const activeId = activeUserId || getSavedActiveUserId();
-    const res = await fetch('/api/admin/backup/json/', {
+    const endpoint = `/api/admin/backup/json/${activeId ? `?active_user_id=${activeId}` : ''}`;
+    const res = await fetch(getApiUrl(endpoint), {
       headers: activeId ? { 'X-Active-User-Id': activeId.toString() } : {},
       credentials: 'include',
     });
-    if (!res.ok) throw new Error('Failed to generate JSON backup');
+    if (!res.ok) {
+      let errorMsg = `Failed to generate JSON backup (status ${res.status})`;
+      try {
+        const errJson = await res.json();
+        if (errJson.detail) errorMsg = errJson.detail;
+        else if (errJson.error) errorMsg = errJson.error;
+      } catch (_) {}
+      throw new Error(errorMsg);
+    }
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -287,19 +316,28 @@ export const api = {
       formData.append('sql_content', options.sqlContent);
     }
     formData.append('wipe_before_restore', options.wipeBeforeRestore ?? true ? 'true' : 'false');
+    if (activeId) {
+      formData.append('active_user_id', activeId.toString());
+    }
 
     const headers: Record<string, string> = {};
     if (activeId) headers['X-Active-User-Id'] = activeId.toString();
 
-    const res = await fetch('/api/admin/restore/sql/', {
+    const endpoint = `/api/admin/restore/sql/${activeId ? `?active_user_id=${activeId}` : ''}`;
+    const res = await fetch(getApiUrl(endpoint), {
       method: 'POST',
       headers,
       credentials: 'include',
       body: formData,
     });
-    const data = await res.json();
+    let data: any;
+    try {
+      data = await res.json();
+    } catch (_) {
+      throw new Error(`Failed to restore database from SQL (status ${res.status} ${res.statusText})`);
+    }
     if (!res.ok) {
-      throw new Error(data.error || 'Failed to restore database from SQL');
+      throw new Error(data.error || data.detail || 'Failed to restore database from SQL');
     }
     return data as {
       status: string;
@@ -325,19 +363,28 @@ export const api = {
     const activeId = activeUserId || getSavedActiveUserId();
     const formData = new FormData();
     formData.append('file', file);
+    if (activeId) {
+      formData.append('active_user_id', activeId.toString());
+    }
 
     const headers: Record<string, string> = {};
     if (activeId) headers['X-Active-User-Id'] = activeId.toString();
 
-    const res = await fetch('/api/admin/restore/json/', {
+    const endpoint = `/api/admin/restore/json/${activeId ? `?active_user_id=${activeId}` : ''}`;
+    const res = await fetch(getApiUrl(endpoint), {
       method: 'POST',
       headers,
       credentials: 'include',
       body: formData,
     });
-    const data = await res.json();
+    let data: any;
+    try {
+      data = await res.json();
+    } catch (_) {
+      throw new Error(`Failed to restore database from JSON (status ${res.status} ${res.statusText})`);
+    }
     if (!res.ok) {
-      throw new Error(data.error || 'Failed to restore database from JSON fixture');
+      throw new Error(data.error || data.detail || 'Failed to restore database from JSON fixture');
     }
     return data as {
       status: string;
@@ -452,4 +499,65 @@ export const api = {
       `/api/self-notes/${id}/send-reminder/`,
       { method: 'POST' }
     ),
+
+  // Admin User Sessions & Mobile Device Push Center
+  getAdminUserSessions: () =>
+    request<{
+      stats: {
+        total_users: number;
+        online_users_count: number;
+        total_registered_devices: number;
+        mobile_apk_users_count: number;
+        active_sessions_count: number;
+      };
+      users: Array<{
+        id: number;
+        username: string;
+        full_name: string;
+        role: string;
+        role_display: string;
+        department_name: string;
+        is_online: boolean;
+        last_seen: string | null;
+        latest_platform: string;
+        latest_device: string;
+        devices_count: number;
+        devices: Array<any>;
+      }>;
+      recent_sessions: Array<{
+        id: number;
+        user: number;
+        user_name: string;
+        department_name: string;
+        role_display: string;
+        platform: string;
+        device_info: string;
+        ip_address: string;
+        user_agent: string;
+        login_time: string;
+        logout_time: string | null;
+        last_activity: string;
+        is_active: boolean;
+      }>;
+      devices: Array<{
+        id: number;
+        user: number;
+        user_name: string;
+        department_name: string;
+        role_display: string;
+        device_token: string;
+        device_type: string;
+        device_name: string;
+        app_version: string;
+        is_active: boolean;
+        last_seen: string;
+        created_at: string;
+      }>;
+    }>('/api/admin/user-sessions/'),
+
+  sendTestPush: (data: { user_id?: number; send_to_all?: boolean; title?: string; body?: string }) =>
+    request<{ success: boolean; sent_count: number; message: string }>('/api/devices/test-push/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };

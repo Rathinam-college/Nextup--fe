@@ -1,14 +1,14 @@
 {
-  "version": "2.2.5",
-  "versionCode": 10,
-  "apkUrl": "https://insight.rathinamtechzone.com/nextup/NextUp.apk",
-  "fallbackApkUrl": "http://192.168.0.101:8090/NextUp.apk",
+  "version": "2.2.6",
+  "versionCode": 11,
+  "apkUrl": "https://www.rguedu.in/nextup/NextUp.apk",
+  "fallbackApkUrl": "https://www.rguedu.in/nextup/NextUp.apk",
   "releaseNotes": [
-    "Login: Added eye visibility icon to view/hide password",
-    "Login: Fixed keyboard view resize & screen jump on typing",
-    "Settings: Modernized profile & app update checker",
-    "UI: Clean executive design and improved responsiveness"
+    "Production release pointing to https://www.rguedu.in/nextup/",
+    "Discussion message & task comment 404 resolved",
+    "Direct APK download available on login page",
+    "Performance and connection stability improvements"
   ],
-  "publishedAt": "2026-10-24",
+  "publishedAt": "2026-11-01",
   "mandatory": false
 }

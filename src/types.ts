@@ -30,6 +30,7 @@ export interface User {
   role: Role;
   role_display?: string;
   department: number | null;
+  department_id?: number | null;
   department_name?: string;
   department_code?: string;
   phone?: string;
