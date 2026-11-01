@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Task, Role, User, Department, Priority, TaskStatus } from '../types';
 import { api } from '../services/api';
 import { useLanguage, getTranslatedStatus, getTranslatedPriority } from '../context/LanguageContext';
+import { getCleanMediaUrl } from '../utils/mediaUrl';
 import {
   X,
   Calendar,
@@ -1360,7 +1361,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
             {task.attachment_image ? (
               <div style={{ position: 'relative', marginTop: '10px' }}>
                 <img
-                  src={task.attachment_image}
+                  src={getCleanMediaUrl(task.attachment_image)}
                   alt="Task attachment"
                   onClick={() => setIsImageModalOpen(true)}
                   style={{
@@ -1741,7 +1742,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
               </button>
             </div>
             <img
-              src={task.attachment_image}
+              src={getCleanMediaUrl(task.attachment_image)}
               alt="Full attachment preview"
               style={{
                 maxWidth: '92vw',
