@@ -1,12 +1,12 @@
 {
-  "version": "2.2.6",
-  "versionCode": 11,
+  "version": "2.2.7",
+  "versionCode": 12,
   "apkUrl": "https://www.rguedu.in/nextup/NextUp.apk",
   "fallbackApkUrl": "https://www.rguedu.in/nextup/NextUp.apk",
   "releaseNotes": [
-    "Production release pointing to https://www.rguedu.in/nextup/",
-    "Discussion message & task comment 404 resolved",
-    "Direct APK download available on login page",
+    "Multi-staff & department assignment unified on single tasks",
+    "Clean production UI with removed internal server/backend configuration details",
+    "Enhanced task media handling and full attachment previews",
     "Performance and connection stability improvements"
   ],
   "publishedAt": "2026-11-01",
