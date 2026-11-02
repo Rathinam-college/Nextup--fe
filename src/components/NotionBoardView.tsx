@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Task, TaskStatus, Role, Department, User } from '../types';
 import { parseCoAssignedTeam } from '../utils/coAssignUtils';
+import { isTaskAssignedToStaff, isTaskInDepartment, buildAvailableStaffList } from '../utils/taskFilterUtils';
 import {
   Plus,
   Calendar,
@@ -37,6 +38,8 @@ interface NotionBoardViewProps {
   staffList?: User[];
   selectedDeptId?: number | 'ALL';
   onSelectDept?: (deptId: number | 'ALL') => void;
+  selectedStaffId?: string | number | 'ALL';
+  onSelectStaff?: (staffId: string | number | 'ALL') => void;
   onSelectView?: (view: any) => void;
   onSelectTask: (task: Task) => void;
   onOpenCreateTask?: () => void;
@@ -55,6 +58,8 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
   staffList,
   selectedDeptId = 'ALL',
   onSelectDept,
+  selectedStaffId: selectedStaffIdProp,
+  onSelectStaff: onSelectStaffProp,
   onSelectView,
   onSelectTask,
   onOpenCreateTask,
@@ -67,7 +72,16 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
 }) => {
   const { t, isTamil } = useLanguage();
   const [onlyMyTasks, setOnlyMyTasks] = useState(false);
-  const [selectedStaffId, setSelectedStaffId] = useState<number | 'ALL'>('ALL');
+  const [internalStaffId, setInternalStaffId] = useState<string | number | 'ALL'>('ALL');
+  const activeStaffId = selectedStaffIdProp !== undefined ? selectedStaffIdProp : internalStaffId;
+
+  const handleSelectStaff = (id: string | number | 'ALL') => {
+    setInternalStaffId(id);
+    if (onSelectStaffProp) {
+      onSelectStaffProp(id);
+    }
+  };
+
   const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
 
   // Share Tasks Modal State
@@ -100,24 +114,22 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
     }
   };
 
-  // Filter staff inside the selected department
+  // Comprehensive staff list extracted from staffList & tasks
   const availableStaff = useMemo(() => {
-    if (!staffList) return [];
-    if (selectedDeptId === 'ALL') return staffList;
-    return staffList.filter((s) => s.department === selectedDeptId);
-  }, [staffList, selectedDeptId]);
+    return buildAvailableStaffList(staffList, taskPool);
+  }, [staffList, taskPool]);
 
   // Selected person object
   const selectedPersonObj = useMemo(() => {
-    if (selectedStaffId === 'ALL') return null;
-    return availableStaff.find((s) => s.id === selectedStaffId) || null;
-  }, [availableStaff, selectedStaffId]);
+    if (activeStaffId === 'ALL' || activeStaffId === 'UNASSIGNED') return null;
+    return availableStaff.find((s) => String(s.id) === String(activeStaffId)) || null;
+  }, [availableStaff, activeStaffId]);
 
-  // All tasks assigned to this selected person
+  // All tasks assigned or co-assigned to this selected person
   const personTasks = useMemo(() => {
-    if (!selectedPersonObj) return [];
-    return taskPool.filter((t) => t.assigned_to === selectedPersonObj.id);
-  }, [taskPool, selectedPersonObj]);
+    if (!selectedPersonObj && activeStaffId === 'ALL') return [];
+    return taskPool.filter((t) => isTaskAssignedToStaff(t, activeStaffId, selectedPersonObj));
+  }, [taskPool, activeStaffId, selectedPersonObj]);
 
   const personUrgentWork = useMemo(() => {
     if (!selectedPersonObj) return [];
@@ -136,19 +148,40 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
   // Direct filtered tasks list
   const displayTasks = useMemo(() => {
     let list = taskPool;
+
+    // GM privacy
+    const isGM = currentUserRole === 'GENERAL_MANAGER' || currentUserRole === 'SUPER_ADMIN';
+    list = list.filter((t) => {
+      if (!isGM) {
+        if (t.is_gm_own_task || t.department_code === 'GM') return false;
+        const assignee = staffList?.find((s) => s.id === t.assigned_to);
+        if (assignee && (assignee.role === 'GENERAL_MANAGER' || assignee.role === 'SUPER_ADMIN')) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    // 1. Department Filter
     if (selectedDeptId !== 'ALL') {
-      list = list.filter((t) => t.department === selectedDeptId);
+      const selectedDeptObj = departments?.find((d) => String(d.id) === String(selectedDeptId));
+      list = list.filter((t) => isTaskInDepartment(t, selectedDeptId, selectedDeptObj?.name));
     }
+
+    // 2. Staff Filter: STRICT! If staff is selected, ONLY show that staff member's tasks!
     if (onlyMyTasks && currentUserId) {
-      list = list.filter((t) => t.assigned_to === currentUserId);
-    } else if (selectedStaffId !== 'ALL') {
-      list = list.filter((t) => t.assigned_to === selectedStaffId);
+      list = list.filter((t) => isTaskAssignedToStaff(t, currentUserId));
+    } else if (activeStaffId !== 'ALL') {
+      list = list.filter((t) => isTaskAssignedToStaff(t, activeStaffId, selectedPersonObj));
     }
+
+    // 3. Priority Filter
     if (selectedPriority !== 'ALL') {
       list = list.filter((t) => t.priority === selectedPriority);
     }
+
     return list;
-  }, [taskPool, selectedDeptId, onlyMyTasks, currentUserId, selectedStaffId, selectedPriority]);
+  }, [taskPool, selectedDeptId, departments, onlyMyTasks, currentUserId, activeStaffId, selectedPersonObj, selectedPriority, currentUserRole, staffList]);
 
   const generateShareSummaryText = () => {
     if (!selectedPersonObj) return '';
@@ -341,11 +374,10 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
             >
               <Building size={13} style={{ color: 'var(--notion-text-muted)' }} />
               <select
-                value={selectedDeptId}
+                value={String(selectedDeptId)}
                 onChange={(e) => {
                   const val = e.target.value === 'ALL' ? 'ALL' : Number(e.target.value);
-                  onSelectDept(val);
-                  setSelectedStaffId('ALL');
+                  onSelectDept?.(val);
                 }}
                 style={{
                   border: 'none',
@@ -377,33 +409,70 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                 gap: '6px',
                 padding: '5px 10px',
                 borderRadius: '8px',
-                background: 'var(--notion-item-bg)',
-                border: '1px solid var(--notion-border-subtle)',
+                background: activeStaffId !== 'ALL' ? 'rgba(79, 70, 229, 0.09)' : 'var(--notion-item-bg)',
+                border: activeStaffId !== 'ALL' ? '1.5px solid #4f46e5' : '1px solid var(--notion-border-subtle)',
                 fontSize: '12px',
+                boxShadow: activeStaffId !== 'ALL' ? '0 1px 4px rgba(79, 70, 229, 0.15)' : 'none',
+                transition: 'all 0.15s ease',
               }}
             >
-              <Users size={13} style={{ color: 'var(--notion-text-muted)' }} />
+              <Users size={13} style={{ color: activeStaffId !== 'ALL' ? '#4f46e5' : 'var(--notion-text-muted)', flexShrink: 0 }} />
               <select
-                value={selectedStaffId}
-                onChange={(e) => setSelectedStaffId(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                value={String(activeStaffId)}
+                onChange={(e) => {
+                  const val = e.target.value === 'ALL' ? 'ALL' : e.target.value;
+                  handleSelectStaff(val);
+                }}
                 style={{
                   border: 'none',
                   background: 'transparent',
-                  color: 'var(--notion-text)',
+                  color: activeStaffId !== 'ALL' ? '#4f46e5' : 'var(--notion-text)',
                   cursor: 'pointer',
                   outline: 'none',
                   fontSize: '12px',
-                  fontWeight: selectedStaffId !== 'ALL' ? 700 : 500,
+                  fontWeight: activeStaffId !== 'ALL' ? 700 : 500,
                   fontFamily: 'inherit',
+                  maxWidth: '185px',
                 }}
               >
-                <option value="ALL">{isTamil ? 'அனைத்து பணியாளர்கள்' : 'All Staff'}</option>
-                {availableStaff.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.full_name || s.username}
-                  </option>
-                ))}
+                <option value="ALL">{isTamil ? 'அனைத்து பணியாளர்கள்' : 'All Staff'} ({taskPool.length})</option>
+                <option value="UNASSIGNED">
+                  {isTamil ? 'ஒதுக்கப்படாதவை' : 'Unassigned Tasks'} ({taskPool.filter((t) => !t.assigned_to && parseCoAssignedTeam(t.description).team.length === 0).length})
+                </option>
+                {availableStaff.map((s) => {
+                  const deptObj = departments?.find((d) => String(d.id) === String(selectedDeptId));
+                  const count = taskPool.filter((t) => {
+                    if (selectedDeptId !== 'ALL' && !isTaskInDepartment(t, selectedDeptId, deptObj?.name)) {
+                      return false;
+                    }
+                    return isTaskAssignedToStaff(t, s.id, s);
+                  }).length;
+
+                  return (
+                    <option key={String(s.id)} value={String(s.id)}>
+                      {s.name} {s.dept ? `[${s.dept}]` : ''} ({count})
+                    </option>
+                  );
+                })}
               </select>
+              {activeStaffId !== 'ALL' && (
+                <button
+                  type="button"
+                  onClick={() => handleSelectStaff('ALL')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#4f46e5',
+                    fontSize: '11px',
+                    padding: '0 2px',
+                    fontWeight: 700,
+                  }}
+                  title="Reset to All Staff"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           )}
 
@@ -444,12 +513,12 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
           </div>
 
           {/* Reset button */}
-          {(selectedDeptId !== 'ALL' || selectedStaffId !== 'ALL' || selectedPriority !== 'ALL' || onlyMyTasks) && (
+          {(selectedDeptId !== 'ALL' || activeStaffId !== 'ALL' || selectedPriority !== 'ALL' || onlyMyTasks) && (
             <button
               type="button"
               onClick={() => {
                 onSelectDept?.('ALL');
-                setSelectedStaffId('ALL');
+                handleSelectStaff('ALL');
                 setSelectedPriority('ALL');
                 setOnlyMyTasks(false);
               }}
@@ -587,7 +656,7 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setSelectedStaffId('ALL')}
+              onClick={() => handleSelectStaff('ALL')}
               style={{
                 fontSize: '11.5px',
                 padding: '5px 10px',

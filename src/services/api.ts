@@ -1,7 +1,7 @@
 import {
   User, Department, Task, NotificationItem,
   DispatchedEmail, ActivityLogItem, DashboardStats, TaskComment, SystemStats, EmailStatus, EmailSettingsPayload,
-  SelfTask, SelfNote
+  SelfTask, SelfNote, RoutineWorkItem, RoutineWorkLog
 } from '../types';
 
 let activeUserId: number | null = null;
@@ -560,4 +560,48 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  // Routine Work Items & Logs
+  getRoutineItems: (params?: { frequency?: string; department?: number | string; assigned_to?: number | string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.frequency && params.frequency !== 'ALL') searchParams.append('frequency', params.frequency);
+    if (params?.department && params.department !== 'ALL') searchParams.append('department', String(params.department));
+    if (params?.assigned_to && params.assigned_to !== 'ALL') searchParams.append('assigned_to', String(params.assigned_to));
+    const qs = searchParams.toString();
+    return request<RoutineWorkItem[]>(`/api/routine-items/${qs ? `?${qs}` : ''}`);
+  },
+
+  createRoutineItem: (data: Partial<RoutineWorkItem>) =>
+    request<RoutineWorkItem>('/api/routine-items/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateRoutineItem: (id: number | string, data: Partial<RoutineWorkItem>) =>
+    request<RoutineWorkItem>(`/api/routine-items/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  deleteRoutineItem: (id: number | string) =>
+    request<void>(`/api/routine-items/${id}/`, {
+      method: 'DELETE',
+    }),
+
+  toggleCompleteRoutineItem: (id: number | string, period_identifier: string, notes?: string) =>
+    request<{ completed: boolean; period_identifier: string; completed_by_name?: string; completed_at?: string }>(
+      `/api/routine-items/${id}/toggle-complete/`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ period_identifier, notes }),
+      }
+    ),
+
+  getRoutineLogs: (params?: { item?: number | string; period_identifier?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.item) searchParams.append('item', String(params.item));
+    if (params?.period_identifier) searchParams.append('period_identifier', params.period_identifier);
+    const qs = searchParams.toString();
+    return request<RoutineWorkLog[]>(`/api/routine-logs/${qs ? `?${qs}` : ''}`);
+  },
 };

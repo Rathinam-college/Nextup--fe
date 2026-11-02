@@ -28,6 +28,8 @@ import { SelfDeskView } from './components/SelfDeskView';
 import { RoutineWorkView } from './components/RoutineWorkView';
 import { RefreshCw, Bell, Sparkles, Lock, ShieldAlert } from 'lucide-react';
 import { isUserAllowedToViewPage, ALL_APP_PAGES } from './utils/pagePermissions';
+import { isTaskAssignedToStaff, isTaskInDepartment } from './utils/taskFilterUtils';
+import { parseCoAssignedTeam } from './utils/coAssignUtils';
 import {
   startHourlyReminderSchedule,
   stopHourlyReminderSchedule,
@@ -138,6 +140,7 @@ const DashboardContent: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
   const [selectedDeptId, setSelectedDeptId] = useState<number | 'ALL'>('ALL');
+  const [selectedStaffId, setSelectedStaffId] = useState<string | number | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modals state
@@ -323,7 +326,7 @@ const DashboardContent: React.FC = () => {
     return true;
   });
 
-  // Filter tasks based on selected department and search query
+  // Filter tasks based on selected department, staff, and search query
   const filteredTasks = tasks.filter((t) => {
     // GM Own tasks must NEVER be shown to anyone except GM and Super Admin
     if (!isGM) {
@@ -338,17 +341,28 @@ const DashboardContent: React.FC = () => {
     if (!isGM && currentUser?.department && t.department !== currentUser.department) {
       return false;
     }
-    if (selectedDeptId !== 'ALL' && t.department !== selectedDeptId) {
-      return false;
+    if (selectedDeptId !== 'ALL') {
+      const selectedDeptObj = departments.find((d) => String(d.id) === String(selectedDeptId));
+      if (!isTaskInDepartment(t, selectedDeptId, selectedDeptObj?.name)) {
+        return false;
+      }
+    }
+    if (selectedStaffId !== 'ALL') {
+      const staffUser = staffList.find((s) => String(s.id) === String(selectedStaffId));
+      const staffMeta = staffUser ? { id: staffUser.id, name: staffUser.full_name || staffUser.username, email: staffUser.email } : null;
+      if (!isTaskAssignedToStaff(t, selectedStaffId, staffMeta)) {
+        return false;
+      }
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      return (
-        t.title.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
-        t.assigned_to_name.toLowerCase().includes(q) ||
-        t.department_name.toLowerCase().includes(q)
-      );
+      const { team } = parseCoAssignedTeam(t.description);
+      const titleMatch = t.title.toLowerCase().includes(q);
+      const descMatch = (t.description || '').toLowerCase().includes(q);
+      const assigneeMatch = (t.assigned_to_name || '').toLowerCase().includes(q);
+      const deptMatch = (t.department_name || t.department_code || '').toLowerCase().includes(q);
+      const coAssigneeMatch = team.some((m) => m.staffName.toLowerCase().includes(q) || (m.deptName && m.deptName.toLowerCase().includes(q)));
+      return titleMatch || descMatch || assigneeMatch || deptMatch || coAssigneeMatch;
     }
     return true;
   });
@@ -580,6 +594,8 @@ const DashboardContent: React.FC = () => {
                   staffList={staffList}
                   selectedDeptId={selectedDeptId}
                   onSelectDept={setSelectedDeptId}
+                  selectedStaffId={selectedStaffId}
+                  onSelectStaff={setSelectedStaffId}
                   onSelectView={handleSelectView}
                   onSelectTask={setSelectedTask}
                   onOpenCreateTask={canCreateTask ? () => setIsCreateTaskOpen(true) : undefined}
@@ -600,6 +616,8 @@ const DashboardContent: React.FC = () => {
                   departments={visibleDepartments}
                   selectedDeptId={selectedDeptId}
                   onSelectDept={setSelectedDeptId}
+                  selectedStaffId={selectedStaffId}
+                  onSelectStaff={setSelectedStaffId}
                   onSelectTask={setSelectedTask}
                   onEditTask={handleEditTask}
                   onOpenCreateTask={canCreateTask ? () => setIsCreateTaskOpen(true) : undefined}
@@ -743,6 +761,8 @@ const DashboardContent: React.FC = () => {
                   currentUser={currentUser}
                   departments={visibleDepartments}
                   staffList={staffList}
+                  selectedDeptId={selectedDeptId}
+                  onSelectDept={setSelectedDeptId}
                   onOpenCreateTask={canCreateTask ? () => setIsCreateTaskOpen(true) : undefined}
                 />
               )}

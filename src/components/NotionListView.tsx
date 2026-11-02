@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Task, TaskStatus, Role, User as UserType, Department } from '../types';
 import { parseCoAssignedTeam } from '../utils/coAssignUtils';
+import { isTaskAssignedToStaff, isTaskInDepartment, buildAvailableStaffList } from '../utils/taskFilterUtils';
 import {
   Plus,
   Calendar,
@@ -30,6 +31,8 @@ interface NotionListViewProps {
   departments?: Department[];
   selectedDeptId?: number | 'ALL';
   onSelectDept?: (deptId: number | 'ALL') => void;
+  selectedStaffId?: string | number | 'ALL';
+  onSelectStaff?: (staffId: string | number | 'ALL') => void;
   onSelectTask: (task: Task) => void;
   onEditTask?: (task: Task) => void;
   onOpenCreateTask?: () => void;
@@ -48,6 +51,8 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
   departments,
   selectedDeptId,
   onSelectDept,
+  selectedStaffId: selectedStaffIdProp,
+  onSelectStaff: onSelectStaffProp,
   onSelectTask,
   onEditTask,
   onOpenCreateTask,
@@ -60,7 +65,16 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
 }) => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [onlyMyTasks, setOnlyMyTasks] = useState<boolean>(false);
-  const [selectedStaffId, setSelectedStaffId] = useState<string>('ALL');
+  const [internalStaffId, setInternalStaffId] = useState<string | number | 'ALL'>('ALL');
+  const activeStaffId = selectedStaffIdProp !== undefined ? selectedStaffIdProp : internalStaffId;
+
+  const handleSelectStaff = (id: string | number | 'ALL') => {
+    setInternalStaffId(id);
+    if (onSelectStaffProp) {
+      onSelectStaffProp(id);
+    }
+  };
+
   const [deptFilter, setDeptFilter] = useState<number | 'ALL'>(selectedDeptId || 'ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -71,64 +85,25 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
     }
   }, [selectedDeptId]);
 
+  // Keep internal staff filter synced if selectedStaffIdProp changes externally
+  useEffect(() => {
+    if (selectedStaffIdProp !== undefined) {
+      setInternalStaffId(selectedStaffIdProp);
+    }
+  }, [selectedStaffIdProp]);
+
   // Use the full pool of tasks when available
   const sourceTasks = allTasks && allTasks.length > 0 ? allTasks : tasks;
 
   // Extract all available staff members from staffList and tasks (including co-assigned team members)
   const availableStaff = useMemo(() => {
-    const map = new Map<string, { id: string | number; name: string; dept?: string; email?: string }>();
-
-    // 1. From staffList prop
-    if (staffList && staffList.length > 0) {
-      staffList.forEach((u) => {
-        if (u.is_active !== false) {
-          map.set(String(u.id), {
-            id: u.id,
-            name: u.full_name || u.username,
-            dept: u.department_code || u.department_name,
-            email: u.email,
-          });
-        }
-      });
-    }
-
-    // 2. From tasks
-    sourceTasks.forEach((t) => {
-      if (t.assigned_to && t.assigned_to_name) {
-        if (!map.has(String(t.assigned_to))) {
-          map.set(String(t.assigned_to), {
-            id: t.assigned_to,
-            name: t.assigned_to_name,
-            dept: t.department_code || t.department_name,
-            email: t.assigned_to_email,
-          });
-        }
-      }
-      const { team } = parseCoAssignedTeam(t.description);
-      team.forEach((m) => {
-        const key = m.staffId ? String(m.staffId) : `name_${m.staffName}`;
-        if (!map.has(key) && m.staffName) {
-          map.set(key, {
-            id: m.staffId || m.staffName,
-            name: m.staffName,
-            dept: m.deptCode || m.deptName,
-            email: m.staffEmail,
-          });
-        }
-      });
-    });
-
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return buildAvailableStaffList(staffList, sourceTasks);
   }, [staffList, sourceTasks]);
 
   // 0. Live count of tasks assigned/co-assigned to the logged-in user
   const myTasksCount = useMemo(() => {
     if (!currentUserId) return 0;
-    return sourceTasks.filter((t) => {
-      if (t.assigned_to === currentUserId) return true;
-      const { team } = parseCoAssignedTeam(t.description);
-      return team.some((m) => String(m.staffId) === String(currentUserId));
-    }).length;
+    return sourceTasks.filter((t) => isTaskAssignedToStaff(t, currentUserId)).length;
   }, [sourceTasks, currentUserId]);
 
   // Department options with live task counts across all tasks
@@ -210,39 +185,23 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
 
       // Department filter
       if (deptFilter !== 'ALL') {
-        const { team } = parseCoAssignedTeam(t.description);
         const selectedDeptObj = departmentOptions.find((d) => String(d.id) === String(deptFilter));
-        const isPrimaryDept = String(t.department) === String(deptFilter) || Number(t.department) === Number(deptFilter);
-        const isCoAssignedDept = team.some((m) => {
-          if (String(m.departmentId) === String(deptFilter) || Number(m.departmentId) === Number(deptFilter)) return true;
-          if (selectedDeptObj && m.deptName && m.deptName.toLowerCase() === selectedDeptObj.name.toLowerCase()) return true;
+        if (!isTaskInDepartment(t, deptFilter, selectedDeptObj?.name)) {
           return false;
-        });
-        if (!isPrimaryDept && !isCoAssignedDept) return false;
+        }
       }
 
-      // Staff filter
-      if (selectedStaffId !== 'ALL') {
-        const { team } = parseCoAssignedTeam(t.description);
-        if (selectedStaffId === 'UNASSIGNED') {
-          if (t.assigned_to || team.length > 0) return false;
-        } else {
-          const isPrimary = String(t.assigned_to) === String(selectedStaffId);
-          const selectedObj = availableStaff.find((s) => String(s.id) === String(selectedStaffId));
-          const isCoAssigned = team.some((m) => {
-            if (m.staffId && String(m.staffId) === String(selectedStaffId)) return true;
-            if (selectedObj && m.staffName.toLowerCase() === selectedObj.name.toLowerCase()) return true;
-            return false;
-          });
-          if (!isPrimary && !isCoAssigned) return false;
+      // Staff filter: STRICT! If staff is selected, only that staff member's tasks are kept!
+      if (activeStaffId !== 'ALL') {
+        const selectedObj = availableStaff.find((s) => String(s.id) === String(activeStaffId));
+        if (!isTaskAssignedToStaff(t, activeStaffId, selectedObj)) {
+          return false;
         }
       }
 
       // Assigned to Me quick toggle
       if (onlyMyTasks && currentUserId) {
-        const { team } = parseCoAssignedTeam(t.description);
-        const isCoAssignedToMe = team.some((m) => String(m.staffId) === String(currentUserId));
-        if (t.assigned_to !== currentUserId && !isCoAssignedToMe) {
+        if (!isTaskAssignedToStaff(t, currentUserId)) {
           return false;
         }
       }
@@ -265,7 +224,7 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
 
       return true;
     });
-  }, [sourceTasks, currentUserRole, deptFilter, selectedStaffId, onlyMyTasks, currentUserId, searchQuery, staffList, availableStaff]);
+  }, [sourceTasks, currentUserRole, deptFilter, activeStaffId, onlyMyTasks, currentUserId, searchQuery, staffList, availableStaff, departmentOptions]);
 
   // 2. Dynamic status counts computed strictly from the scoped tasks!
   const statusCounts = useMemo(() => {
@@ -285,7 +244,7 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
     return baseScopedTasks.filter((t) => t.status === statusFilter);
   }, [baseScopedTasks, statusFilter]);
 
-  const hasActiveFilters = onlyMyTasks || deptFilter !== 'ALL' || selectedStaffId !== 'ALL' || Boolean(searchQuery.trim());
+  const hasActiveFilters = onlyMyTasks || deptFilter !== 'ALL' || activeStaffId !== 'ALL' || Boolean(searchQuery.trim());
 
   const getStatusTag = (status: TaskStatus) => {
     switch (status) {
@@ -343,7 +302,7 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
     setOnlyMyTasks(false);
     setDeptFilter('ALL');
     if (onSelectDept) onSelectDept('ALL');
-    setSelectedStaffId('ALL');
+    handleSelectStaff('ALL');
     setSearchQuery('');
     setStatusFilter('ALL');
   };
@@ -489,26 +448,26 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
                 gap: '6px',
                 padding: '5px 10px',
                 borderRadius: '8px',
-                background: selectedStaffId !== 'ALL' ? 'rgba(35, 131, 226, 0.09)' : 'var(--notion-card)',
-                border: selectedStaffId !== 'ALL' ? '1.5px solid var(--notion-blue)' : '1px solid var(--notion-border)',
+                background: activeStaffId !== 'ALL' ? 'rgba(35, 131, 226, 0.09)' : 'var(--notion-card)',
+                border: activeStaffId !== 'ALL' ? '1.5px solid var(--notion-blue)' : '1px solid var(--notion-border)',
                 boxShadow: 'var(--notion-shadow-sm)',
                 transition: 'all 0.15s ease',
               }}
             >
-              <User size={13} style={{ color: selectedStaffId !== 'ALL' ? 'var(--notion-blue)' : 'var(--notion-text-muted)', flexShrink: 0 }} />
-              <span style={{ fontSize: '11.5px', fontWeight: 700, color: selectedStaffId !== 'ALL' ? 'var(--notion-blue)' : 'var(--notion-text-muted)' }}>
+              <User size={13} style={{ color: activeStaffId !== 'ALL' ? 'var(--notion-blue)' : 'var(--notion-text-muted)', flexShrink: 0 }} />
+              <span style={{ fontSize: '11.5px', fontWeight: 700, color: activeStaffId !== 'ALL' ? 'var(--notion-blue)' : 'var(--notion-text-muted)' }}>
                 Staff:
               </span>
               <select
-                value={selectedStaffId}
-                onChange={(e) => setSelectedStaffId(e.target.value)}
+                value={String(activeStaffId)}
+                onChange={(e) => handleSelectStaff(e.target.value)}
                 style={{
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
                   fontSize: '12px',
-                  fontWeight: selectedStaffId !== 'ALL' ? 700 : 500,
-                  color: selectedStaffId !== 'ALL' ? 'var(--notion-blue)' : 'var(--notion-text)',
+                  fontWeight: activeStaffId !== 'ALL' ? 700 : 500,
+                  color: activeStaffId !== 'ALL' ? 'var(--notion-blue)' : 'var(--notion-text)',
                   cursor: 'pointer',
                   maxWidth: '185px',
                 }}
@@ -520,14 +479,12 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
                 {availableStaff.map((s) => {
                   const staffCount = sourceTasks.filter((t) => {
                     if (deptFilter !== 'ALL') {
-                      const { team } = parseCoAssignedTeam(t.description);
-                      const isPrimaryDept = String(t.department) === String(deptFilter) || Number(t.department) === Number(deptFilter);
-                      const isCoAssignedDept = team.some((m) => String(m.departmentId) === String(deptFilter) || Number(m.departmentId) === Number(deptFilter));
-                      if (!isPrimaryDept && !isCoAssignedDept) return false;
+                      const deptObj = departmentOptions.find((d) => String(d.id) === String(deptFilter));
+                      if (!isTaskInDepartment(t, deptFilter, deptObj?.name)) {
+                        return false;
+                      }
                     }
-                    if (String(t.assigned_to) === String(s.id)) return true;
-                    const { team } = parseCoAssignedTeam(t.description);
-                    return team.some((m) => String(m.staffId) === String(s.id) || m.staffName.toLowerCase() === s.name.toLowerCase());
+                    return isTaskAssignedToStaff(t, s.id, s);
                   }).length;
                   return (
                     <option key={String(s.id)} value={String(s.id)}>
@@ -536,10 +493,10 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
                   );
                 })}
               </select>
-              {selectedStaffId !== 'ALL' && (
+              {activeStaffId !== 'ALL' && (
                 <button
                   type="button"
-                  onClick={() => setSelectedStaffId('ALL')}
+                  onClick={() => handleSelectStaff('ALL')}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -777,7 +734,7 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
               </span>
             )}
 
-            {selectedStaffId !== 'ALL' && (
+            {activeStaffId !== 'ALL' && (
               <span
                 style={{
                   display: 'inline-flex',
@@ -792,10 +749,10 @@ export const NotionListView: React.FC<NotionListViewProps> = ({
                 }}
               >
                 Staff:{' '}
-                {selectedStaffId === 'UNASSIGNED'
+                {activeStaffId === 'UNASSIGNED'
                   ? 'Unassigned Queue'
-                  : availableStaff.find((s) => String(s.id) === String(selectedStaffId))?.name || selectedStaffId}
-                <X size={11} style={{ cursor: 'pointer' }} onClick={() => setSelectedStaffId('ALL')} />
+                  : availableStaff.find((s) => String(s.id) === String(activeStaffId))?.name || activeStaffId}
+                <X size={11} style={{ cursor: 'pointer' }} onClick={() => handleSelectStaff('ALL')} />
               </span>
             )}
 
