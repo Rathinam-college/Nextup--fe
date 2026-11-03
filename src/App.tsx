@@ -341,6 +341,15 @@ const DashboardContent: React.FC = () => {
     if (!isGM && currentUser?.department && t.department !== currentUser.department) {
       return false;
     }
+    // Strict Task Isolation: Non-GM users ONLY see tasks directly assigned to them or co-assigned to them
+    if (!isGM) {
+      const { team } = parseCoAssignedTeam(t.description);
+      const isDirectAssignee = t.assigned_to === currentUser?.id;
+      const isCoAssignee = team.some((m) => m.assignedToId === currentUser?.id || m.staffId === currentUser?.id);
+      if (!isDirectAssignee && !isCoAssignee) {
+        return false;
+      }
+    }
     if (selectedDeptId !== 'ALL') {
       const selectedDeptObj = departments.find((d) => String(d.id) === String(selectedDeptId));
       if (!isTaskInDepartment(t, selectedDeptId, selectedDeptObj?.name)) {

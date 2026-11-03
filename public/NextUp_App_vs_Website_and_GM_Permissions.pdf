@@ -1,0 +1,2547 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R 11 0 R] /Count 4 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+6 0 obj
+<< /Length 10393 >>
+stream
+q
+0.118 0.161 0.231 rg
+0.059 0.090 0.165 RG
+1.5 w
+40.00 727.89 515.28 72.00 re
+B
+Q
+q
+0.310 0.275 0.898 rg
+40.00 727.89 6.00 72.00 re
+f
+Q
+q
+BT
+/F2 16 Tf
+1.000 1.000 1.000 rg
+56.00 773.89 Td (NextUp Enterprise Platform Architecture Guide) Tj
+ET
+Q
+q
+BT
+/F1 10 Tf
+0.780 0.824 0.996 rg
+56.00 755.89 Td (Mobile Application vs Web Portal Comparison & General Manager Executive Authorities) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.580 0.639 0.722 rg
+56.00 739.89 Td (System Version: v2.3.0 \(Build 15\) • Prepared for Rathinam Group of Institutions • November 2026) Tj
+ET
+Q
+q
+0.941 0.992 0.957 rg
+0.133 0.773 0.369 RG
+1 w
+40.00 629.39 515.28 82.50 re
+B
+Q
+q
+0.133 0.773 0.369 rg
+40.00 629.39 4.00 82.50 re
+f
+Q
+q
+BT
+/F2 9.5 Tf
+0.082 0.502 0.239 rg
+52.00 697.89 Td (EXECUTIVE PLATFORM SUMMARY) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.200 0.255 0.333 rg
+52.00 685.89 Td (NextUp is engineered as a dual-surface operational platform. The Web Portal provides comprehensive) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.200 0.255 0.333 rg
+52.00 673.89 Td (institutional governance, multi-view workspaces, and staff management. The Mobile Application) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.200 0.255 0.333 rg
+52.00 661.89 Td (provides high-speed field operations, shift checklists, live photo deliverables, and instant WhatsApp) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.200 0.255 0.333 rg
+52.00 649.89 Td (dispatch. General Managers hold exclusive cross-departmental jurisdiction and final sign-off) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.200 0.255 0.333 rg
+52.00 637.89 Td (authority.) Tj
+ET
+Q
+q
+0.933 0.949 1.000 rg
+0.780 0.824 0.996 RG
+1 w
+40.00 597.39 515.28 22.00 re
+B
+Q
+q
+0.310 0.275 0.898 rg
+40.00 597.39 4.00 22.00 re
+f
+Q
+q
+BT
+/F2 10 Tf
+0.263 0.220 0.792 rg
+52.00 603.89 Td (1.  PLATFORM SURFACE COMPARISON: MOBILE APP VS WEB PORTAL) Tj
+ET
+Q
+q
+0.118 0.161 0.231 rg
+0.059 0.090 0.165 RG
+1 w
+40.00 561.39 515.28 24.00 re
+B
+Q
+q
+BT
+/F2 8.5 Tf
+1.000 1.000 1.000 rg
+47.00 568.89 Td (Operational Feature) Tj
+ET
+Q
+q
+BT
+/F2 8.5 Tf
+1.000 1.000 1.000 rg
+162.00 568.89 Td (Web Portal \(Desktop / Browser\)) Tj
+ET
+Q
+q
+BT
+/F2 8.5 Tf
+1.000 1.000 1.000 rg
+362.00 568.89 Td (Mobile Application \(Android APK\)) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 507.39 515.28 54.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 549.39 Td (Core Operational) Tj
+ET
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 538.39 Td (Purpose) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 549.39 Td (Institutional governance, master data) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 538.39 Td (administration, comprehensive work table) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 527.39 Td (auditing, and PDF/Excel reporting.) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 549.39 Td (On-the-go shift execution, physical site) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 538.39 Td (inspections, photo deliverables via) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 527.39 Td (phone camera, and instant WhatsApp) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 516.39 Td (dispatch.) Tj
+ET
+Q
+q
+0.973 0.980 0.988 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 453.39 515.28 54.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 495.39 Td (Task Workspace) Tj
+ET
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 484.39 Td (Views) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 495.39 Td (4 Powerful Views: Kanban Board) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 484.39 Td (\(drag-and-drop\), Grouped List,) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 473.39 Td (Excel-like Table View, and Monthly) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 462.39 Td (Calendar View.) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 495.39 Td (2 Touch Views: Modern Touch Cards) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 484.39 Td (\(default with 16px soft radius\) and) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 473.39 Td (Mobile Horizontal Table view.) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 399.39 515.28 54.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 441.39 Td (Routine Work) Tj
+ET
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 430.39 Td (Checklists) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 441.39 Td (Desktop shift table \(/routine-work\) with) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 430.39 Td (department tabs, progress meters,) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 419.39 Td (completion time logs, and print sheets.) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 441.39 Td (Dedicated Routine Tab in bottom) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 430.39 Td (navigation with 1-tap shift checkboxes,) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 419.39 Td (progress bar, and instant backend) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 408.39 Td (synchronization.) Tj
+ET
+Q
+q
+0.973 0.980 0.988 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 345.39 515.28 54.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 387.39 Td (Urgent WhatsApp) Tj
+ET
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 376.39 Td (Dispatch) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 387.39 Td (Direct WhatsApp links embedded on task) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 376.39 Td (table rows and urgency lists.) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 387.39 Td (Dedicated WhatsApp Desk Modal with live) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 376.39 Td (alert counters, staff groupings, and) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 365.39 Td (1-tap WhatsApp broadcast message) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 354.39 Td (composer.) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 302.89 515.28 42.50 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 333.39 Td (Executive Briefing) Tj
+ET
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 322.39 Td (Share) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 333.39 Td (Copy task link or export custom) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 322.39 Td (formatted reports.) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 333.39 Td (Dedicated Share Tab \(GM exclusive\) to) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 322.39 Td (generate pre-formatted executive daily) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 311.39 Td (briefings and broadcast to team chats.) Tj
+ET
+Q
+q
+0.973 0.980 0.988 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 260.39 515.28 42.50 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 290.89 Td (Deliverable Proof &) Tj
+ET
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 279.89 Td (Media) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 290.89 Td (File uploader accepting images and files) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 279.89 Td (stored on PC / local disk.) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 290.89 Td (Native Camera integration to capture) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 279.89 Td (real-time photo proof of work on site,) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 268.89 Td (plus phone gallery picker.) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 206.39 515.28 54.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 248.39 Td (Notification) Tj
+ET
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 237.39 Td (Infrastructure) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 248.39 Td (In-app notification bell with unread) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 237.39 Td (badges and mark-all-read controls.) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 248.39 Td (Native Mobile Push Notifications with) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 237.39 Td (system vibration, sound, lock screen) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 226.39 Td (banners, and in-app floating toast) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 215.39 Td (alerts.) Tj
+ET
+Q
+q
+0.973 0.980 0.988 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 152.39 515.28 54.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 194.39 Td (Staff & Access) Tj
+ET
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 183.39 Td (Management) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 194.39 Td (Full CRUD: Provision new staff, edit) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 183.39 Td (credentials, assign roles \(STAFF /) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 172.39 Td (DEPT_MANAGER\), and configure page) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 161.39 Td (access.) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 194.39 Td (View institutional directory and filter) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 183.39 Td (tasks or checklists by department and) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 172.39 Td (individual staff members.) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 109.89 515.28 42.50 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 140.39 Td (Institutional) Tj
+ET
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 129.39 Td (Reports & Export) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 140.39 Td (Export printable work reports, custom) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 129.39 Td (date-range analytics, and CSV / Excel) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 118.39 Td (downloads.) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 140.39 Td (Real-time status metric cards \(Awaiting) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 129.39 Td (GM, To Do, Urgent, In Progress, Done,) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 118.39 Td (All Active\) with dynamic scoping.) Tj
+ET
+Q
+q
+0.973 0.980 0.988 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 67.39 515.28 42.50 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 97.89 Td (Deployment &) Tj
+ET
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 86.89 Td (Auto-Update) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 97.89 Td (Immediate browser refresh with zero) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+162.00 86.89 Td (client installation required.) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 97.89 Td (Built-in in-app auto-updater) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 86.89 Td (\(AppUpdateModal\) checking server version) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+362.00 75.89 Td (on launch with direct APK download link.) Tj
+ET
+Q
+q
+0.886 0.910 0.941 rg
+40 30 515.28 0.75 re f
+BT
+/F1 8 Tf
+0.580 0.639 0.722 rg
+40 18 Td (NextUp Operations Desk - Rathinam Group of Institutions) Tj
+505.78 18 Td (Page 1 of 4) Tj
+ET
+Q
+
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 8513 >>
+stream
+q
+0.945 0.961 0.976 rg
+40 811.89 515.28 1 re f
+BT
+/F1 8 Tf
+0.392 0.455 0.545 rg
+40 815.89 Td (NextUp Enterprise Platform Architecture Guide - App vs Website & GM Permissions) Tj
+ET
+Q
+q
+0.933 0.949 1.000 rg
+0.780 0.824 0.996 RG
+1 w
+40.00 769.89 515.28 22.00 re
+B
+Q
+q
+0.310 0.275 0.898 rg
+40.00 769.89 4.00 22.00 re
+f
+Q
+q
+BT
+/F2 10 Tf
+0.263 0.220 0.792 rg
+52.00 776.39 Td (2.1  TASK LIFECYCLE & GM SIGN-OFF GOVERNANCE FLOWCHART) Tj
+ET
+Q
+q
+0.973 0.980 0.988 rg
+0.388 0.400 0.945 RG
+1.2 w
+115.00 721.89 405.28 36.00 re
+B
+Q
+q
+0.310 0.275 0.898 rg
+115.00 721.89 5.00 36.00 re
+f
+Q
+q
+BT
+/F2 9 Tf
+0.263 0.220 0.792 rg
+127.00 743.89 Td (STAGE 1: TASK INITIATION & CREATION) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+127.00 730.89 Td (GM or Dept Manager creates task with priority, due date, department & staff target.) Tj
+ET
+Q
+q
+0.933 0.949 1.000 rg
+0.388 0.400 0.945 RG
+0.5 w
+398.28 740.89 116.00 12.00 re
+B
+Q
+q
+BT
+/F2 6.5 Tf
+0.263 0.220 0.792 rg
+400.28 743.89 Td (GM: Multi-Dept Co-Assign) Tj
+ET
+Q
+q
+0.388 0.400 0.945 RG
+0.388 0.400 0.945 rg
+1.5 w
+317.64 721.89 m 317.64 703.89 l S
+317.64 703.89 m 320.89 709.52 l 314.39 709.52 l h f
+Q
+q
+BT
+/F2 7 Tf
+0.392 0.455 0.545 rg
+323.64 710.89 Td (Assigned) Tj
+ET
+Q
+q
+0.973 0.980 0.988 rg
+0.580 0.639 0.722 RG
+1 w
+115.00 667.89 405.28 36.00 re
+B
+Q
+q
+0.392 0.455 0.545 rg
+115.00 667.89 5.00 36.00 re
+f
+Q
+q
+BT
+/F2 9 Tf
+0.118 0.161 0.231 rg
+127.00 689.89 Td (STAGE 2: STAFF QUEUE & START \(Status: TO DO\)) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.278 0.333 0.412 rg
+127.00 676.89 Td (Staff receives Push & WhatsApp notifications. Staff taps "Start Work" button.) Tj
+ET
+Q
+q
+0.945 0.961 0.976 rg
+0.580 0.639 0.722 RG
+0.5 w
+398.28 686.89 116.00 12.00 re
+B
+Q
+q
+BT
+/F2 6.5 Tf
+0.392 0.455 0.545 rg
+400.28 689.89 Td (Staff: Own Dept Queue Only) Tj
+ET
+Q
+q
+0.580 0.639 0.722 RG
+0.580 0.639 0.722 rg
+1.5 w
+317.64 667.89 m 317.64 649.89 l S
+317.64 649.89 m 320.89 655.52 l 314.39 655.52 l h f
+Q
+q
+BT
+/F2 7 Tf
+0.392 0.455 0.545 rg
+323.64 656.89 Td (Work Commenced) Tj
+ET
+Q
+q
+0.937 0.965 1.000 rg
+0.231 0.510 0.965 RG
+1 w
+115.00 613.89 405.28 36.00 re
+B
+Q
+q
+0.145 0.388 0.922 rg
+115.00 613.89 5.00 36.00 re
+f
+Q
+q
+BT
+/F2 9 Tf
+0.114 0.306 0.847 rg
+127.00 635.89 Td (STAGE 3: EXECUTION & EVIDENCE \(Status: IN PROGRESS\)) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+127.00 622.89 Td (Staff performs operational task on site, takes Camera Photo Proof & taps "Submit".) Tj
+ET
+Q
+q
+0.859 0.918 0.996 rg
+0.231 0.510 0.965 RG
+0.5 w
+398.28 632.89 116.00 12.00 re
+B
+Q
+q
+BT
+/F2 6.5 Tf
+0.114 0.306 0.847 rg
+400.28 635.89 Td (Mobile Camera / Web Upload) Tj
+ET
+Q
+q
+0.231 0.510 0.965 RG
+0.231 0.510 0.965 rg
+1.5 w
+317.64 613.89 m 317.64 595.89 l S
+317.64 595.89 m 320.89 601.52 l 314.39 601.52 l h f
+Q
+q
+BT
+/F2 7 Tf
+0.145 0.388 0.922 rg
+323.64 602.89 Td (Submitted with Proof) Tj
+ET
+Q
+q
+0.996 0.953 0.780 rg
+0.961 0.620 0.043 RG
+1.5 w
+115.00 537.89 405.28 58.00 re
+B
+Q
+q
+0.851 0.467 0.024 rg
+115.00 537.89 6.00 58.00 re
+f
+Q
+q
+0.992 0.902 0.541 rg
+0.851 0.467 0.024 RG
+0.5 w
+127.00 575.89 185.00 14.00 re
+B
+Q
+q
+BT
+/F2 7.5 Tf
+0.573 0.251 0.055 rg
+131.00 579.89 Td (EXCLUSIVE: GENERAL MANAGER APPROVAL DESK) Tj
+ET
+Q
+q
+BT
+/F2 8.5 Tf
+0.573 0.251 0.055 rg
+127.00 561.89 Td (STAGE 4: QUALITY & DELIVERABLE REVIEW \(Status: PENDING GM APPROVAL\)) Tj
+ET
+Q
+q
+BT
+/F1 7.5 Tf
+0.706 0.325 0.035 rg
+127.00 547.89 Td (Only General Manager & Super Admin can access this stage. Staff & Managers CANNOT self-approve.) Tj
+ET
+Q
+q
+0.937 0.267 0.267 RG
+1.2 w
+[3 3] 0 d
+115.00 566.89 m 50.00 566.89 l S
+Q
+q
+0.937 0.267 0.267 RG
+1.2 w
+[3 3] 0 d
+50.00 566.89 m 50.00 631.89 l S
+Q
+q
+0.937 0.267 0.267 RG
+0.937 0.267 0.267 rg
+1.5 w
+50.00 631.89 m 115.00 631.89 l S
+115.00 631.89 m 109.37 635.14 l 109.37 628.64 l h f
+Q
+q
+0.996 0.886 0.886 rg
+0.937 0.267 0.267 RG
+0.5 w
+46.00 587.39 58.00 24.00 re
+B
+Q
+q
+BT
+/F2 6.5 Tf
+0.725 0.110 0.110 rg
+49.00 602.39 Td (Changes Req.) Tj
+ET
+Q
+q
+BT
+/F1 6 Tf
+0.725 0.110 0.110 rg
+49.00 592.39 Td (Staff Rework) Tj
+ET
+Q
+q
+0.063 0.725 0.506 RG
+0.063 0.725 0.506 rg
+1.5 w
+317.64 537.89 m 317.64 517.89 l S
+317.64 517.89 m 320.89 523.52 l 314.39 523.52 l h f
+Q
+q
+0.820 0.980 0.898 rg
+0.063 0.725 0.506 RG
+0.5 w
+323.64 521.89 75.00 12.00 re
+B
+Q
+q
+BT
+/F2 6.5 Tf
+0.016 0.471 0.341 rg
+326.64 524.89 Td (Approved by GM) Tj
+ET
+Q
+q
+0.925 0.992 0.961 rg
+0.063 0.725 0.506 RG
+1.2 w
+115.00 481.89 405.28 36.00 re
+B
+Q
+q
+0.020 0.588 0.412 rg
+115.00 481.89 5.00 36.00 re
+f
+Q
+q
+BT
+/F2 9 Tf
+0.016 0.471 0.341 rg
+127.00 503.89 Td (STAGE 5: OFFICIALLY CLOSED & AUDITED \(Status: CLOSED\)) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+127.00 490.89 Td (Timestamp, GM verifier & proof permanently logged. Included in institutional reports.) Tj
+ET
+Q
+q
+0.820 0.980 0.898 rg
+0.063 0.725 0.506 RG
+0.5 w
+398.28 500.89 116.00 12.00 re
+B
+Q
+q
+BT
+/F2 6.5 Tf
+0.016 0.471 0.341 rg
+400.28 503.89 Td (Verified & Audit Locked) Tj
+ET
+Q
+q
+0.933 0.949 1.000 rg
+0.780 0.824 0.996 RG
+1 w
+40.00 443.89 515.28 22.00 re
+B
+Q
+q
+0.310 0.275 0.898 rg
+40.00 443.89 4.00 22.00 re
+f
+Q
+q
+BT
+/F2 10 Tf
+0.263 0.220 0.792 rg
+52.00 450.39 Td (2.2  ROLE HIERARCHY & DEPARTMENT ISOLATION ARCHITECTURE) Tj
+ET
+Q
+q
+0.118 0.161 0.231 rg
+0.059 0.090 0.165 RG
+1 w
+157.64 407.89 280.00 24.00 re
+B
+Q
+q
+BT
+/F2 8.5 Tf
+1.000 1.000 1.000 rg
+171.64 415.89 Td (NEXTUP ENTERPRISE WORKSPACE & BACKEND DATABASE) Tj
+ET
+Q
+q
+0.392 0.455 0.545 RG
+1 w
+297.64 407.89 m 297.64 397.89 l S
+Q
+q
+0.392 0.455 0.545 RG
+1 w
+121.21 397.89 m 474.07 397.89 l S
+Q
+q
+0.392 0.455 0.545 RG
+0.392 0.455 0.545 rg
+1.2 w
+121.21 397.89 m 121.21 387.89 l S
+121.21 387.89 m 124.46 393.52 l 117.96 393.52 l h f
+Q
+q
+0.310 0.275 0.898 RG
+0.310 0.275 0.898 rg
+1.2 w
+297.64 397.89 m 297.64 387.89 l S
+297.64 387.89 m 300.89 393.52 l 294.39 393.52 l h f
+Q
+q
+0.851 0.467 0.024 RG
+0.851 0.467 0.024 rg
+1.5 w
+474.07 397.89 m 474.07 387.89 l S
+474.07 387.89 m 477.32 393.52 l 470.82 393.52 l h f
+Q
+q
+0.973 0.980 0.988 rg
+0.796 0.835 0.882 RG
+1 w
+40.00 242.89 162.43 145.00 re
+B
+Q
+q
+0.392 0.455 0.545 rg
+40.00 365.89 162.43 22.00 re
+f
+Q
+q
+BT
+/F2 8.5 Tf
+1.000 1.000 1.000 rg
+50.00 372.89 Td (STAFF MEMBER) Tj
+ET
+Q
+q
+BT
+/F1 7.5 Tf
+0.200 0.255 0.333 rg
+48.00 352.89 Td (• Locked to Assigned Dept) Tj
+ET
+Q
+q
+BT
+/F1 7.5 Tf
+0.200 0.255 0.333 rg
+48.00 337.89 Td (• View Assigned Queue only) Tj
+ET
+Q
+q
+BT
+/F1 7.5 Tf
+0.200 0.255 0.333 rg
+48.00 322.89 Td (• Submit Work with Photo) Tj
+ET
+Q
+q
+BT
+/F1 7.5 Tf
+0.200 0.255 0.333 rg
+48.00 307.89 Td (• Mark Shift Routine Items) Tj
+ET
+Q
+q
+BT
+/F2 7.5 Tf
+0.882 0.114 0.282 rg
+48.00 292.89 Td (x Cannot view other depts) Tj
+ET
+Q
+q
+BT
+/F2 7.5 Tf
+0.882 0.114 0.282 rg
+48.00 277.89 Td (x CANNOT approve tasks) Tj
+ET
+Q
+q
+BT
+/F2 7.5 Tf
+0.882 0.114 0.282 rg
+48.00 262.89 Td (x CANNOT close tasks) Tj
+ET
+Q
+q
+0.933 0.949 1.000 rg
+0.780 0.824 0.996 RG
+1 w
+216.43 242.89 162.43 145.00 re
+B
+Q
+q
+0.310 0.275 0.898 rg
+216.43 365.89 162.43 22.00 re
+f
+Q
+q
+BT
+/F2 8.5 Tf
+1.000 1.000 1.000 rg
+226.43 372.89 Td (DEPARTMENT MANAGER) Tj
+ET
+Q
+q
+BT
+/F1 7.5 Tf
+0.200 0.255 0.333 rg
+224.43 352.89 Td (• Full Dept Queue Oversight) Tj
+ET
+Q
+q
+BT
+/F1 7.5 Tf
+0.200 0.255 0.333 rg
+224.43 337.89 Td (• Create & Assign Dept Tasks) Tj
+ET
+Q
+q
+BT
+/F1 7.5 Tf
+0.200 0.255 0.333 rg
+224.43 322.89 Td (• Manage Shift Checklists) Tj
+ET
+Q
+q
+BT
+/F1 7.5 Tf
+0.200 0.255 0.333 rg
+224.43 307.89 Td (• Track Dept Work Table) Tj
+ET
+Q
+q
+BT
+/F2 7.5 Tf
+0.882 0.114 0.282 rg
+224.43 292.89 Td (x Locked to own department) Tj
+ET
+Q
+q
+BT
+/F2 7.5 Tf
+0.882 0.114 0.282 rg
+224.43 277.89 Td (x No other depts visibility) Tj
+ET
+Q
+q
+BT
+/F2 7.5 Tf
+0.882 0.114 0.282 rg
+224.43 262.89 Td (x CANNOT close tasks \(GM\)) Tj
+ET
+Q
+q
+0.996 0.953 0.780 rg
+0.961 0.620 0.043 RG
+1.5 w
+392.85 242.89 162.43 145.00 re
+B
+Q
+q
+0.851 0.467 0.024 rg
+392.85 365.89 162.43 22.00 re
+f
+Q
+q
+BT
+/F2 8.5 Tf
+1.000 1.000 1.000 rg
+402.85 372.89 Td (GENERAL MANAGER) Tj
+ET
+Q
+q
+BT
+/F2 7.5 Tf
+0.573 0.251 0.055 rg
+400.85 352.89 Td (* ALL Departments Access) Tj
+ET
+Q
+q
+BT
+/F2 7.5 Tf
+0.573 0.251 0.055 rg
+400.85 337.89 Td (* Universal Staff Selector) Tj
+ET
+Q
+q
+BT
+/F2 7.5 Tf
+0.573 0.251 0.055 rg
+400.85 322.89 Td (* SOLE Task Sign-Off Power) Tj
+ET
+Q
+q
+BT
+/F2 7.5 Tf
+0.573 0.251 0.055 rg
+400.85 307.89 Td (* 100% Private GM Tasks) Tj
+ET
+Q
+q
+BT
+/F2 7.5 Tf
+0.573 0.251 0.055 rg
+400.85 292.89 Td (* Urgent WhatsApp Desk) Tj
+ET
+Q
+q
+BT
+/F2 7.5 Tf
+0.573 0.251 0.055 rg
+400.85 277.89 Td (* Daily Share Briefing Tab) Tj
+ET
+Q
+q
+BT
+/F2 7.5 Tf
+0.573 0.251 0.055 rg
+400.85 262.89 Td (* Dept & Staff Master Admin) Tj
+ET
+Q
+q
+0.886 0.910 0.941 rg
+40 30 515.28 0.75 re f
+BT
+/F1 8 Tf
+0.580 0.639 0.722 rg
+40 18 Td (NextUp Operations Desk - Rathinam Group of Institutions) Tj
+505.78 18 Td (Page 2 of 4) Tj
+ET
+Q
+
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Length 9036 >>
+stream
+q
+0.945 0.961 0.976 rg
+40 811.89 515.28 1 re f
+BT
+/F1 8 Tf
+0.392 0.455 0.545 rg
+40 815.89 Td (NextUp Enterprise Platform Architecture Guide - App vs Website & GM Permissions) Tj
+ET
+Q
+q
+0.933 0.949 1.000 rg
+0.780 0.824 0.996 RG
+1 w
+40.00 769.89 515.28 22.00 re
+B
+Q
+q
+0.310 0.275 0.898 rg
+40.00 769.89 4.00 22.00 re
+f
+Q
+q
+BT
+/F2 10 Tf
+0.263 0.220 0.792 rg
+52.00 776.39 Td (3.  GENERAL MANAGER \(GM & SUPER ADMIN\) EXCLUSIVE AUTHORITIES) Tj
+ET
+Q
+q
+0.996 0.953 0.780 rg
+0.961 0.620 0.043 RG
+1 w
+40.00 700.39 515.28 57.50 re
+B
+Q
+q
+0.961 0.620 0.043 rg
+40.00 700.39 4.00 57.50 re
+f
+Q
+q
+BT
+/F2 9.5 Tf
+0.573 0.251 0.055 rg
+52.00 743.89 Td (GENERAL MANAGER GOVERNANCE NOTICE) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.200 0.255 0.333 rg
+52.00 731.89 Td (To maintain strict organizational integrity, staff members and department managers are locked to) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.200 0.255 0.333 rg
+52.00 719.89 Td (their own departments. Only the General Manager and Super Admin possess institutional oversight,) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.200 0.255 0.333 rg
+52.00 707.89 Td (universal staff filtering, and exclusive task closeout authority.) Tj
+ET
+Q
+q
+0.310 0.275 0.898 rg
+40.00 673.39 17.00 17.00 re
+f
+Q
+q
+BT
+/F2 9 Tf
+1.000 1.000 1.000 rg
+45.50 676.89 Td (1) Tj
+ET
+Q
+q
+BT
+/F2 9.5 Tf
+0.059 0.090 0.165 rg
+65.00 677.89 Td (Cross-Department Institutional Oversight) Tj
+ET
+Q
+q
+0.996 0.953 0.780 rg
+0.961 0.620 0.043 RG
+0.5 w
+291.00 675.89 43.00 12.00 re
+B
+Q
+q
+BT
+/F2 7 Tf
+0.706 0.325 0.035 rg
+295.00 678.39 Td (GM ONLY) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 665.39 Td (Staff and Department Managers can only view tasks within their designated department. The GM has) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 653.89 Td (unrestricted access across all institutional departments \(Civil, Mechanical, CSE, Admin, Hostel,) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 642.39 Td (Transport, etc.\) and can switch views or observe the complete institution in one consolidated) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 630.89 Td (stream.) Tj
+ET
+Q
+q
+0.310 0.275 0.898 rg
+40.00 601.39 17.00 17.00 re
+f
+Q
+q
+BT
+/F2 9 Tf
+1.000 1.000 1.000 rg
+45.50 604.89 Td (2) Tj
+ET
+Q
+q
+BT
+/F2 9.5 Tf
+0.059 0.090 0.165 rg
+65.00 605.89 Td (Universal Staff Selector & Individual Work Filtering) Tj
+ET
+Q
+q
+0.996 0.953 0.780 rg
+0.961 0.620 0.043 RG
+0.5 w
+358.20 603.89 43.00 12.00 re
+B
+Q
+q
+BT
+/F2 7 Tf
+0.706 0.325 0.035 rg
+362.20 606.39 Td (GM ONLY) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 593.39 Td (The GM toolbar contains an exclusive Staff Selector button and modal. The GM can filter tasks and) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 581.89 Td (routine checklists down to any specific staff member in any department, displaying their exact) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 570.39 Td (personal queue and completion performance.) Tj
+ET
+Q
+q
+0.310 0.275 0.898 rg
+40.00 541.39 17.00 17.00 re
+f
+Q
+q
+BT
+/F2 9 Tf
+1.000 1.000 1.000 rg
+45.50 544.89 Td (3) Tj
+ET
+Q
+q
+BT
+/F2 9.5 Tf
+0.059 0.090 0.165 rg
+65.00 545.89 Td (Final Task Review & Official Sign-Off Authority) Tj
+ET
+Q
+q
+0.996 0.953 0.780 rg
+0.961 0.620 0.043 RG
+0.5 w
+330.20 543.89 43.00 12.00 re
+B
+Q
+q
+BT
+/F2 7 Tf
+0.706 0.325 0.035 rg
+334.20 546.39 Td (GM ONLY) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 533.39 Td (When staff complete their deliverables, tasks enter the "Awaiting GM Approval" status) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 521.89 Td (\(PENDING_GM_APPROVAL\). Only the GM has the authority to officially Approve & Close a task, or) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 510.39 Td (Request Changes with custom GM feedback instructions.) Tj
+ET
+Q
+q
+0.310 0.275 0.898 rg
+40.00 481.39 17.00 17.00 re
+f
+Q
+q
+BT
+/F2 9 Tf
+1.000 1.000 1.000 rg
+45.50 484.89 Td (4) Tj
+ET
+Q
+q
+BT
+/F2 9.5 Tf
+0.059 0.090 0.165 rg
+65.00 485.89 Td (100% Private "GM Own Tasks" \(Executive Workspace\)) Tj
+ET
+Q
+q
+0.996 0.953 0.780 rg
+0.961 0.620 0.043 RG
+0.5 w
+341.40 483.89 43.00 12.00 re
+B
+Q
+q
+BT
+/F2 7 Tf
+0.706 0.325 0.035 rg
+345.40 486.39 Td (GM ONLY) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 473.39 Td (The GM has a dedicated "+ GM Own Task" command. These tasks carry an exclusive executive flag) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 461.89 Td (\(is_gm_own_task: true\) and are strictly confidential. They are filtered out completely from all) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 450.39 Td (staff and department manager views.) Tj
+ET
+Q
+q
+0.310 0.275 0.898 rg
+40.00 421.39 17.00 17.00 re
+f
+Q
+q
+BT
+/F2 9 Tf
+1.000 1.000 1.000 rg
+45.50 424.89 Td (5) Tj
+ET
+Q
+q
+BT
+/F2 9.5 Tf
+0.059 0.090 0.165 rg
+65.00 425.89 Td (Multi-Department & Cross-Team Task Delegation) Tj
+ET
+Q
+q
+0.996 0.953 0.780 rg
+0.961 0.620 0.043 RG
+0.5 w
+319.00 423.89 43.00 12.00 re
+B
+Q
+q
+BT
+/F2 7 Tf
+0.706 0.325 0.035 rg
+323.00 426.39 Td (GM ONLY) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 413.39 Td (Only the GM can create multi-target tasks assigning a primary deliverable to one department and) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 401.89 Td (co-assigning secondary responsibilities to staff members across different institutional wings.) Tj
+ET
+Q
+q
+0.310 0.275 0.898 rg
+40.00 373.39 17.00 17.00 re
+f
+Q
+q
+BT
+/F2 9 Tf
+1.000 1.000 1.000 rg
+45.50 376.89 Td (6) Tj
+ET
+Q
+q
+BT
+/F2 9.5 Tf
+0.059 0.090 0.165 rg
+65.00 377.89 Td (Urgent WhatsApp Dispatch Desk) Tj
+ET
+Q
+q
+0.996 0.953 0.780 rg
+0.961 0.620 0.043 RG
+0.5 w
+229.40 375.89 43.00 12.00 re
+B
+Q
+q
+BT
+/F2 7 Tf
+0.706 0.325 0.035 rg
+233.40 378.39 Td (GM ONLY) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 365.39 Td (The GM mobile header features a live WhatsApp dispatch pill displaying the total count of overdue) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 353.89 Td (and urgent deliverables. Tapping it opens a grouped dispatch center to notify staff on WhatsApp) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 342.39 Td (with 1 tap.) Tj
+ET
+Q
+q
+0.310 0.275 0.898 rg
+40.00 313.39 17.00 17.00 re
+f
+Q
+q
+BT
+/F2 9 Tf
+1.000 1.000 1.000 rg
+45.50 316.89 Td (7) Tj
+ET
+Q
+q
+BT
+/F2 9.5 Tf
+0.059 0.090 0.165 rg
+65.00 317.89 Td (Executive Daily Briefing Generator \(Mobile Share Tab\)) Tj
+ET
+Q
+q
+0.996 0.953 0.780 rg
+0.961 0.620 0.043 RG
+0.5 w
+363.80 315.89 43.00 12.00 re
+B
+Q
+q
+BT
+/F2 7 Tf
+0.706 0.325 0.035 rg
+367.80 318.39 Td (GM ONLY) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 305.39 Td (The "Share" tab in the mobile bottom bar is visible strictly to GM and Super Admin users. It) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 293.89 Td (automatically compiles daily completion metrics, departmental milestones, and urgent alerts for) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 282.39 Td (executive reporting.) Tj
+ET
+Q
+q
+0.310 0.275 0.898 rg
+40.00 253.39 17.00 17.00 re
+f
+Q
+q
+BT
+/F2 9 Tf
+1.000 1.000 1.000 rg
+45.50 256.89 Td (8) Tj
+ET
+Q
+q
+BT
+/F2 9.5 Tf
+0.059 0.090 0.165 rg
+65.00 257.89 Td (Department Provisioning & Manager Designation) Tj
+ET
+Q
+q
+0.996 0.953 0.780 rg
+0.961 0.620 0.043 RG
+0.5 w
+319.00 255.89 43.00 12.00 re
+B
+Q
+q
+BT
+/F2 7 Tf
+0.706 0.325 0.035 rg
+323.00 258.39 Td (GM ONLY) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 245.39 Td (On the Web portal, only the GM and Super Admin can create new institutional departments, modify) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 233.89 Td (department codes, assign Department Heads, or archive inactive departments.) Tj
+ET
+Q
+q
+0.310 0.275 0.898 rg
+40.00 205.39 17.00 17.00 re
+f
+Q
+q
+BT
+/F2 9 Tf
+1.000 1.000 1.000 rg
+45.50 208.89 Td (9) Tj
+ET
+Q
+q
+BT
+/F2 9.5 Tf
+0.059 0.090 0.165 rg
+65.00 209.89 Td (Staff Account Administration & Page Security Matrix) Tj
+ET
+Q
+q
+0.996 0.953 0.780 rg
+0.961 0.620 0.043 RG
+0.5 w
+352.60 207.89 43.00 12.00 re
+B
+Q
+q
+BT
+/F2 7 Tf
+0.706 0.325 0.035 rg
+356.60 210.39 Td (GM ONLY) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 197.39 Td (The GM has exclusive control over the Staff Directory: creating login accounts, changing user) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 185.89 Td (roles \(STAFF vs DEPT_MANAGER\), assigning temporary passwords, and managing granular page viewing) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 174.39 Td (permissions.) Tj
+ET
+Q
+q
+0.310 0.275 0.898 rg
+40.00 145.39 17.00 17.00 re
+f
+Q
+q
+BT
+/F2 9 Tf
+1.000 1.000 1.000 rg
+43.50 148.89 Td (10) Tj
+ET
+Q
+q
+BT
+/F2 9.5 Tf
+0.059 0.090 0.165 rg
+65.00 149.89 Td (Institutional Analytics Export & SMTP Email Configuration) Tj
+ET
+Q
+q
+0.996 0.953 0.780 rg
+0.961 0.620 0.043 RG
+0.5 w
+386.20 147.89 43.00 12.00 re
+B
+Q
+q
+BT
+/F2 7 Tf
+0.706 0.325 0.035 rg
+390.20 150.39 Td (GM ONLY) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 137.39 Td (Only the GM can configure the institution-wide SMTP email server credentials for task notification) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.278 0.333 0.412 rg
+65.00 125.89 Td (emails and export full institutional work report dossiers.) Tj
+ET
+Q
+q
+0.886 0.910 0.941 rg
+40 30 515.28 0.75 re f
+BT
+/F1 8 Tf
+0.580 0.639 0.722 rg
+40 18 Td (NextUp Operations Desk - Rathinam Group of Institutions) Tj
+505.78 18 Td (Page 3 of 4) Tj
+ET
+Q
+
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 10 0 R >>
+endobj
+12 0 obj
+<< /Length 5913 >>
+stream
+q
+0.945 0.961 0.976 rg
+40 811.89 515.28 1 re f
+BT
+/F1 8 Tf
+0.392 0.455 0.545 rg
+40 815.89 Td (NextUp Enterprise Platform Architecture Guide - App vs Website & GM Permissions) Tj
+ET
+Q
+q
+0.933 0.949 1.000 rg
+0.780 0.824 0.996 RG
+1 w
+40.00 769.89 515.28 22.00 re
+B
+Q
+q
+0.310 0.275 0.898 rg
+40.00 769.89 4.00 22.00 re
+f
+Q
+q
+BT
+/F2 10 Tf
+0.263 0.220 0.792 rg
+52.00 776.39 Td (4.  ROLE PERMISSION MATRIX: SUMMARY REFERENCE) Tj
+ET
+Q
+q
+0.118 0.161 0.231 rg
+0.059 0.090 0.165 RG
+1 w
+40.00 733.89 515.28 24.00 re
+B
+Q
+q
+BT
+/F2 8.5 Tf
+1.000 1.000 1.000 rg
+47.00 741.39 Td (Platform Capability) Tj
+ET
+Q
+q
+BT
+/F2 8.5 Tf
+1.000 1.000 1.000 rg
+202.00 741.39 Td (Staff Member) Tj
+ET
+Q
+q
+BT
+/F2 8.5 Tf
+1.000 1.000 1.000 rg
+312.00 741.39 Td (Dept Manager) Tj
+ET
+Q
+q
+BT
+/F2 8.5 Tf
+1.000 1.000 1.000 rg
+432.00 741.39 Td (General Manager \(GM\)) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 709.89 515.28 24.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 721.89 Td (Own Department Tasks) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+202.00 721.89 Td (Assigned Only) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+312.00 721.89 Td (Full Dept View) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+432.00 721.89 Td (Full Institutional View) Tj
+ET
+Q
+q
+0.973 0.980 0.988 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 685.89 515.28 24.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 697.89 Td (Other Department Tasks) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+202.00 697.89 Td (No Access \(Hidden\)) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+312.00 697.89 Td (No Access \(Hidden\)) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+432.00 697.89 Td (Full Access \(All Depts\)) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 661.89 515.28 24.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 673.89 Td (Universal Staff Filter) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+202.00 673.89 Td (No) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+312.00 673.89 Td (Own Dept Staff Only) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+432.00 673.89 Td (Yes \(All Staff Members\)) Tj
+ET
+Q
+q
+0.973 0.980 0.988 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 637.89 515.28 24.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 649.89 Td (Task Creation) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+202.00 649.89 Td (Self Tasks Only) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+312.00 649.89 Td (Own Department) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+432.00 649.89 Td (All Depts & Multi-Assign) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 606.89 515.28 31.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 625.89 Td (Final Approval & Closeout) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+202.00 625.89 Td (Submit Work Only) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+312.00 625.89 Td (Submit Work Only) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+432.00 625.89 Td (Exclusive Sign-Off) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+432.00 614.89 Td (Authority) Tj
+ET
+Q
+q
+0.973 0.980 0.988 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 582.89 515.28 24.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 594.89 Td (Private GM Executive Tasks) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+202.00 594.89 Td (Hidden) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+312.00 594.89 Td (Hidden) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+432.00 594.89 Td (Yes \(+ GM Own Tasks\)) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 551.89 515.28 31.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 570.89 Td (WhatsApp Urgent Dispatch) Tj
+ET
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 559.89 Td (Desk) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+202.00 570.89 Td (Receive Only) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+312.00 570.89 Td (Receive Only) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+432.00 570.89 Td (Send Direct Broadcasts) Tj
+ET
+Q
+q
+0.973 0.980 0.988 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 527.89 515.28 24.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 539.89 Td (Daily Executive Share Tab) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+202.00 539.89 Td (Hidden) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+312.00 539.89 Td (Hidden) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+432.00 539.89 Td (Dedicated Mobile Tab) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 496.89 515.28 31.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 515.89 Td (Routine Shift Checklists) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+202.00 515.89 Td (Complete Assigned) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+312.00 515.89 Td (Manage Dept Shifts) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+432.00 515.89 Td (Universal Oversight &) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+432.00 504.89 Td (Create) Tj
+ET
+Q
+q
+0.973 0.980 0.988 rg
+0.886 0.910 0.941 RG
+0.75 w
+40.00 472.89 515.28 24.00 re
+B
+Q
+q
+BT
+/F2 8 Tf
+0.059 0.090 0.165 rg
+47.00 484.89 Td (Staff & Dept Administration) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+202.00 484.89 Td (No Access) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+312.00 484.89 Td (No Access) Tj
+ET
+Q
+q
+BT
+/F1 8 Tf
+0.200 0.255 0.333 rg
+432.00 484.89 Td (Full Master Management) Tj
+ET
+Q
+q
+0.941 0.992 0.957 rg
+0.133 0.773 0.369 RG
+1 w
+40.00 403.39 515.28 57.50 re
+B
+Q
+q
+0.133 0.773 0.369 rg
+40.00 403.39 4.00 57.50 re
+f
+Q
+q
+BT
+/F2 9.5 Tf
+0.082 0.502 0.239 rg
+52.00 446.89 Td (DOCUMENT GOVERNANCE & AUTHENTICATION) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.200 0.255 0.333 rg
+52.00 434.89 Td (This architecture and authority reference guide reflects the operational state of NextUp v2.3.0.) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.200 0.255 0.333 rg
+52.00 422.89 Td (Revisions to role hierarchies or departmental scopes require executive sign-off from the Office of) Tj
+ET
+Q
+q
+BT
+/F1 8.5 Tf
+0.200 0.255 0.333 rg
+52.00 410.89 Td (the General Manager.) Tj
+ET
+Q
+q
+0.886 0.910 0.941 rg
+40 30 515.28 0.75 re f
+BT
+/F1 8 Tf
+0.580 0.639 0.722 rg
+40 18 Td (NextUp Operations Desk - Rathinam Group of Institutions) Tj
+505.78 18 Td (Page 4 of 4) Tj
+ET
+Q
+
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 12 0 R >>
+endobj
+xref
+0 13
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000134 00000 n 
+0000000204 00000 n 
+0000010725 00000 n 
+0000000279 00000 n 
+0000019432 00000 n 
+0000010867 00000 n 
+0000028663 00000 n 
+0000019574 00000 n 
+0000034772 00000 n 
+0000028806 00000 n 
+trailer
+<< /Size 13 /Root 1 0 R >>
+startxref
+34916
+%%EOF

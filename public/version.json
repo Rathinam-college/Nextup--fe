@@ -1,14 +1,14 @@
 {
-  "version": "2.2.8",
-  "versionCode": 13,
+  "version": "2.3.3",
+  "versionCode": 18,
   "apkUrl": "https://www.rguedu.in/nextup/NextUp.apk",
   "fallbackApkUrl": "https://www.rguedu.in/nextup/NextUp.apk",
   "releaseNotes": [
-    "Multi-staff & department co-assignment in mobile task creation",
-    "Duplicate staff prevention across multiple targets",
-    "Clean login UI without demo accounts",
-    "Enhanced task media handling and attachment previews"
+    "In-App Auto-Update: Direct 1-tap download & install inside NextUp without opening external web browsers",
+    "Share App with Team: Quick 1-tap sharing of APK download link via WhatsApp, Share Sheet, and URL display for 20+ staff members",
+    "IST Working Hours: Push notifications and hourly check-ins strictly aligned to 9:00 AM – 6:00 PM Indian Standard Time (IST)",
+    "Full Task Details Push: Notifications include Priority, Dept, Deadline, Assignee & Description"
   ],
-  "publishedAt": "2026-11-02",
+  "publishedAt": "2026-11-03",
   "mandatory": false
 }
