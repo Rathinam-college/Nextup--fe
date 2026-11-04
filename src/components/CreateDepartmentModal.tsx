@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Department } from '../types';
 import { api } from '../services/api';
 import { X, Building, AlertCircle } from 'lucide-react';
@@ -22,17 +22,33 @@ export const CreateDepartmentModal: React.FC<CreateDepartmentModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const prevIsOpenRef = useRef(false);
+  const prevEditingDeptIdRef = useRef<number | null | undefined>(undefined);
+
   useEffect(() => {
-    if (editingDepartment) {
-      setName(editingDepartment.name);
-      setCode(editingDepartment.code);
-      setDescription(editingDepartment.description || '');
-    } else {
-      setName('');
-      setCode('');
-      setDescription('');
+    if (!isOpen) {
+      prevIsOpenRef.current = false;
+      return;
     }
-    setError(null);
+
+    const justOpened = !prevIsOpenRef.current && isOpen;
+    const deptChanged = (editingDepartment ? editingDepartment.id : null) !== prevEditingDeptIdRef.current;
+
+    if (justOpened || deptChanged) {
+      prevIsOpenRef.current = true;
+      prevEditingDeptIdRef.current = editingDepartment ? editingDepartment.id : null;
+
+      if (editingDepartment) {
+        setName(editingDepartment.name);
+        setCode(editingDepartment.code);
+        setDescription(editingDepartment.description || '');
+      } else {
+        setName('');
+        setCode('');
+        setDescription('');
+      }
+      setError(null);
+    }
   }, [editingDepartment, isOpen]);
 
   if (!isOpen) return null;
