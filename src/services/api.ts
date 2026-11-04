@@ -162,8 +162,14 @@ export const api = {
     request<Task>(`/api/tasks/${id}/start-work/`, { method: 'POST', body: data ? JSON.stringify(data) : undefined }),
   submitForApproval: (id: number, data?: { attachment_image?: string; image?: string }) =>
     request<Task>(`/api/tasks/${id}/submit-for-approval/`, { method: 'POST', body: data ? JSON.stringify(data) : undefined }),
-  attachImage: (id: number, attachment_image: string) =>
-    request<Task>(`/api/tasks/${id}/attach-image/`, { method: 'POST', body: JSON.stringify({ attachment_image }) }),
+  attachImage: (id: number, attachment_image: string, action?: 'add' | 'replace' | 'remove' | 'clear') =>
+    request<Task>(`/api/tasks/${id}/attach-image/`, { method: 'POST', body: JSON.stringify({ attachment_image, action }) }),
+  addAttachments: (id: number, attachments: string[]) =>
+    request<Task>(`/api/tasks/${id}/attach-image/`, { method: 'POST', body: JSON.stringify({ attachments, action: 'add' }) }),
+  removeAttachment: (id: number, remove_url: string) =>
+    request<Task>(`/api/tasks/${id}/attach-image/`, { method: 'POST', body: JSON.stringify({ action: 'remove', remove_url }) }),
+  clearAttachments: (id: number) =>
+    request<Task>(`/api/tasks/${id}/attach-image/`, { method: 'POST', body: JSON.stringify({ action: 'clear' }) }),
   gmReview: (id: number, action: 'APPROVE' | 'REQUEST_CHANGES', notes: string) =>
     request<Task>(`/api/tasks/${id}/gm-review/`, {
       method: 'POST',
