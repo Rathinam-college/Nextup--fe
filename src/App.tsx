@@ -326,6 +326,13 @@ const DashboardContent: React.FC = () => {
     return true;
   });
 
+  const visibleStaff = useMemo(() => {
+    if (!isGM && currentUser?.department) {
+      return staffList.filter((s) => s.department === currentUser.department);
+    }
+    return staffList;
+  }, [staffList, isGM, currentUser?.department]);
+
   // Filter tasks based on selected department, staff, and search query
   const filteredTasks = tasks.filter((t) => {
     // GM Own tasks must NEVER be shown to anyone except GM and Super Admin
@@ -698,7 +705,12 @@ const DashboardContent: React.FC = () => {
 
               {currentView === 'staff' && (
                 <NotionStaffView
-                  staffList={filteredStaff}
+                  staffList={visibleStaff}
+                  departments={visibleDepartments}
+                  selectedDeptId={selectedDeptId}
+                  onSelectDept={setSelectedDeptId}
+                  selectedStaffId={selectedStaffId}
+                  onSelectStaff={setSelectedStaffId}
                   onOpenCreateStaff={() => {
                     setEditingStaff(null);
                     setIsStaffModalOpen(true);
@@ -708,7 +720,8 @@ const DashboardContent: React.FC = () => {
                     setIsStaffModalOpen(true);
                   }}
                   onDeleteStaff={handleDeleteStaff}
-                  currentUserRole={currentUser.role}
+                  currentUserRole={currentUser?.role}
+                  currentUserDeptId={currentUser?.department}
                 />
               )}
 

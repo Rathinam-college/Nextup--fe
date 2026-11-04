@@ -5,6 +5,7 @@ export interface CoAssignMember {
   staffName: string;
   staffEmail?: string;
   staffId?: string | number;
+  assignedToId?: string | number;
 }
 
 export function parseCoAssignedTeam(desc?: string | null): { team: CoAssignMember[]; cleanDesc: string } {
@@ -22,7 +23,8 @@ export function parseCoAssignedTeam(desc?: string | null): { team: CoAssignMembe
           departmentId: m.departmentId,
           staffName: m.staffName || '',
           staffEmail: m.staffEmail || '',
-          staffId: m.staffId,
+          staffId: m.staffId ?? m.assignedToId,
+          assignedToId: m.assignedToId ?? m.staffId,
         }));
       }
     } catch {}
