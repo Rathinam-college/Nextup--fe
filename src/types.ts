@@ -73,6 +73,7 @@ export interface Task {
   closed_at?: string | null;
   attachment_image?: string | null;
   image?: string | null;
+  attachments?: string[];
   is_gm_own_task?: boolean;
   created_at: string;
   updated_at: string;
