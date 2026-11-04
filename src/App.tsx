@@ -201,9 +201,53 @@ const DashboardContent: React.FC = () => {
     }
   }, [currentUser]);
 
+  const loadAllDataSilent = useCallback(async () => {
+    if (!currentUser || document.hidden) return;
+    try {
+      const [deptsData, tasksData, notifsData, staffData, statsData] = await Promise.all([
+        api.getDepartments(),
+        api.getTasks(),
+        api.getNotifications(),
+        api.getUsers(),
+        api.getDashboardStats().catch(() => null),
+      ]);
+
+      setDepartments(deptsData);
+      setTasks(tasksData);
+      setNotifications(notifsData);
+      setStaffList(staffData);
+      if (statsData) setDashboardStats(statsData);
+    } catch {
+      // Background silent auto-sync
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     loadAllData();
   }, [loadAllData]);
+
+  // Automatic live auto-fetch every 8 seconds & on tab switch / window focus
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const interval = setInterval(() => {
+      loadAllDataSilent();
+    }, 8000);
+
+    const handleRevalidate = () => {
+      if (!document.hidden) {
+        loadAllDataSilent();
+      }
+    };
+    document.addEventListener('visibilitychange', handleRevalidate);
+    window.addEventListener('focus', handleRevalidate);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleRevalidate);
+      window.removeEventListener('focus', handleRevalidate);
+    };
+  }, [currentUser, loadAllDataSilent]);
 
   const handleOpenEmailLogs = async () => {
     if (currentUser?.role !== 'SUPER_ADMIN') {

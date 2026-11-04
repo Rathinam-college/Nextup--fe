@@ -207,8 +207,38 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
     const file = e.target.files?.[0];
     if (!file || !task) return;
 
-    if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file (PNG, JPG, WebP).');
+    const lowerName = file.name.toLowerCase();
+    const isDoc = file.type === 'application/pdf' ||
+                  lowerName.endsWith('.pdf') ||
+                  lowerName.endsWith('.xlsx') ||
+                  lowerName.endsWith('.xls') ||
+                  lowerName.endsWith('.csv') ||
+                  file.type.includes('spreadsheet') ||
+                  file.type.includes('excel');
+
+    if (!file.type.startsWith('image/') && !isDoc) {
+      setError('Please select an image (PNG, JPG), PDF document, or Excel spreadsheet.');
+      return;
+    }
+
+    if (isDoc) {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          setUploadingImage(true);
+          setError(null);
+          const dataUri = reader.result as string;
+          await api.attachImage(task.id, dataUri);
+          setImageSuccessNotice('Document attached and saved successfully.');
+          onTaskUpdated();
+          setTimeout(() => setImageSuccessNotice(null), 3500);
+        } catch (err: any) {
+          setError(err.message || 'Failed to attach document.');
+        } finally {
+          setUploadingImage(false);
+        }
+      };
+      reader.readAsDataURL(file);
       return;
     }
 
@@ -1730,37 +1760,93 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
 
             {task.attachment_image ? (
               <div style={{ position: 'relative', marginTop: '10px' }}>
-                <img
-                  src={getCleanMediaUrl(task.attachment_image)}
-                  alt="Task attachment"
-                  onClick={() => setIsImageModalOpen(true)}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '260px',
-                    objectFit: 'contain',
-                    borderRadius: '6px',
-                    border: '1px solid var(--notion-border)',
-                    cursor: 'pointer',
-                    background: 'rgba(0, 0, 0, 0.2)',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
-                  }}
-                />
+                {(() => {
+                  const lowerAttach = (task.attachment_image || '').toLowerCase();
+                  const isPdfAttach = lowerAttach.includes('.pdf') || lowerAttach.includes('application/pdf');
+                  const isExcelAttach = lowerAttach.includes('.xlsx') || lowerAttach.includes('.xls') || lowerAttach.includes('.csv') || lowerAttach.includes('spreadsheet') || lowerAttach.includes('excel');
+                  const fileName = task.attachment_image.split('/').pop()?.split('?')[0] || 'Attachment';
+
+                  if (isPdfAttach) {
+                    return (
+                      <div style={{ padding: '16px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '24px' }}>📄</span>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--notion-text)' }}>{fileName}</div>
+                            <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600 }}>PDF Document</span>
+                          </div>
+                        </div>
+                        <a
+                          href={getCleanMediaUrl(task.attachment_image)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="notion-btn notion-btn-bordered"
+                          style={{ fontSize: '12px', padding: '5px 12px', background: '#ef4444', color: '#ffffff', textDecoration: 'none', border: 'none' }}
+                        >
+                          Open PDF
+                        </a>
+                      </div>
+                    );
+                  }
+
+                  if (isExcelAttach) {
+                    return (
+                      <div style={{ padding: '16px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '24px' }}>📊</span>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--notion-text)' }}>{fileName}</div>
+                            <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>Excel / Spreadsheet</span>
+                          </div>
+                        </div>
+                        <a
+                          href={getCleanMediaUrl(task.attachment_image)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="notion-btn notion-btn-bordered"
+                          style={{ fontSize: '12px', padding: '5px 12px', background: '#10b981', color: '#ffffff', textDecoration: 'none', border: 'none' }}
+                        >
+                          Open Spreadsheet
+                        </a>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <img
+                      src={getCleanMediaUrl(task.attachment_image)}
+                      alt="Task attachment"
+                      onClick={() => setIsImageModalOpen(true)}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '260px',
+                        objectFit: 'contain',
+                        borderRadius: '6px',
+                        border: '1px solid var(--notion-border)',
+                        cursor: 'pointer',
+                        background: 'rgba(0, 0, 0, 0.2)',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+                      }}
+                    />
+                  );
+                })()}
+
                 <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <label
                     className="notion-btn notion-btn-bordered"
                     style={{ fontSize: '11px', padding: '4px 10px', cursor: 'pointer', gap: '5px', display: 'inline-flex', alignItems: 'center' }}
                   >
                     <Upload size={12} />
-                    <span>Replace Image (Optional)</span>
+                    <span>Replace Attachment (Photo, PDF, Excel)</span>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/*,application/pdf,.pdf,.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                       onChange={handleImageFileUpload}
                       style={{ display: 'none' }}
                     />
                   </label>
                   <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>
-                    Click image to expand full size
+                    Photos, PDF, or Excel sheets supported
                   </span>
                 </div>
               </div>
@@ -1768,8 +1854,8 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
               <div style={{ marginTop: '6px' }}>
                 <p style={{ fontSize: '12px', color: 'var(--notion-text-muted)', margin: '0 0 10px', lineHeight: 1.4 }}>
                   {task.status === 'IN_PROGRESS'
-                    ? 'Working on this ticket? You can optionally attach a progress screenshot, photo of fixed hardware, or diagnostic capture.'
-                    : 'Attach an optional screenshot or photo reference for this deliverable.'}
+                    ? 'Working on this deliverable? You can optionally attach photos, PDF documents, or Excel sheets as proof.'
+                    : 'Attach an optional photo, PDF, or Excel sheet reference for this deliverable.'}
                 </p>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
@@ -1786,17 +1872,17 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                     }}
                   >
                     <Camera size={14} />
-                    <span>+ Add Image (Optional)</span>
+                    <span>+ Add Attachment (Photo, PDF, Excel)</span>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/*,application/pdf,.pdf,.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                       onChange={handleImageFileUpload}
                       style={{ display: 'none' }}
                     />
                   </label>
 
                   <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>
-                    PNG, JPG, WebP supported • Completely optional
+                    Photo, PDF, or Excel supported • Completely optional
                   </span>
                 </div>
               </div>
