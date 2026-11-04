@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Department, User, Role, Priority } from '../types';
 import { api } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
@@ -70,9 +70,17 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const activeDept = departments.find((d) => String(d.id) === String(formData.department)) ||
     (isRestrictedDept && currentUserDeptId ? departments.find((d) => d.id === currentUserDeptId) : departments[0]);
 
-  // Initialize form whenever modal opens or props change
+  const prevIsOpenRef = useRef(false);
+
+  // Initialize form strictly when modal opens (not on subsequent background prop/department updates)
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) {
+      prevIsOpenRef.current = false;
+      return;
+    }
+
+    if (!prevIsOpenRef.current && isOpen) {
+      prevIsOpenRef.current = true;
       setError(null);
       setSuccessNotice(null);
       setAttachmentImage('');

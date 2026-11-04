@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Department, Role } from '../types';
 import { api } from '../services/api';
 import {
@@ -63,40 +63,56 @@ export const StaffManagementModal: React.FC<StaffManagementModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Synchronize form data whenever the modal opens or the editing target changes
+  const prevIsOpenRef = useRef(false);
+  const prevEditingUserIdRef = useRef<number | null | undefined>(undefined);
+
+  // Synchronize form data strictly when modal opens or editing user changes (never reset while user is editing)
   useEffect(() => {
-    if (editingUser) {
-      setFormData({
-        first_name: editingUser.first_name || '',
-        last_name: editingUser.last_name || '',
-        username: editingUser.username || '',
-        email: editingUser.email || '',
-        job_title: editingUser.job_title || '',
-        phone: editingUser.phone || '',
-        role: editingUser.role || 'STAFF',
-        department: editingUser.department != null ? String(editingUser.department) : (isDeptManager && currentUserDeptId != null ? String(currentUserDeptId) : ''),
-        password: '',
-      });
-      const existingPages = Array.isArray(editingUser.allowed_pages) && editingUser.allowed_pages.length > 0
-        ? (editingUser.allowed_pages as ViewType[])
-        : getDefaultAllowedPagesForRole(editingUser.role);
-      setAllowedPages(existingPages);
-    } else {
-      setFormData({
-        first_name: '',
-        last_name: '',
-        username: '',
-        email: '',
-        job_title: '',
-        phone: '',
-        role: 'STAFF',
-        department: isDeptManager && currentUserDeptId != null ? String(currentUserDeptId) : (departments[0]?.id != null ? String(departments[0].id) : ''),
-        password: '',
-      });
-      setAllowedPages(getDefaultAllowedPagesForRole('STAFF'));
+    if (!isOpen) {
+      prevIsOpenRef.current = false;
+      return;
     }
-    setError(null);
-    setSuccessMsg(null);
+
+    const justOpened = !prevIsOpenRef.current && isOpen;
+    const userChanged = (editingUser ? editingUser.id : null) !== prevEditingUserIdRef.current;
+
+    if (justOpened || userChanged) {
+      prevIsOpenRef.current = true;
+      prevEditingUserIdRef.current = editingUser ? editingUser.id : null;
+
+      if (editingUser) {
+        setFormData({
+          first_name: editingUser.first_name || '',
+          last_name: editingUser.last_name || '',
+          username: editingUser.username || '',
+          email: editingUser.email || '',
+          job_title: editingUser.job_title || '',
+          phone: editingUser.phone || '',
+          role: editingUser.role || 'STAFF',
+          department: editingUser.department != null ? String(editingUser.department) : (isDeptManager && currentUserDeptId != null ? String(currentUserDeptId) : ''),
+          password: '',
+        });
+        const existingPages = Array.isArray(editingUser.allowed_pages) && editingUser.allowed_pages.length > 0
+          ? (editingUser.allowed_pages as ViewType[])
+          : getDefaultAllowedPagesForRole(editingUser.role);
+        setAllowedPages(existingPages);
+      } else {
+        setFormData({
+          first_name: '',
+          last_name: '',
+          username: '',
+          email: '',
+          job_title: '',
+          phone: '',
+          role: 'STAFF',
+          department: isDeptManager && currentUserDeptId != null ? String(currentUserDeptId) : (departments[0]?.id != null ? String(departments[0].id) : ''),
+          password: '',
+        });
+        setAllowedPages(getDefaultAllowedPagesForRole('STAFF'));
+      }
+      setError(null);
+      setSuccessMsg(null);
+    }
   }, [editingUser, isOpen, isDeptManager, currentUserDeptId, departments]);
 
   const togglePagePermission = (pageKey: ViewType) => {

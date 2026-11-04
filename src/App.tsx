@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -201,24 +201,77 @@ const DashboardContent: React.FC = () => {
     }
   }, [currentUser]);
 
-  const loadAllDataSilent = useCallback(async () => {
+  // Track modal, view, and input states via refs to keep 8s background interval stable without stale closures
+  const currentViewRef = useRef(currentView);
+  const isCreateTaskOpenRef = useRef(isCreateTaskOpen);
+  const isStaffModalOpenRef = useRef(isStaffModalOpen);
+  const isCreateDeptOpenRef = useRef(isCreateDeptOpen);
+  const isEmailLogsOpenRef = useRef(isEmailLogsOpen);
+  const isActivityLogsOpenRef = useRef(isActivityLogsOpen);
+  const selectedTaskRef = useRef(selectedTask);
+
+  useEffect(() => { currentViewRef.current = currentView; }, [currentView]);
+  useEffect(() => { isCreateTaskOpenRef.current = isCreateTaskOpen; }, [isCreateTaskOpen]);
+  useEffect(() => { isStaffModalOpenRef.current = isStaffModalOpen; }, [isStaffModalOpen]);
+  useEffect(() => { isCreateDeptOpenRef.current = isCreateDeptOpen; }, [isCreateDeptOpen]);
+  useEffect(() => { isEmailLogsOpenRef.current = isEmailLogsOpen; }, [isEmailLogsOpen]);
+  useEffect(() => { isActivityLogsOpenRef.current = isActivityLogsOpen; }, [isActivityLogsOpen]);
+  useEffect(() => { selectedTaskRef.current = selectedTask; }, [selectedTask]);
+
+  // Live Task-Only Silent Auto-Sync:
+  // - Strictly DISABLED on 'staff' and 'settings' pages to prevent input/view disruption
+  // - Strictly PAUSED while creating a new task (isCreateTaskOpen) or interacting with modals
+  // - Strictly PAUSED when any input/textarea/select or contentEditable is currently focused
+  // - On board & task views, ONLY tasks & notifications sync (departments & staff remain untouched)
+  const syncTasksOnlySilent = useCallback(async () => {
     if (!currentUser || document.hidden) return;
+
+    // Rule 1: Never sync on staff or settings pages
+    if (currentViewRef.current === 'staff' || currentViewRef.current === 'settings') {
+      return;
+    }
+
+    // Rule 2: Never sync when creating a new task or when any editing/creation modal is open
+    if (
+      isCreateTaskOpenRef.current ||
+      isStaffModalOpenRef.current ||
+      isCreateDeptOpenRef.current ||
+      isEmailLogsOpenRef.current ||
+      isActivityLogsOpenRef.current ||
+      selectedTaskRef.current !== null
+    ) {
+      return;
+    }
+
+    // Rule 3: Never sync while user is actively focused on an input/textarea/select or editable element
+    if (typeof document !== 'undefined') {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.tagName === 'SELECT' ||
+          (activeEl as HTMLElement).isContentEditable)
+      ) {
+        return;
+      }
+    }
+
+    // Rule 4: On task/board pages, ONLY sync tasks & notifications silently
     try {
-      const [deptsData, tasksData, notifsData, staffData, statsData] = await Promise.all([
-        api.getDepartments(),
+      const [tasksData, notifsData] = await Promise.all([
         api.getTasks(),
         api.getNotifications(),
-        api.getUsers(),
-        api.getDashboardStats().catch(() => null),
       ]);
 
-      setDepartments(deptsData);
-      setTasks(tasksData);
-      setNotifications(notifsData);
-      setStaffList(staffData);
-      if (statsData) setDashboardStats(statsData);
+      if (Array.isArray(tasksData)) {
+        setTasks(tasksData);
+      }
+      if (Array.isArray(notifsData)) {
+        setNotifications(notifsData);
+      }
     } catch {
-      // Background silent auto-sync
+      // Silent error catch
     }
   }, [currentUser]);
 
@@ -226,17 +279,17 @@ const DashboardContent: React.FC = () => {
     loadAllData();
   }, [loadAllData]);
 
-  // Automatic live auto-fetch every 8 seconds & on tab switch / window focus
+  // Automatic live task-only sync every 8 seconds & on tab switch / window focus
   useEffect(() => {
     if (!currentUser) return;
 
     const interval = setInterval(() => {
-      loadAllDataSilent();
+      syncTasksOnlySilent();
     }, 8000);
 
     const handleRevalidate = () => {
       if (!document.hidden) {
-        loadAllDataSilent();
+        syncTasksOnlySilent();
       }
     };
     document.addEventListener('visibilitychange', handleRevalidate);
@@ -247,7 +300,7 @@ const DashboardContent: React.FC = () => {
       document.removeEventListener('visibilitychange', handleRevalidate);
       window.removeEventListener('focus', handleRevalidate);
     };
-  }, [currentUser, loadAllDataSilent]);
+  }, [currentUser, syncTasksOnlySilent]);
 
   const handleOpenEmailLogs = async () => {
     if (currentUser?.role !== 'SUPER_ADMIN') {
