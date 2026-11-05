@@ -56,6 +56,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [loadingStaffMap, setLoadingStaffMap] = useState<Record<number, boolean>>({});
 
   const [attachmentImage, setAttachmentImage] = useState<string>('');
+  const [attachedDocName, setAttachedDocName] = useState<string>('');
   const [departmentStaff, setDepartmentStaff] = useState<User[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -84,6 +85,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       setError(null);
       setSuccessNotice(null);
       setAttachmentImage('');
+      setAttachedDocName('');
 
       const targetType: 'TASK' | 'ISSUE' | 'GM_TASK' = initialIsIssue
         ? 'ISSUE'
@@ -957,12 +959,12 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               </div>
             </div>
 
-            {/* Optional Image Attachment */}
+            {/* Optional Image / Document Attachment */}
             <div style={{ marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <label style={{ fontSize: '12px', color: 'var(--notion-text-dim)', fontWeight: 600 }}>
-                    {isTamil ? '📸 புகைப்படம் இணைக்க' : '📸 Attachment Photo'}
+                    {isTamil ? '📎 ஆவணம் / புகைப்படம் இணைக்க' : '📎 Attachment (Photo, PDF, Excel, PPT)'}
                   </label>
                   <span className="notion-tag tag-gray" style={{ fontSize: '10px', padding: '1px 6px', fontWeight: 500 }}>
                     {isTamil ? 'விருப்பம் (கட்டாயமில்லை)' : 'Optional (Not Required)'}
@@ -971,23 +973,68 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 {attachmentImage && (
                   <button
                     type="button"
-                    onClick={() => setAttachmentImage('')}
+                    onClick={() => {
+                      setAttachmentImage('');
+                      setAttachedDocName('');
+                    }}
                     className="notion-btn notion-btn-ghost"
                     style={{ fontSize: '11px', color: '#ef4444', padding: '1px 6px' }}
                   >
-                    {isTamil ? 'படத்தை நீக்கு' : 'Remove Image'}
+                    {isTamil ? 'நீக்கு' : 'Remove Attachment'}
                   </button>
                 )}
               </div>
 
               {attachmentImage ? (
-                <div style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--notion-border)', maxHeight: '180px', background: 'rgba(0,0,0,0.1)' }}>
-                  <img
-                    src={attachmentImage}
-                    alt="Attachment preview"
-                    style={{ width: '100%', maxHeight: '180px', objectFit: 'contain' }}
-                  />
-                </div>
+                (() => {
+                  const lower = (attachmentImage + (attachedDocName || '')).toLowerCase();
+                  const isPdf = lower.includes('.pdf') || lower.includes('application/pdf');
+                  const isPpt = lower.includes('.ppt') || lower.includes('.pptx') || lower.includes('presentation') || lower.includes('powerpoint');
+                  const isExcel = lower.includes('.xls') || lower.includes('.xlsx') || lower.includes('.csv') || lower.includes('spreadsheet') || lower.includes('excel');
+
+                  if (isPdf) {
+                    return (
+                      <div style={{ padding: '12px 14px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '24px' }}>📄</span>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--notion-text)' }}>{attachedDocName || 'Attached Document.pdf'}</div>
+                          <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600 }}>PDF Document (Ready to attach)</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (isPpt) {
+                    return (
+                      <div style={{ padding: '12px 14px', background: 'rgba(234, 88, 12, 0.08)', border: '1px solid rgba(234, 88, 12, 0.25)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '24px' }}>📽️</span>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--notion-text)' }}>{attachedDocName || 'Attached Presentation.pptx'}</div>
+                          <span style={{ fontSize: '11px', color: '#ea580c', fontWeight: 600 }}>PowerPoint Presentation (Ready to attach)</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (isExcel) {
+                    return (
+                      <div style={{ padding: '12px 14px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '24px' }}>📊</span>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--notion-text)' }}>{attachedDocName || 'Attached Spreadsheet.xlsx'}</div>
+                          <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>Excel / Spreadsheet (Ready to attach)</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--notion-border)', maxHeight: '180px', background: 'rgba(0,0,0,0.1)' }}>
+                      <img
+                        src={attachmentImage}
+                        alt="Attachment preview"
+                        style={{ width: '100%', maxHeight: '180px', objectFit: 'contain' }}
+                      />
+                    </div>
+                  );
+                })()
               ) : (
                 <label
                   className="notion-btn notion-btn-bordered"
@@ -1005,44 +1052,67 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 >
                   <Camera size={14} />
                   <span style={{ fontSize: '12px' }}>
-                    {isTamil ? 'படத்தைத் தேர்வு செய்யவும் (விருப்பம் — தவிர்க்கலாம்)' : 'Choose or drag photo file (Optional — skip anytime)'}
+                    {isTamil ? 'கோப்பு அல்லது படத்தைத் தேர்வு செய்யவும் (விருப்பம்)' : 'Choose photo, PDF, Excel, or PPT file (Optional)'}
                   </span>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,application/pdf,.pdf,.xlsx,.xls,.csv,.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
+                        const lowerName = file.name.toLowerCase();
+                        const isDoc = file.type === 'application/pdf' ||
+                                      lowerName.endsWith('.pdf') ||
+                                      lowerName.endsWith('.xlsx') ||
+                                      lowerName.endsWith('.xls') ||
+                                      lowerName.endsWith('.csv') ||
+                                      lowerName.endsWith('.pptx') ||
+                                      lowerName.endsWith('.ppt') ||
+                                      file.type.includes('presentation') ||
+                                      file.type.includes('powerpoint') ||
+                                      file.type.includes('spreadsheet') ||
+                                      file.type.includes('excel');
+
                         const reader = new FileReader();
-                        reader.onload = (event) => {
-                          const img = new window.Image();
-                          img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            const maxDim = 1200;
-                            let width = img.width;
-                            let height = img.height;
-                            if (width > maxDim || height > maxDim) {
-                              if (width > height) {
-                                height = Math.round((height * maxDim) / width);
-                                width = maxDim;
-                              } else {
-                                width = Math.round((width * maxDim) / height);
-                                height = maxDim;
-                              }
-                            }
-                            canvas.width = width;
-                            canvas.height = height;
-                            const ctx = canvas.getContext('2d');
-                            if (ctx) {
-                              ctx.drawImage(img, 0, 0, width, height);
-                              setAttachmentImage(canvas.toDataURL('image/jpeg', 0.7));
-                            } else {
-                              setAttachmentImage(event.target?.result as string);
-                            }
+                        if (isDoc) {
+                          reader.onload = () => {
+                            setAttachedDocName(file.name);
+                            setAttachmentImage(reader.result as string);
                           };
-                          img.src = event.target?.result as string;
-                        };
-                        reader.readAsDataURL(file);
+                          reader.readAsDataURL(file);
+                        } else {
+                          reader.onload = (event) => {
+                            const img = new window.Image();
+                            img.onload = () => {
+                              const canvas = document.createElement('canvas');
+                              const maxDim = 1200;
+                              let width = img.width;
+                              let height = img.height;
+                              if (width > maxDim || height > maxDim) {
+                                if (width > height) {
+                                  height = Math.round((height * maxDim) / width);
+                                  width = maxDim;
+                                } else {
+                                  width = Math.round((width * maxDim) / height);
+                                  height = maxDim;
+                                }
+                              }
+                              canvas.width = width;
+                              canvas.height = height;
+                              const ctx = canvas.getContext('2d');
+                              if (ctx) {
+                                ctx.drawImage(img, 0, 0, width, height);
+                                setAttachedDocName(file.name);
+                                setAttachmentImage(canvas.toDataURL('image/jpeg', 0.7));
+                              } else {
+                                setAttachedDocName(file.name);
+                                setAttachmentImage(event.target?.result as string);
+                              }
+                            };
+                            img.src = event.target?.result as string;
+                          };
+                          reader.readAsDataURL(file);
+                        }
                       }
                     }}
                     style={{ display: 'none' }}
@@ -1050,7 +1120,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 </label>
               )}
               <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
-                ℹ️ Images are 100% optional. You can create tickets without attaching an image.
+                ℹ️ Attachments (Photos, PDF, Excel, PPT) are 100% optional. You can create tickets without attaching a file.
               </div>
             </div>
 
