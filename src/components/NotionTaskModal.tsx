@@ -227,6 +227,10 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                     lowerName.endsWith('.xlsx') ||
                     lowerName.endsWith('.xls') ||
                     lowerName.endsWith('.csv') ||
+                    lowerName.endsWith('.pptx') ||
+                    lowerName.endsWith('.ppt') ||
+                    file.type.includes('presentation') ||
+                    file.type.includes('powerpoint') ||
                     file.type.includes('spreadsheet') ||
                     file.type.includes('excel');
       if (file.type.startsWith('image/') || isDoc) {
@@ -235,7 +239,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
     }
 
     if (validFiles.length === 0) {
-      setError('Please select valid files: images (PNG, JPG), PDF documents, or Excel spreadsheets (.xlsx, .xls, .csv).');
+      setError('Please select valid files: images (PNG, JPG), PDF documents, Excel spreadsheets (.xlsx, .xls, .csv), or PowerPoint presentations (.ppt, .pptx).');
       e.target.value = '';
       return;
     }
@@ -253,6 +257,10 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                         lowerName.endsWith('.xlsx') ||
                         lowerName.endsWith('.xls') ||
                         lowerName.endsWith('.csv') ||
+                        lowerName.endsWith('.pptx') ||
+                        lowerName.endsWith('.ppt') ||
+                        file.type.includes('presentation') ||
+                        file.type.includes('powerpoint') ||
                         file.type.includes('spreadsheet') ||
                         file.type.includes('excel');
 
@@ -1810,6 +1818,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                   const lowerAttach = attUrl.toLowerCase();
                   const isPdfAttach = lowerAttach.includes('.pdf') || lowerAttach.includes('application/pdf');
                   const isExcelAttach = lowerAttach.includes('.xlsx') || lowerAttach.includes('.xls') || lowerAttach.includes('.csv') || lowerAttach.includes('spreadsheet') || lowerAttach.includes('excel');
+                  const isPptAttach = lowerAttach.includes('.pptx') || lowerAttach.includes('.ppt') || lowerAttach.includes('presentation') || lowerAttach.includes('powerpoint');
                   const rawFileName = attUrl.split('/').pop()?.split('?')[0] || `Attachment_${index + 1}`;
                   const cleanUrl = getCleanMediaUrl(attUrl);
 
@@ -1847,6 +1856,56 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                           >
                             <ExternalLink size={12} />
                             <span>Open PDF</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAttachment(attUrl)}
+                            disabled={uploadingImage}
+                            className="notion-btn notion-btn-bordered"
+                            style={{ fontSize: '11px', padding: '5px 8px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                            title="Remove this attachment"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (isPptAttach) {
+                    return (
+                      <div
+                        key={`att-ppt-${index}-${attUrl}`}
+                        style={{
+                          padding: '12px 14px',
+                          background: 'rgba(234, 88, 12, 0.08)',
+                          border: '1px solid rgba(234, 88, 12, 0.25)',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                          <span style={{ fontSize: '24px', flexShrink: 0 }}>📽️</span>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--notion-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '380px' }} title={rawFileName}>
+                              {rawFileName}
+                            </div>
+                            <span style={{ fontSize: '11px', color: '#ea580c', fontWeight: 600 }}>PowerPoint / Presentation</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                          <a
+                            href={cleanUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="notion-btn notion-btn-bordered"
+                            style={{ fontSize: '12px', padding: '5px 12px', background: '#ea580c', color: '#ffffff', textDecoration: 'none', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                          >
+                            <ExternalLink size={12} />
+                            <span>Open Presentation</span>
                           </a>
                           <button
                             type="button"
@@ -1993,17 +2052,17 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                     style={{ fontSize: '11.5px', padding: '6px 12px', cursor: 'pointer', gap: '6px', display: 'inline-flex', alignItems: 'center', fontWeight: 500 }}
                   >
                     <Upload size={13} />
-                    <span>+ Add More Files (Photos, PDF, Excel)</span>
+                    <span>+ Add More Files (Photos, PDF, Excel, PPT)</span>
                     <input
                       type="file"
                       multiple
-                      accept="image/*,application/pdf,.pdf,.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                      accept="image/*,application/pdf,.pdf,.xlsx,.xls,.csv,.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                       onChange={handleImageFileUpload}
                       style={{ display: 'none' }}
                     />
                   </label>
                   <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>
-                    Add one or more files • Appends to existing attachments
+                    Add one or more files • Appends to existing attachments (Photos, PDF, Excel, PPT)
                   </span>
                 </div>
               </div>
@@ -2011,8 +2070,8 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
               <div style={{ marginTop: '6px' }}>
                 <p style={{ fontSize: '12px', color: 'var(--notion-text-muted)', margin: '0 0 10px', lineHeight: 1.4 }}>
                   {task.status === 'IN_PROGRESS'
-                    ? 'Working on this deliverable? You can optionally attach photos, PDF documents, or Excel spreadsheets as proof.'
-                    : 'Attach optional photos, PDF documents, or Excel spreadsheets for this deliverable.'}
+                    ? 'Working on this deliverable? You can optionally attach photos, PDF documents, Excel spreadsheets, or PPT presentations as proof.'
+                    : 'Attach optional photos, PDF documents, Excel spreadsheets, or PPT presentations for this deliverable.'}
                 </p>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
@@ -2029,18 +2088,18 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                     }}
                   >
                     <Camera size={14} />
-                    <span>+ Add Attachment(s) (Photos, PDF, Excel)</span>
+                    <span>+ Add Attachment(s) (Photos, PDF, Excel, PPT)</span>
                     <input
                       type="file"
                       multiple
-                      accept="image/*,application/pdf,.pdf,.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                      accept="image/*,application/pdf,.pdf,.xlsx,.xls,.csv,.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                       onChange={handleImageFileUpload}
                       style={{ display: 'none' }}
                     />
                   </label>
 
                   <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>
-                    Select one or multiple files • Photos, PDF, or Excel sheets supported
+                    Select one or multiple files • Photos, PDF, Excel, or PPT supported
                   </span>
                 </div>
               </div>
