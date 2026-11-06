@@ -314,8 +314,13 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
       setEmailStatus(status);
       setEmailLogsList(logs);
       if (status) {
-        if (status.email_host_user) setSmtpUser(status.email_host_user);
-        else if (status.from_email && !status.from_email.includes('tasktracker.enterprise')) setSmtpUser(status.from_email);
+        if (status.email_host_user && status.email_host_user.includes('@')) {
+          setSmtpUser(status.email_host_user);
+        } else if (status.from_email && status.from_email.includes('@') && !status.from_email.includes('tasktracker.enterprise')) {
+          setSmtpUser(status.from_email);
+        } else {
+          setSmtpUser('nextupnotification@gmail.com');
+        }
         if (status.host) setSmtpHost(status.host);
         if (status.port) setSmtpPort(status.port);
         if (status.use_tls !== undefined) setSmtpUseTls(status.use_tls);
@@ -329,21 +334,32 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
 
   const handleSaveSmtpSettings = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedUser = smtpUser.trim();
+    if (!trimmedUser.includes('@') || !trimmedUser.includes('.')) {
+      setSmtpSaveResult({
+        status: 'error',
+        message: `"${trimmedUser}" is not a valid email address. Please enter a valid Gmail address (e.g. nextupnotification@gmail.com), not a username like "Hostel".`,
+      });
+      return;
+    }
+
     try {
       setSavingSmtp(true);
       setSmtpSaveResult(null);
       const res = await api.updateEmailSettings({
-        email_host_user: smtpUser.trim(),
+        email_host_user: trimmedUser,
         email_host_password: smtpPassword.trim() || undefined,
         email_host: smtpHost.trim(),
         email_port: Number(smtpPort) || 587,
         email_use_tls: smtpUseTls,
-        default_from_email: smtpUser.trim() || undefined,
+        default_from_email: trimmedUser,
       });
       setSmtpSaveResult({ status: 'success', message: res.message || 'SMTP settings updated successfully!' });
-      setEmailStatus(res.settings);
+      if (res.settings || res) {
+        setEmailStatus((res.settings || res) as any);
+      }
       setSmtpPassword('');
-      fetchEmailStatus();
+      await fetchEmailStatus();
     } catch (err: any) {
       setSmtpSaveResult({ status: 'error', message: err.message || 'Failed to update SMTP settings.' });
     } finally {
@@ -2347,18 +2363,28 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
               </div>
             </div>
 
-            <form onSubmit={handleSaveSmtpSettings}>
+            <form onSubmit={handleSaveSmtpSettings} autoComplete="off">
+              {/* Dummy hidden inputs to prevent browsers from autofilling login credentials */}
+              <input type="text" style={{ display: 'none' }} tabIndex={-1} autoComplete="username" readOnly />
+              <input type="password" style={{ display: 'none' }} tabIndex={-1} autoComplete="current-password" readOnly />
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text)', marginBottom: '6px' }}>
                     Sender Email Address (Host User) *
                   </label>
                   <input
-                    type="email"
+                    type="text"
+                    name="nextup_sender_email_account"
+                    id="nextup_sender_email_account"
+                    autoComplete="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-form-type="other"
                     required
                     value={smtpUser}
                     onChange={(e) => setSmtpUser(e.target.value)}
-                    placeholder="e.g. notifications@rathinam.in or your_email@gmail.com"
+                    placeholder="e.g. nextupnotification@gmail.com"
                     className="notion-input"
                     style={{ width: '100%', fontSize: '13px' }}
                   />
@@ -2374,9 +2400,15 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <input
                       type={showSmtpPassword ? 'text' : 'password'}
+                      name="nextup_google_app_pwd_secret"
+                      id="nextup_google_app_pwd_secret"
+                      autoComplete="new-password"
+                      spellCheck={false}
+                      data-lpignore="true"
+                      data-form-type="other"
                       value={smtpPassword}
                       onChange={(e) => setSmtpPassword(e.target.value)}
-                      placeholder={emailStatus?.has_smtp_password ? '••••••••••••••••' : 'Enter 16-character Google App Password'}
+                      placeholder={emailStatus?.has_smtp_password ? '•••••••••••••••• (Saved • Leave blank to keep)' : 'Enter 16-character Google App Password'}
                       className="notion-input"
                       style={{ width: '100%', paddingRight: '36px', fontSize: '13px' }}
                     />
