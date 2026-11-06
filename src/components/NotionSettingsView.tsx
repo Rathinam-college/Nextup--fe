@@ -113,6 +113,7 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
   const [testEmailResult, setTestEmailResult] = useState<any | null>(null);
   const [emailLogsList, setEmailLogsList] = useState<DispatchedEmail[]>([]);
   const [selectedEmailPreview, setSelectedEmailPreview] = useState<DispatchedEmail | null>(null);
+  const [previewRaw, setPreviewRaw] = useState(false);
 
   // SMTP Live Configuration Form State
   const [smtpUser, setSmtpUser] = useState('');
@@ -332,15 +333,12 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
     }
   };
 
-  const handleSaveSmtpSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedUser = smtpUser.trim();
-    if (!trimmedUser.includes('@') || !trimmedUser.includes('.')) {
-      setSmtpSaveResult({
-        status: 'error',
-        message: `"${trimmedUser}" is not a valid email address. Please enter a valid Gmail address (e.g. nextupnotification@gmail.com), not a username like "Hostel".`,
-      });
-      return;
+  const handleSaveSmtpSettings = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    let trimmedUser = (smtpUser || '').trim();
+    if (!trimmedUser || !trimmedUser.includes('@') || !trimmedUser.includes('.') || trimmedUser.toLowerCase() === 'hostel') {
+      trimmedUser = 'nextupnotification@gmail.com';
+      setSmtpUser('nextupnotification@gmail.com');
     }
 
     try {
@@ -349,7 +347,7 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
       const res = await api.updateEmailSettings({
         email_host_user: trimmedUser,
         email_host_password: smtpPassword.trim() || undefined,
-        email_host: smtpHost.trim(),
+        email_host: (smtpHost || 'smtp.gmail.com').trim(),
         email_port: Number(smtpPort) || 587,
         email_use_tls: smtpUseTls,
         default_from_email: trimmedUser,
@@ -2363,52 +2361,78 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
               </div>
             </div>
 
-            <form onSubmit={handleSaveSmtpSettings} autoComplete="off">
-              {/* Dummy hidden inputs to prevent browsers from autofilling login credentials */}
-              <input type="text" style={{ display: 'none' }} tabIndex={-1} autoComplete="username" readOnly />
-              <input type="password" style={{ display: 'none' }} tabIndex={-1} autoComplete="current-password" readOnly />
+            <div role="region" aria-label="SMTP Credentials Configuration">
+              {/* Autofill isolation barrier */}
+              <input type="text" style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }} tabIndex={-1} readOnly />
+              <input type="password" style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }} tabIndex={-1} readOnly />
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text)', marginBottom: '6px' }}>
-                    Sender Email Address (Host User) *
-                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--notion-text)' }}>
+                      Sender Email Address (Host User) *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setSmtpUser('nextupnotification@gmail.com')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--notion-blue)',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        padding: 0,
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      Reset Default
+                    </button>
+                  </div>
                   <input
                     type="text"
-                    name="nextup_sender_email_account"
-                    id="nextup_sender_email_account"
+                    name="nextup_system_sender_address"
+                    id="nextup_system_sender_address"
                     autoComplete="off"
                     spellCheck={false}
                     data-lpignore="true"
                     data-form-type="other"
                     required
-                    value={smtpUser}
-                    onChange={(e) => setSmtpUser(e.target.value)}
-                    placeholder="e.g. nextupnotification@gmail.com"
+                    readOnly
+                    onFocus={(e) => e.target.removeAttribute('readOnly')}
+                    value={smtpUser || 'nextupnotification@gmail.com'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.toLowerCase() === 'hostel') {
+                        setSmtpUser('nextupnotification@gmail.com');
+                      } else {
+                        setSmtpUser(val);
+                      }
+                    }}
+                    placeholder="nextupnotification@gmail.com"
                     className="notion-input"
                     style={{ width: '100%', fontSize: '13px' }}
                   />
                   <span style={{ fontSize: '11px', color: 'var(--notion-text-muted)', marginTop: '4px', display: 'block' }}>
-                    Email address used as sender for all task deliverables &amp; reminders.
+                    Fixed default: <strong>nextupnotification@gmail.com</strong> (Used for all task deliverables &amp; reminders).
                   </span>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text)', marginBottom: '6px' }}>
-                    Google App Password {emailStatus?.has_smtp_password ? '(Saved • Leave blank to keep)' : '*'}
+                    Google App Password {emailStatus?.has_smtp_password ? '(Saved & Active • Leave blank to keep)' : '*'}
                   </label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <input
                       type={showSmtpPassword ? 'text' : 'password'}
-                      name="nextup_google_app_pwd_secret"
-                      id="nextup_google_app_pwd_secret"
+                      name="nextup_system_app_pwd_secret"
+                      id="nextup_system_app_pwd_secret"
                       autoComplete="new-password"
                       spellCheck={false}
                       data-lpignore="true"
                       data-form-type="other"
                       value={smtpPassword}
                       onChange={(e) => setSmtpPassword(e.target.value)}
-                      placeholder={emailStatus?.has_smtp_password ? '•••••••••••••••• (Saved • Leave blank to keep)' : 'Enter 16-character Google App Password'}
+                      placeholder={emailStatus?.has_smtp_password ? '•••••••••••••••• (Saved & Active • Leave blank to keep)' : 'Enter 16-character Google App Password'}
                       className="notion-input"
                       style={{ width: '100%', paddingRight: '36px', fontSize: '13px' }}
                     />
@@ -2476,8 +2500,9 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                 <button
-                  type="submit"
-                  disabled={savingSmtp || (!smtpUser && !smtpPassword)}
+                  type="button"
+                  onClick={() => handleSaveSmtpSettings()}
+                  disabled={savingSmtp || (!smtpUser && !smtpPassword && !emailStatus?.has_smtp_password)}
                   className="notion-btn notion-btn-primary"
                   style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 700, borderRadius: '8px', gap: '6px' }}
                 >
@@ -2511,7 +2536,7 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
                   </div>
                 )}
               </div>
-            </form>
+            </div>
           </div>
 
           {/* Dispatched Emails Audit Table */}
@@ -3068,44 +3093,79 @@ export const NotionSettingsView: React.FC<NotionSettingsViewProps> = ({
       )}
 
       {/* Email Body Preview Modal */}
-      {selectedEmailPreview && (
-        <div className="notion-modal-overlay" onClick={() => setSelectedEmailPreview(null)}>
-          <div className="notion-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--notion-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600 }}>
-                <Mail size={16} style={{ color: '#2383e2' }} />
-                <span>{selectedEmailPreview.subject}</span>
+      {selectedEmailPreview && (() => {
+        const isHtml = selectedEmailPreview.body.includes('<html') || selectedEmailPreview.body.includes('<table') || selectedEmailPreview.body.includes('<!DOCTYPE');
+        return (
+          <div className="notion-modal-overlay" onClick={() => setSelectedEmailPreview(null)}>
+            <div className="notion-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '680px', width: '95%' }}>
+              <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--notion-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600 }}>
+                  <Mail size={16} style={{ color: '#2383e2' }} />
+                  <span>{selectedEmailPreview.subject}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {isHtml && (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewRaw(!previewRaw)}
+                      className="notion-btn notion-btn-bordered"
+                      style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '4px' }}
+                    >
+                      {previewRaw ? '🎨 Rendered Template' : '📄 Raw Content'}
+                    </button>
+                  )}
+                  <button onClick={() => setSelectedEmailPreview(null)} className="notion-btn" style={{ padding: '3px 6px' }}>
+                    <X size={15} />
+                  </button>
+                </div>
               </div>
-              <button onClick={() => setSelectedEmailPreview(null)} className="notion-btn" style={{ padding: '3px 6px' }}>
-                <X size={15} />
-              </button>
-            </div>
-            <div style={{ padding: '18px 22px' }}>
-              <div style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--notion-text-dim)' }}>
-                <strong>To:</strong> {selectedEmailPreview.recipient_name} &lt;{selectedEmailPreview.recipient_email}&gt;
-                <br />
-                <strong>Dispatched At:</strong> {new Date(selectedEmailPreview.created_at).toLocaleString()}
-              </div>
-              <div
-                style={{
-                  padding: '12px 14px',
-                  background: 'rgba(0, 0, 0, 0.25)',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  color: 'var(--notion-text)',
-                  lineHeight: 1.6,
-                  whiteSpace: 'pre-wrap',
-                  fontFamily: 'monospace',
-                  maxHeight: '340px',
-                  overflowY: 'auto',
-                }}
-              >
-                {selectedEmailPreview.body}
+              <div style={{ padding: '16px 20px' }}>
+                <div style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--notion-text-dim)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <strong>To:</strong> {selectedEmailPreview.recipient_name} &lt;{selectedEmailPreview.recipient_email}&gt;
+                  </div>
+                  <div>
+                    <strong>Dispatched:</strong> {new Date(selectedEmailPreview.created_at).toLocaleString()}
+                  </div>
+                </div>
+
+                {isHtml && !previewRaw ? (
+                  <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--notion-border-subtle)', background: '#F1F5F9' }}>
+                    <iframe
+                      srcDoc={selectedEmailPreview.body}
+                      title="Email Preview"
+                      style={{
+                        width: '100%',
+                        height: '520px',
+                        border: 'none',
+                        display: 'block',
+                      }}
+                      sandbox="allow-same-origin"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      padding: '12px 14px',
+                      background: 'rgba(0, 0, 0, 0.25)',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      color: 'var(--notion-text)',
+                      lineHeight: 1.6,
+                      whiteSpace: 'pre-wrap',
+                      fontFamily: 'monospace',
+                      maxHeight: '400px',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {selectedEmailPreview.body}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Password Reset Modal */}
       {resetPasswordUser && (
