@@ -355,6 +355,13 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
       const res = await api.createTask(payload);
 
+      // Automatically dispatch email notification to assigned staff at creation time
+      if (res && res.id && !isGmOwn) {
+        api.sendTaskAssignmentEmail(res.id).catch((err) => {
+          console.log('[CreateTaskModal] Auto-send email at creation notice:', err);
+        });
+      }
+
       // If additional staff members were co-assigned, post an audit record to the task's activity log
       if (validAssignments.length > 1) {
         try {
