@@ -2407,24 +2407,27 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '20px',
+            padding: '12px',
             zIndex: 1000,
+            overflowY: 'auto',
           }}
         >
           <div
-            className="notion-modal"
+            className="notion-modal-content"
             onClick={(e) => e.stopPropagation()}
             style={{
-              maxWidth: '560px',
+              maxWidth: '460px',
               width: '100%',
-              maxHeight: '88vh',
+              maxHeight: 'min(90vh, 540px)',
+              margin: 'auto',
               display: 'flex',
               flexDirection: 'column',
-              borderRadius: '16px',
+              borderRadius: '14px',
               overflow: 'hidden',
               background: 'var(--notion-card)',
               border: '1px solid var(--notion-border)',
-              boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.35)',
+              boxShadow: '0 20px 50px -10px rgba(15, 23, 42, 0.45)',
+              position: 'relative',
             }}
           >
             {/* Header */}
@@ -2434,51 +2437,51 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '12px 18px',
+                padding: '9px 14px',
                 borderBottom: '1px solid var(--notion-border)',
                 background: 'linear-gradient(180deg, var(--notion-item-bg) 0%, transparent 100%)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div
                   style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
+                    width: '26px',
+                    height: '26px',
+                    borderRadius: '7px',
                     background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#ffffff',
-                    boxShadow: '0 4px 12px -2px rgba(79, 70, 229, 0.4)',
+                    boxShadow: '0 3px 8px -2px rgba(79, 70, 229, 0.4)',
                   }}
                 >
-                  <CheckSquare size={17} />
+                  <CheckSquare size={14} />
                 </div>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '-0.01em' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '-0.01em' }}>
                       {editingTask ? 'Edit Personal Task' : 'New Personal Task'}
                     </h3>
                     <span
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '3px',
-                        fontSize: '9.5px',
+                        gap: '2px',
+                        fontSize: '9px',
                         fontWeight: 800,
-                        padding: '1px 6px',
-                        borderRadius: '10px',
+                        padding: '1px 5px',
+                        borderRadius: '8px',
                         background: 'rgba(79, 70, 229, 0.1)',
                         color: '#4f46e5',
                         border: '1px solid rgba(79, 70, 229, 0.2)',
                       }}
                     >
-                      <Lock size={9} />
+                      <Lock size={8} />
                       PRIVATE
                     </span>
                   </div>
-                  <p style={{ margin: '1px 0 0 0', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
+                  <p style={{ margin: '1px 0 0 0', fontSize: '10px', color: 'var(--notion-text-dim)' }}>
                     Only you can view and track this personal task
                   </p>
                 </div>
@@ -2488,46 +2491,58 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                 type="button"
                 onClick={() => setIsTaskModalOpen(false)}
                 aria-label="Close"
+                title="Close"
                 style={{
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '8px',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '7px',
                   background: 'var(--notion-item-bg)',
-                  border: '1px solid var(--notion-border-subtle)',
+                  border: '1px solid var(--notion-border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  color: 'var(--notion-text-muted)',
+                  color: 'var(--notion-text)',
                   transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+                  e.currentTarget.style.color = '#ef4444';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--notion-item-bg)';
+                  e.currentTarget.style.color = 'var(--notion-text)';
+                  e.currentTarget.style.borderColor = 'var(--notion-border)';
                 }}
               >
-                <X size={15} />
+                <X size={15} strokeWidth={2.5} />
               </button>
             </div>
 
             <form onSubmit={handleSaveTaskModal} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden', margin: 0 }}>
-              <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {/* Task Title */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                  <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '3px', letterSpacing: '0.02em' }}>
                     TASK TITLE <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
                     type="text"
                     required
                     autoFocus
-                    placeholder="What needs to be done? e.g. Prepare monthly executive briefing"
+                    placeholder="What needs to be done? e.g. Prepare executive briefing"
                     value={taskFormTitle}
                     onChange={(e) => setTaskFormTitle(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: '10px',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
                       border: '1px solid var(--notion-border)',
                       background: 'var(--notion-input-bg)',
                       color: 'var(--notion-text)',
-                      fontSize: '13.5px',
+                      fontSize: '12.5px',
                       fontFamily: 'inherit',
                       outline: 'none',
                       boxShadow: 'var(--notion-shadow-sm)',
@@ -2538,8 +2553,8 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
 
                 {/* Description */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
-                    DESCRIPTION &amp; CONTEXT <span style={{ fontSize: '10.5px', color: 'var(--notion-text-dim)', fontWeight: 500 }}>(Optional)</span>
+                  <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '3px', letterSpacing: '0.02em' }}>
+                    DESCRIPTION &amp; CONTEXT <span style={{ fontSize: '9.5px', color: 'var(--notion-text-dim)', fontWeight: 500 }}>(Optional)</span>
                   </label>
                   <textarea
                     rows={2}
@@ -2548,32 +2563,34 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                     onChange={(e) => setTaskFormDesc(e.target.value)}
                     style={{
                       width: '100%',
-                      minHeight: '60px',
-                      padding: '8px 12px',
-                      borderRadius: '10px',
+                      minHeight: '44px',
+                      maxHeight: '90px',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
                       border: '1px solid var(--notion-border)',
                       background: 'var(--notion-input-bg)',
                       color: 'var(--notion-text)',
-                      fontSize: '12.5px',
+                      fontSize: '12px',
                       fontFamily: 'inherit',
                       lineHeight: 1.45,
                       resize: 'vertical',
                       outline: 'none',
+                      boxShadow: 'var(--notion-shadow-sm)',
                     }}
                   />
                 </div>
 
-                {/* Priority Chips */}
+                {/* Priority Selector Chips */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                  <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '3px', letterSpacing: '0.02em' }}>
                     PRIORITY LEVEL
                   </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
                     {[
-                      { id: 'URGENT', label: 'Urgent', icon: Flame, color: '#ef4444', bg: 'rgba(239, 68, 68, 0.12)' },
-                      { id: 'HIGH', label: 'High', icon: Flag, color: '#f97316', bg: 'rgba(249, 115, 22, 0.12)' },
-                      { id: 'MEDIUM', label: 'Medium', icon: Clock, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.12)' },
-                      { id: 'LOW', label: 'Low', icon: Circle, color: '#64748b', bg: 'rgba(100, 116, 139, 0.12)' },
+                      { id: 'URGENT', label: 'Urgent', color: '#ef4444', icon: Flame },
+                      { id: 'HIGH', label: 'High', color: '#f97316', icon: Flag },
+                      { id: 'MEDIUM', label: 'Medium', color: '#3b82f6', icon: Clock },
+                      { id: 'LOW', label: 'Low', color: '#64748b', icon: Circle },
                     ].map((p) => {
                       const isSelected = taskFormPriority === p.id;
                       const Icon = p.icon;
@@ -2586,19 +2603,19 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '5px',
-                            padding: '6px 4px',
-                            borderRadius: '8px',
+                            gap: '3px',
+                            padding: '4px 2px',
+                            borderRadius: '6px',
                             border: isSelected ? `2px solid ${p.color}` : '1px solid var(--notion-border)',
-                            background: isSelected ? p.bg : 'var(--notion-input-bg)',
+                            background: isSelected ? `${p.color}15` : 'var(--notion-input-bg)',
                             color: isSelected ? p.color : 'var(--notion-text-muted)',
-                            fontSize: '11px',
+                            fontSize: '10px',
                             fontWeight: isSelected ? 800 : 600,
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
                         >
-                          <Icon size={12} style={{ color: p.color }} />
+                          <Icon size={10} style={{ color: p.color }} />
                           <span>{p.label}</span>
                         </button>
                       );
@@ -2608,10 +2625,10 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
 
                 {/* Status Chips */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                  <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '3px', letterSpacing: '0.02em' }}>
                     INITIAL STATUS
                   </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
                     {[
                       { id: 'TODO', label: 'To Do', icon: Circle, color: '#64748b' },
                       { id: 'IN_PROGRESS', label: 'In Progress', icon: Clock, color: '#3b82f6' },
@@ -2628,19 +2645,19 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '5px',
-                            padding: '6px 6px',
-                            borderRadius: '8px',
+                            gap: '3px',
+                            padding: '4px 4px',
+                            borderRadius: '6px',
                             border: isSelected ? `2px solid ${s.color}` : '1px solid var(--notion-border)',
                             background: isSelected ? 'rgba(79, 70, 229, 0.08)' : 'var(--notion-input-bg)',
                             color: isSelected ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                            fontSize: '11px',
+                            fontSize: '10px',
                             fontWeight: isSelected ? 800 : 600,
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
                         >
-                          <Icon size={12} style={{ color: s.color }} />
+                          <Icon size={10} style={{ color: s.color }} />
                           <span>{s.label}</span>
                         </button>
                       );
@@ -2650,16 +2667,15 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
 
                 {/* Target Due Date with Quick Presets */}
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '0.02em' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                    <label style={{ fontSize: '10.5px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '0.02em' }}>
                       TARGET DUE DATE
                     </label>
-                    {/* Quick Preset Buttons */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                       {[
                         { label: 'Today', action: 'today' },
                         { label: 'Tomorrow', action: 'tomorrow' },
-                        { label: '+1 Week', action: 'nextWeek' },
+                        { label: '+1 Wk', action: 'nextWeek' },
                         { label: 'Clear', action: 'clear' },
                       ].map((preset) => (
                         <button
@@ -2667,9 +2683,9 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                           type="button"
                           onClick={() => handleSetQuickDueDate(preset.action as any)}
                           style={{
-                            fontSize: '10px',
-                            padding: '2px 6px',
-                            borderRadius: '5px',
+                            fontSize: '9.5px',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
                             border: '1px solid var(--notion-border-subtle)',
                             background: 'var(--notion-item-bg)',
                             color: 'var(--notion-text-muted)',
@@ -2687,14 +2703,14 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      padding: '7px 12px',
-                      borderRadius: '10px',
+                      gap: '6px',
+                      padding: '5px 8px',
+                      borderRadius: '7px',
                       border: '1px solid var(--notion-border)',
                       background: 'var(--notion-input-bg)',
                     }}
                   >
-                    <Calendar size={14} style={{ color: '#4f46e5' }} />
+                    <Calendar size={12} style={{ color: '#4f46e5' }} />
                     <input
                       type="date"
                       value={taskFormDueDate}
@@ -2704,7 +2720,7 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                         border: 'none',
                         background: 'transparent',
                         color: 'var(--notion-text)',
-                        fontSize: '12.5px',
+                        fontSize: '11.5px',
                         outline: 'none',
                         cursor: 'pointer',
                       }}
@@ -2713,7 +2729,7 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                 </div>
               </div>
 
-              {/* Modal Footer - Always Visible */}
+              {/* Modal Footer - Always Visible and Pinned at Bottom */}
               <div
                 style={{
                   flexShrink: 0,
@@ -2721,21 +2737,21 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   borderTop: '1px solid var(--notion-border)',
-                  padding: '10px 18px',
+                  padding: '8px 14px',
                   background: 'var(--notion-item-bg)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
-                  <Lock size={11} />
-                  <span>Private task visible only to you</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--notion-text-dim)' }}>
+                  <Lock size={10} />
+                  <span>Private task</span>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
                   <button
                     type="button"
                     onClick={() => setIsTaskModalOpen(false)}
                     className="notion-btn notion-btn-bordered"
-                    style={{ padding: '7px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600 }}
+                    style={{ padding: '6px 13px', borderRadius: '7px', fontSize: '11.5px', fontWeight: 600 }}
                   >
                     Cancel
                   </button>
@@ -2744,21 +2760,21 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                     disabled={savingTask || !taskFormTitle.trim()}
                     className="notion-btn"
                     style={{
-                      padding: '7px 20px',
-                      borderRadius: '8px',
-                      fontSize: '12.5px',
+                      padding: '6px 16px',
+                      borderRadius: '7px',
+                      fontSize: '11.5px',
                       fontWeight: 700,
                       background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
                       color: '#ffffff',
                       border: 'none',
-                      boxShadow: '0 4px 12px rgba(79, 70, 229, 0.35)',
+                      boxShadow: '0 3px 10px rgba(79, 70, 229, 0.35)',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '5px',
+                      gap: '4px',
                       cursor: savingTask || !taskFormTitle.trim() ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    <Sparkles size={13} />
+                    <Sparkles size={12} />
                     <span>{savingTask ? 'Saving...' : editingTask ? 'Update Task' : 'Create Task'}</span>
                   </button>
                 </div>
@@ -2781,115 +2797,130 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '20px',
+            padding: '12px',
             zIndex: 1000,
+            overflowY: 'auto',
           }}
         >
           <div
-            className="notion-modal"
+            className="notion-modal-content"
             onClick={(e) => e.stopPropagation()}
             style={{
-              maxWidth: '560px',
+              maxWidth: '460px',
               width: '100%',
-              maxHeight: '88vh',
+              maxHeight: 'min(90vh, 540px)',
+              margin: 'auto',
               display: 'flex',
               flexDirection: 'column',
-              borderRadius: '16px',
+              borderRadius: '14px',
               overflow: 'hidden',
               background: 'var(--notion-card)',
               border: '1px solid var(--notion-border)',
-              boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.35)',
+              boxShadow: '0 20px 50px -10px rgba(15, 23, 42, 0.45)',
               position: 'relative',
             }}
           >
             {/* Dynamic Accent Color Strip across the top */}
             <div
               style={{
-                height: '4px',
+                height: '3px',
                 width: '100%',
                 background: noteFormColor || '#8b5cf6',
-                boxShadow: `0 0 12px ${noteFormColor || '#8b5cf6'}`,
+                boxShadow: `0 0 10px ${noteFormColor || '#8b5cf6'}`,
                 transition: 'background 0.3s ease',
                 flexShrink: 0,
               }}
             />
 
-            {/* Header - Fixed at Top */}
+            {/* Header - Fixed at Top - Never scrolls away */}
             <div
               style={{
                 flexShrink: 0,
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '12px 18px',
+                padding: '9px 14px',
                 borderBottom: '1px solid var(--notion-border)',
                 background: 'linear-gradient(180deg, var(--notion-item-bg) 0%, transparent 100%)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div
                   style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
+                    width: '26px',
+                    height: '26px',
+                    borderRadius: '7px',
                     background: `linear-gradient(135deg, ${noteFormColor} 0%, #a855f7 100%)`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#ffffff',
-                    boxShadow: `0 4px 12px -2px ${noteFormColor}50`,
+                    boxShadow: `0 3px 8px -2px ${noteFormColor}50`,
                   }}
                 >
-                  <StickyNote size={17} />
+                  <StickyNote size={14} />
                 </div>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '-0.01em' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '-0.01em' }}>
                       {editingNote ? 'Edit Personal Note' : 'New Personal Note'}
                     </h3>
                     <span
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '3px',
-                        fontSize: '9.5px',
+                        gap: '2px',
+                        fontSize: '9px',
                         fontWeight: 800,
-                        padding: '1px 6px',
-                        borderRadius: '10px',
+                        padding: '1px 5px',
+                        borderRadius: '8px',
                         background: 'rgba(139, 92, 246, 0.1)',
                         color: '#8b5cf6',
                         border: '1px solid rgba(139, 92, 246, 0.2)',
                       }}
                     >
-                      <Lock size={9} />
+                      <Lock size={8} />
                       PRIVATE NOTE
                     </span>
                   </div>
-                  <p style={{ margin: '1px 0 0 0', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
+                  <p style={{ margin: '1px 0 0 0', fontSize: '10px', color: 'var(--notion-text-dim)' }}>
                     Capture ideas, meeting minutes, thoughts, or checklists
                   </p>
                 </div>
               </div>
 
+              {/* High visibility Close Button */}
               <button
                 type="button"
                 onClick={() => setIsNoteModalOpen(false)}
                 aria-label="Close"
+                title="Close"
                 style={{
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '8px',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '7px',
                   background: 'var(--notion-item-bg)',
-                  border: '1px solid var(--notion-border-subtle)',
+                  border: '1px solid var(--notion-border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  color: 'var(--notion-text-muted)',
+                  color: 'var(--notion-text)',
                   transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+                  e.currentTarget.style.color = '#ef4444';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--notion-item-bg)';
+                  e.currentTarget.style.color = 'var(--notion-text)';
+                  e.currentTarget.style.borderColor = 'var(--notion-border)';
                 }}
               >
-                <X size={15} />
+                <X size={15} strokeWidth={2.5} />
               </button>
             </div>
 
@@ -2897,17 +2928,18 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
               {/* Scrollable Modal Content */}
               <div
                 style={{
-                  flex: 1,
+                  flex: '1 1 auto',
+                  minHeight: 0,
                   overflowY: 'auto',
-                  padding: '14px 18px',
+                  padding: '10px 14px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '12px',
+                  gap: '8px',
                 }}
               >
                 {/* Note Title */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                  <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '3px', letterSpacing: '0.02em' }}>
                     NOTE TITLE <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
@@ -2919,12 +2951,12 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                     onChange={(e) => setNoteFormTitle(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: '10px',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
                       border: '1px solid var(--notion-border)',
                       background: 'var(--notion-input-bg)',
                       color: 'var(--notion-text)',
-                      fontSize: '13.5px',
+                      fontSize: '12.5px',
                       fontWeight: 700,
                       fontFamily: 'inherit',
                       outline: 'none',
@@ -2936,10 +2968,10 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
 
                 {/* Category Selector Chips */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                  <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '3px', letterSpacing: '0.02em' }}>
                     CATEGORY
                   </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px' }}>
                     {[
                       { id: 'WORK', label: 'Work', icon: Briefcase, color: '#4f46e5' },
                       { id: 'MEETING', label: 'Meetings', icon: Users, color: '#0284c7' },
@@ -2958,19 +2990,19 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '4px',
-                            padding: '6px 3px',
-                            borderRadius: '8px',
+                            gap: '3px',
+                            padding: '4px 2px',
+                            borderRadius: '6px',
                             border: isSelected ? `2px solid ${cat.color}` : '1px solid var(--notion-border)',
                             background: isSelected ? `${cat.color}15` : 'var(--notion-input-bg)',
                             color: isSelected ? cat.color : 'var(--notion-text-muted)',
-                            fontSize: '11px',
+                            fontSize: '10px',
                             fontWeight: isSelected ? 800 : 600,
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
                         >
-                          <Icon size={12} style={{ color: cat.color }} />
+                          <Icon size={10} style={{ color: cat.color }} />
                           <span>{cat.label}</span>
                         </button>
                       );
@@ -2983,16 +3015,16 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr',
-                    gap: '12px',
+                    gap: '8px',
                     alignItems: 'center',
                   }}
                 >
                   {/* Accent Color Palette */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                    <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '3px', letterSpacing: '0.02em' }}>
                       ACCENT COLOR
                     </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px', paddingTop: '1px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                       {colorPresets.map((c) => {
                         const isSelected = noteFormColor === c.hex;
                         return (
@@ -3001,8 +3033,8 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                             onClick={() => setNoteFormColor(c.hex)}
                             title={c.label}
                             style={{
-                              width: '24px',
-                              height: '24px',
+                              width: '18px',
+                              height: '18px',
                               borderRadius: '50%',
                               background: c.hex,
                               cursor: 'pointer',
@@ -3011,11 +3043,11 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                               justifyContent: 'center',
                               border: isSelected ? '2px solid var(--notion-text)' : '2px solid transparent',
                               transform: isSelected ? 'scale(1.15)' : 'none',
-                              boxShadow: isSelected ? `0 0 8px ${c.hex}80` : 'none',
+                              boxShadow: isSelected ? `0 0 6px ${c.hex}80` : 'none',
                               transition: 'all 0.15s ease',
                             }}
                           >
-                            {isSelected && <Check size={11} color="#ffffff" strokeWidth={3} />}
+                            {isSelected && <Check size={9} color="#ffffff" strokeWidth={3} />}
                           </div>
                         );
                       })}
@@ -3024,7 +3056,7 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
 
                   {/* Pin to Top Card */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                    <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '3px', letterSpacing: '0.02em' }}>
                       PIN PRIORITY
                     </label>
                     <div
@@ -3033,25 +3065,25 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '6px 10px',
-                        borderRadius: '9px',
+                        padding: '4px 8px',
+                        borderRadius: '7px',
                         border: noteFormPinned ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--notion-border)',
                         background: noteFormPinned ? 'rgba(245, 158, 11, 0.08)' : 'var(--notion-input-bg)',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Pin size={13} style={{ color: noteFormPinned ? '#f59e0b' : 'var(--notion-text-dim)', transform: 'rotate(45deg)' }} />
-                        <span style={{ fontSize: '11.5px', fontWeight: 700, color: noteFormPinned ? '#f59e0b' : 'var(--notion-text)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Pin size={11} style={{ color: noteFormPinned ? '#f59e0b' : 'var(--notion-text-dim)', transform: 'rotate(45deg)' }} />
+                        <span style={{ fontSize: '10.5px', fontWeight: 700, color: noteFormPinned ? '#f59e0b' : 'var(--notion-text)' }}>
                           {noteFormPinned ? 'Pinned' : 'Not Pinned'}
                         </span>
                       </div>
                       <div
                         style={{
-                          width: '30px',
-                          height: '16px',
-                          borderRadius: '8px',
+                          width: '26px',
+                          height: '14px',
+                          borderRadius: '7px',
                           background: noteFormPinned ? '#f59e0b' : 'var(--notion-border)',
                           position: 'relative',
                           transition: 'all 0.2s ease',
@@ -3059,13 +3091,13 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                       >
                         <div
                           style={{
-                            width: '12px',
-                            height: '12px',
+                            width: '10px',
+                            height: '10px',
                             borderRadius: '50%',
                             background: '#ffffff',
                             position: 'absolute',
                             top: '2px',
-                            left: noteFormPinned ? '16px' : '2px',
+                            left: noteFormPinned ? '14px' : '2px',
                             transition: 'all 0.2s ease',
                           }}
                         />
@@ -3077,20 +3109,20 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                 {/* Calendar Date & Notification Reminder Section */}
                 <div
                   style={{
-                    padding: '10px 12px',
-                    borderRadius: '11px',
+                    padding: '6px 10px',
+                    borderRadius: '8px',
                     border: noteFormReminderEnabled ? '1.5px solid rgba(139, 92, 246, 0.4)' : '1px solid var(--notion-border)',
                     background: noteFormReminderEnabled ? 'rgba(139, 92, 246, 0.05)' : 'var(--notion-item-bg)',
                     transition: 'all 0.2s ease',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: noteFormReminderEnabled ? '8px' : 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: noteFormReminderEnabled ? '6px' : 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <div
                         style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '6px',
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '5px',
                           background: noteFormReminderEnabled ? '#8b5cf6' : 'var(--notion-input-bg)',
                           color: noteFormReminderEnabled ? '#ffffff' : 'var(--notion-text-dim)',
                           display: 'flex',
@@ -3098,14 +3130,11 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                           justifyContent: 'center',
                         }}
                       >
-                        <Bell size={12} />
+                        <Bell size={10} />
                       </div>
                       <div>
-                        <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--notion-text)' }}>
-                          Calendar Schedule &amp; Notification Reminder
-                        </div>
-                        <div style={{ fontSize: '10.5px', color: 'var(--notion-text-dim)' }}>
-                          Pin to calendar dates and send push &amp; desktop alerts
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--notion-text)' }}>
+                          Calendar Reminder &amp; Alerts
                         </div>
                       </div>
                     </div>
@@ -3123,9 +3152,9 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                         }
                       }}
                       style={{
-                        width: '32px',
-                        height: '18px',
-                        borderRadius: '9px',
+                        width: '28px',
+                        height: '16px',
+                        borderRadius: '8px',
                         background: noteFormReminderEnabled ? '#8b5cf6' : 'var(--notion-border)',
                         position: 'relative',
                         cursor: 'pointer',
@@ -3134,13 +3163,13 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                     >
                       <div
                         style={{
-                          width: '14px',
-                          height: '14px',
+                          width: '12px',
+                          height: '12px',
                           borderRadius: '50%',
                           background: '#ffffff',
                           position: 'absolute',
                           top: '2px',
-                          left: noteFormReminderEnabled ? '16px' : '2px',
+                          left: noteFormReminderEnabled ? '14px' : '2px',
                           transition: 'all 0.2s ease',
                         }}
                       />
@@ -3148,10 +3177,10 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                   </div>
 
                   {noteFormReminderEnabled && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--notion-border-subtle)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid var(--notion-border-subtle)' }}>
                       {/* Date Presets */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-dim)' }}>Quick:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '9.5px', fontWeight: 700, color: 'var(--notion-text-dim)' }}>Quick:</span>
                         {[
                           { label: 'Today', days: 0 },
                           { label: 'Tomorrow', days: 1 },
@@ -3168,9 +3197,9 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                               type="button"
                               onClick={() => setNoteFormReminderDate(dStr)}
                               style={{
-                                fontSize: '10.5px',
-                                padding: '2px 7px',
-                                borderRadius: '5px',
+                                fontSize: '9.5px',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
                                 border: isSelected ? '1px solid #8b5cf6' : '1px solid var(--notion-border-subtle)',
                                 background: isSelected ? 'rgba(139, 92, 246, 0.15)' : 'var(--notion-input-bg)',
                                 color: isSelected ? '#8b5cf6' : 'var(--notion-text-muted)',
@@ -3184,24 +3213,24 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                         })}
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '6px' }}>
                         {/* Reminder Date Picker */}
                         <div>
-                          <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-muted)', marginBottom: '3px' }}>
-                            SCHEDULE DATE
+                          <label style={{ display: 'block', fontSize: '9.5px', fontWeight: 700, color: 'var(--notion-text-muted)', marginBottom: '2px' }}>
+                            DATE
                           </label>
                           <div
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '6px',
-                              padding: '6px 10px',
-                              borderRadius: '8px',
+                              gap: '4px',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
                               border: '1px solid var(--notion-border)',
                               background: 'var(--notion-input-bg)',
                             }}
                           >
-                            <Calendar size={13} style={{ color: '#8b5cf6' }} />
+                            <Calendar size={11} style={{ color: '#8b5cf6' }} />
                             <input
                               type="date"
                               value={noteFormReminderDate}
@@ -3211,7 +3240,7 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                                 border: 'none',
                                 background: 'transparent',
                                 color: 'var(--notion-text)',
-                                fontSize: '12px',
+                                fontSize: '11px',
                                 outline: 'none',
                                 cursor: 'pointer',
                               }}
@@ -3221,21 +3250,21 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
 
                         {/* Reminder Time Picker */}
                         <div>
-                          <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-muted)', marginBottom: '3px' }}>
-                            ALERT TIME
+                          <label style={{ display: 'block', fontSize: '9.5px', fontWeight: 700, color: 'var(--notion-text-muted)', marginBottom: '2px' }}>
+                            TIME
                           </label>
                           <div
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '6px',
-                              padding: '6px 10px',
-                              borderRadius: '8px',
+                              gap: '4px',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
                               border: '1px solid var(--notion-border)',
                               background: 'var(--notion-input-bg)',
                             }}
                           >
-                            <Clock size={13} style={{ color: '#8b5cf6' }} />
+                            <Clock size={11} style={{ color: '#8b5cf6' }} />
                             <input
                               type="time"
                               value={noteFormReminderTime}
@@ -3245,7 +3274,7 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                                 border: 'none',
                                 background: 'transparent',
                                 color: 'var(--notion-text)',
-                                fontSize: '12px',
+                                fontSize: '11px',
                                 outline: 'none',
                                 cursor: 'pointer',
                               }}
@@ -3256,8 +3285,8 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
 
                       {/* Immediate Dispatch Button if editing */}
                       {editingNote && (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px' }}>
-                          <span style={{ fontSize: '10.5px', color: noteFormReminderSent ? '#10b981' : 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '2px' }}>
+                          <span style={{ fontSize: '9.5px', color: noteFormReminderSent ? '#10b981' : 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '3px' }}>
                             {noteFormReminderSent ? '✓ Reminder previously sent' : 'Reminder pending trigger'}
                           </span>
                           <button
@@ -3266,18 +3295,18 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                             disabled={sendingReminderId === editingNote.id}
                             className="notion-btn notion-btn-bordered"
                             style={{
-                              fontSize: '11px',
-                              padding: '3px 8px',
-                              borderRadius: '6px',
+                              fontSize: '10px',
+                              padding: '2px 6px',
+                              borderRadius: '5px',
                               color: '#8b5cf6',
                               borderColor: 'rgba(139, 92, 246, 0.4)',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '4px',
+                              gap: '3px',
                             }}
                           >
-                            <BellRing size={11} className={sendingReminderId === editingNote.id ? 'animate-spin' : ''} />
-                            <span>{sendingReminderId === editingNote.id ? 'Sending...' : 'Test / Send Alert Now'}</span>
+                            <BellRing size={10} className={sendingReminderId === editingNote.id ? 'animate-spin' : ''} />
+                            <span>{sendingReminderId === editingNote.id ? 'Sending...' : 'Test Alert Now'}</span>
                           </button>
                         </div>
                       )}
@@ -3287,19 +3316,19 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
 
                 {/* Note Content with Writing Toolbar */}
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '0.02em' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                    <label style={{ fontSize: '10.5px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '0.02em' }}>
                       NOTE CONTENT
                     </label>
                     {/* Quick Format Snippets */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <button
                         type="button"
                         onClick={() => handleInsertNoteSnippet('[ ] Checklist item')}
                         style={{
-                          fontSize: '10.5px',
-                          padding: '2px 6px',
-                          borderRadius: '5px',
+                          fontSize: '9.5px',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
                           border: '1px solid var(--notion-border-subtle)',
                           background: 'var(--notion-item-bg)',
                           color: 'var(--notion-text-muted)',
@@ -3313,9 +3342,9 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                         type="button"
                         onClick={() => handleInsertNoteSnippet('• Bullet point')}
                         style={{
-                          fontSize: '10.5px',
-                          padding: '2px 6px',
-                          borderRadius: '5px',
+                          fontSize: '9.5px',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
                           border: '1px solid var(--notion-border-subtle)',
                           background: 'var(--notion-item-bg)',
                           color: 'var(--notion-text-muted)',
@@ -3329,9 +3358,9 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                         type="button"
                         onClick={() => handleInsertNoteSnippet(`📅 ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}: `)}
                         style={{
-                          fontSize: '10.5px',
-                          padding: '2px 6px',
-                          borderRadius: '5px',
+                          fontSize: '9.5px',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
                           border: '1px solid var(--notion-border-subtle)',
                           background: 'var(--notion-item-bg)',
                           color: 'var(--notion-text-muted)',
@@ -3345,22 +3374,22 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                   </div>
 
                   <textarea
-                    rows={4}
+                    rows={3}
                     placeholder="Type your notes, meeting minutes, key decisions, or brainstorms here..."
                     value={noteFormContent}
                     onChange={(e) => setNoteFormContent(e.target.value)}
                     style={{
                       width: '100%',
-                      minHeight: '85px',
-                      maxHeight: '200px',
-                      padding: '9px 12px',
-                      borderRadius: '10px',
+                      minHeight: '60px',
+                      maxHeight: '120px',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
                       border: '1px solid var(--notion-border)',
                       background: 'var(--notion-input-bg)',
                       color: 'var(--notion-text)',
-                      fontSize: '13px',
+                      fontSize: '12px',
                       fontFamily: 'inherit',
-                      lineHeight: 1.5,
+                      lineHeight: 1.45,
                       resize: 'vertical',
                       outline: 'none',
                       boxShadow: 'var(--notion-shadow-sm)',
@@ -3369,7 +3398,7 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                 </div>
               </div>
 
-              {/* Fixed Modal Footer - Always Visible */}
+              {/* Fixed Modal Footer - Always Visible and Pinned at Bottom */}
               <div
                 style={{
                   flexShrink: 0,
@@ -3377,20 +3406,20 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   borderTop: '1px solid var(--notion-border)',
-                  padding: '10px 18px',
+                  padding: '8px 14px',
                   background: 'var(--notion-item-bg)',
                 }}
               >
-                <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>
+                <div style={{ fontSize: '10.5px', color: 'var(--notion-text-dim)' }}>
                   {noteFormContent ? `${noteFormContent.trim().split(/\s+/).filter(Boolean).length} words • ${noteFormContent.length} chars` : '0 words'}
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
                   <button
                     type="button"
                     onClick={() => setIsNoteModalOpen(false)}
                     className="notion-btn notion-btn-bordered"
-                    style={{ padding: '7px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600 }}
+                    style={{ padding: '6px 13px', borderRadius: '7px', fontSize: '11.5px', fontWeight: 600 }}
                   >
                     Cancel
                   </button>
@@ -3399,21 +3428,21 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                     disabled={savingNote || !noteFormTitle.trim()}
                     className="notion-btn"
                     style={{
-                      padding: '7px 20px',
-                      borderRadius: '8px',
-                      fontSize: '12.5px',
+                      padding: '6px 16px',
+                      borderRadius: '7px',
+                      fontSize: '11.5px',
                       fontWeight: 700,
                       background: `linear-gradient(135deg, ${noteFormColor} 0%, #7c3aed 100%)`,
                       color: '#ffffff',
                       border: 'none',
-                      boxShadow: `0 4px 12px ${noteFormColor}40`,
+                      boxShadow: `0 3px 10px ${noteFormColor}40`,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '5px',
+                      gap: '4px',
                       cursor: savingNote || !noteFormTitle.trim() ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    <Sparkles size={13} />
+                    <Sparkles size={12} />
                     <span>{savingNote ? 'Saving...' : editingNote ? 'Update Note' : 'Save Note'}</span>
                   </button>
                 </div>

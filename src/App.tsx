@@ -44,7 +44,7 @@ export type ViewType = 'board' | 'list' | 'calendar' | 'table' | 'approvals' | '
 export const getViewFromPath = (path: string): ViewType => {
   const parts = path.toLowerCase().split('/').filter(Boolean).filter(p => p !== 'nextup');
   const cleanPath = parts[0] || '';
-  if (cleanPath === 'routine' || cleanPath === 'routine-work' || cleanPath === 'routines' || cleanPath === 'checklist' || cleanPath === 'checklists') return 'routine_work';
+  if (cleanPath === 'routine' || cleanPath === 'routine-work' || cleanPath === 'routines' || cleanPath === 'checklist' || cleanPath === 'checklists' || cleanPath === 'routine-report' || cleanPath === 'routine-work-report') return 'routine_work';
   if (cleanPath === 'self' || cleanPath === 'self-desk' || cleanPath === 'personal' || cleanPath === 'notes' || cleanPath === 'my-tasks') return 'self_desk';
   if (cleanPath === 'today' || cleanPath === 'urgent' || cleanPath === 'gmtoday') return 'today';
   if (cleanPath === 'settings' || cleanPath === 'admin') return 'settings';

@@ -233,6 +233,7 @@ export interface RoutineWorkItem {
   description: string;
   frequency: RoutineFrequency;
   department: number | null;
+  department_id?: number | null;
   department_name?: string;
   department_code?: string;
   assigned_to: number | null;
@@ -256,11 +257,22 @@ export interface RoutineWorkItem {
 
 export interface RoutineWorkLog {
   id?: number | string;
-  item_id: number | string;
+  item_id?: number | string;
+  item?: number | string;
+  item_title?: string;
+  item_frequency?: RoutineFrequency;
+  department_id?: number | null;
+  department_name?: string;
+  department_code?: string;
+  target_count?: number | null;
+  unit?: string;
   completed_by: number;
+  completed_by_id?: number | null;
   completed_by_name?: string;
+  completed_by_email?: string;
   completed_at: string;
   period_identifier: string;
   count?: number | null;
   notes?: string;
+  status?: string;
 }

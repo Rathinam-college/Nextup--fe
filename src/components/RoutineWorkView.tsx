@@ -10,7 +10,9 @@ import {
   Search,
   Filter,
   Building,
+  Building2,
   User as UserIcon,
+  Users,
   Calendar,
   Clock,
   Printer,
@@ -29,6 +31,11 @@ import {
   Tag,
   SlidersHorizontal,
   RefreshCw,
+  BarChart3,
+  Download,
+  TrendingUp,
+  FileSpreadsheet,
+  Hash,
 } from 'lucide-react';
 
 interface RoutineWorkViewProps {
@@ -105,6 +112,30 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
   const [onlyMyTasks, setOnlyMyTasks] = useState<boolean>(false);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'COMPLETED'>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Page Tab Mode: 'CHECKLIST' vs 'REPORT'
+  const [pageTab, setPageTab] = useState<'CHECKLIST' | 'REPORT'>(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.pathname.includes('report') || window.location.search.includes('tab=report')) {
+        return 'REPORT';
+      }
+    }
+    return 'CHECKLIST';
+  });
+
+  // Report Specific Filter States
+  const [reportDateRange, setReportDateRange] = useState<'TODAY' | 'YESTERDAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'LAST_30_DAYS' | 'ALL_TIME' | 'CUSTOM'>('THIS_MONTH');
+  const [reportStartDate, setReportStartDate] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [reportEndDate, setReportEndDate] = useState<string>(() => {
+    return new Date().toISOString().split('T')[0];
+  });
+  const [reportDeptFilter, setReportDeptFilter] = useState<number | 'ALL'>('ALL');
+  const [reportFrequencyFilter, setReportFrequencyFilter] = useState<RoutineFrequency | 'ALL'>('ALL');
+  const [reportStaffFilter, setReportStaffFilter] = useState<number | 'ALL'>('ALL');
+  const [reportSearch, setReportSearch] = useState<string>('');
 
   // Items and logs loaded pure from DB
   const [items, setItems] = useState<RoutineWorkItem[]>([]);
@@ -711,6 +742,196 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
     }
   };
 
+  // Filtered logs for report view
+  const filteredReportLogs = useMemo(() => {
+    return logs.filter((log) => {
+      // Date filter
+      if (log.completed_at) {
+        const logDateStr = log.completed_at.slice(0, 10);
+        if (reportDateRange === 'TODAY') {
+          const today = new Date().toISOString().slice(0, 10);
+          if (logDateStr !== today) return false;
+        } else if (reportDateRange === 'YESTERDAY') {
+          const y = new Date();
+          y.setDate(y.getDate() - 1);
+          const yStr = y.toISOString().slice(0, 10);
+          if (logDateStr !== yStr) return false;
+        } else if (reportDateRange === 'THIS_WEEK') {
+          const now = new Date();
+          const day = now.getDay();
+          const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+          const monday = new Date(now.setDate(diff)).toISOString().slice(0, 10);
+          if (logDateStr < monday) return false;
+        } else if (reportDateRange === 'THIS_MONTH') {
+          const now = new Date();
+          const startMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+          if (logDateStr < startMonth) return false;
+        } else if (reportDateRange === 'LAST_30_DAYS') {
+          const d = new Date();
+          d.setDate(d.getDate() - 30);
+          const dStr = d.toISOString().slice(0, 10);
+          if (logDateStr < dStr) return false;
+        } else if (reportDateRange === 'CUSTOM') {
+          if (reportStartDate && logDateStr < reportStartDate) return false;
+          if (reportEndDate && logDateStr > reportEndDate) return false;
+        }
+      }
+
+      // Department filter
+      if (reportDeptFilter !== 'ALL') {
+        const item = items.find((i) => String(i.id) === String(log.item_id || (log as any).item));
+        const deptId = log.department_id || item?.department_id || item?.department;
+        if (deptId !== reportDeptFilter) return false;
+      }
+
+      // Frequency filter
+      if (reportFrequencyFilter !== 'ALL') {
+        const item = items.find((i) => String(i.id) === String(log.item_id || (log as any).item));
+        const freq = log.item_frequency || item?.frequency;
+        if (freq !== reportFrequencyFilter) return false;
+      }
+
+      // Staff filter
+      if (reportStaffFilter !== 'ALL') {
+        if (log.completed_by_id !== reportStaffFilter && log.completed_by !== reportStaffFilter) return false;
+      }
+
+      // Search query
+      if (reportSearch.trim()) {
+        const q = reportSearch.toLowerCase();
+        const item = items.find((i) => String(i.id) === String(log.item_id || (log as any).item));
+        const title = (log.item_title || item?.title || '').toLowerCase();
+        const staff = (log.completed_by_name || '').toLowerCase();
+        const notes = (log.notes || '').toLowerCase();
+        const dept = (log.department_name || item?.department_name || '').toLowerCase();
+        if (!title.includes(q) && !staff.includes(q) && !notes.includes(q) && !dept.includes(q)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [logs, items, reportDateRange, reportStartDate, reportEndDate, reportDeptFilter, reportFrequencyFilter, reportStaffFilter, reportSearch]);
+
+  // Report KPIs
+  const reportKpis = useMemo(() => {
+    const totalCompletions = filteredReportLogs.length;
+    let totalCount = 0;
+    const staffSet = new Set<string | number>();
+    const itemSet = new Set<string | number>();
+    const deptSet = new Set<string | number>();
+
+    filteredReportLogs.forEach((l) => {
+      if (typeof l.count === 'number') totalCount += l.count;
+      const sId = l.completed_by_id || l.completed_by;
+      if (sId) staffSet.add(sId);
+      const itId = l.item_id || (l as any).item;
+      if (itId) itemSet.add(itId);
+      const item = items.find((i) => String(i.id) === String(itId));
+      const deptId = l.department_id || item?.department_id || item?.department;
+      if (deptId) deptSet.add(deptId);
+    });
+
+    return {
+      totalCompletions,
+      totalCount,
+      uniqueStaff: staffSet.size,
+      uniqueChecklists: itemSet.size,
+      uniqueDepartments: deptSet.size,
+    };
+  }, [filteredReportLogs, items]);
+
+  // Department Report breakdown
+  const departmentReportStats = useMemo(() => {
+    const map = new Map<number, { name: string; completions: number; totalCount: number }>();
+    filteredReportLogs.forEach((l) => {
+      const item = items.find((i) => String(i.id) === String(l.item_id || (l as any).item));
+      const deptId = (l.department_id || item?.department_id || item?.department || 0) as number;
+      const deptName = l.department_name || item?.department_name || 'General Operations';
+      const existing = map.get(deptId) || { name: deptName, completions: 0, totalCount: 0 };
+      existing.completions += 1;
+      if (typeof l.count === 'number') existing.totalCount += l.count;
+      map.set(deptId, existing);
+    });
+    return Array.from(map.entries()).map(([id, val]) => ({ id, ...val }));
+  }, [filteredReportLogs, items]);
+
+  // CSV Export handler
+  const handleExportReportCsv = () => {
+    if (filteredReportLogs.length === 0) {
+      alert('No routine log entries found for the selected filters.');
+      return;
+    }
+    const headers = [
+      'Log ID',
+      'Date',
+      'Time',
+      'Period Identifier',
+      'Checklist Title',
+      'Frequency',
+      'Department',
+      'Staff Name',
+      'Staff Email',
+      'Count / Units',
+      'Target Count',
+      'Unit',
+      'Notes / Remarks',
+      'Status'
+    ];
+
+    const rows = filteredReportLogs.map((l) => {
+      const item = items.find((i) => String(i.id) === String(l.item_id || (l as any).item));
+      const d = l.completed_at ? new Date(l.completed_at) : null;
+      const dateStr = d ? d.toISOString().slice(0, 10) : '';
+      const timeStr = d ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      return [
+        l.id,
+        dateStr,
+        timeStr,
+        `"${(l.period_identifier || '').replace(/"/g, '""')}"`,
+        `"${(l.item_title || item?.title || '').replace(/"/g, '""')}"`,
+        l.item_frequency || item?.frequency || '',
+        `"${(l.department_name || item?.department_name || '').replace(/"/g, '""')}"`,
+        `"${(l.completed_by_name || '').replace(/"/g, '""')}"`,
+        `"${(l.completed_by_email || '').replace(/"/g, '""')}"`,
+        l.count !== null && l.count !== undefined ? l.count : '',
+        l.target_count || item?.target_count || '',
+        `"${(l.unit || item?.unit || '').replace(/"/g, '""')}"`,
+        `"${(l.notes || '').replace(/"/g, '""')}"`,
+        l.status || 'COMPLETED',
+      ].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `NextUp_Routine_Work_Report_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleOpenEditReportLog = (log: RoutineWorkLog) => {
+    const item = items.find((i) => String(i.id) === String(log.item_id || (log as any).item));
+    if (item) {
+      setCompletingItem(item);
+      setCompleteCount(log.count !== null && log.count !== undefined ? Number(log.count) : Number(item.target_count || 1));
+      setCompleteNotes(log.notes || '');
+      setIsUpdatingExisting(true);
+      setIsCompleteModalOpen(true);
+    }
+  };
+
+  const handleDeleteReportLog = async (log: RoutineWorkLog) => {
+    const item = items.find((i) => String(i.id) === String(log.item_id || (log as any).item));
+    if (!item) return;
+    if (!confirm(`Are you sure you want to remove the log record for "${log.item_title || item.title}"?`)) return;
+    await handleDirectUndoComplete(item);
+  };
+
   return (
     <div style={{ padding: '24px 32px', maxWidth: '1360px', margin: '0 auto' }}>
       {/* Page Header */}
@@ -754,6 +975,71 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
           </div>
         </div>
 
+        {/* Mode Switcher: Checklists vs Report */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            background: 'var(--notion-item-bg)',
+            padding: '3px',
+            borderRadius: '9px',
+            border: '1px solid var(--notion-border-subtle)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setPageTab('CHECKLIST')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
+              borderRadius: '7px',
+              border: 'none',
+              background: pageTab === 'CHECKLIST' ? 'var(--notion-card)' : 'transparent',
+              color: pageTab === 'CHECKLIST' ? 'var(--notion-blue)' : 'var(--notion-text-muted)',
+              fontWeight: pageTab === 'CHECKLIST' ? 800 : 600,
+              fontSize: '12.5px',
+              cursor: 'pointer',
+              boxShadow: pageTab === 'CHECKLIST' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <ListChecks size={14} />
+            <span>Checklists</span>
+            <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', background: pageTab === 'CHECKLIST' ? 'rgba(2, 132, 199, 0.12)' : 'var(--notion-border)', color: pageTab === 'CHECKLIST' ? 'var(--notion-blue)' : 'inherit', fontWeight: 800 }}>
+              {items.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPageTab('REPORT')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
+              borderRadius: '7px',
+              border: 'none',
+              background: pageTab === 'REPORT' ? 'var(--notion-card)' : 'transparent',
+              color: pageTab === 'REPORT' ? '#7c3aed' : 'var(--notion-text-muted)',
+              fontWeight: pageTab === 'REPORT' ? 800 : 600,
+              fontSize: '12.5px',
+              cursor: 'pointer',
+              boxShadow: pageTab === 'REPORT' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <BarChart3 size={14} />
+            <span>Report &amp; Daily Logs</span>
+            <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', background: pageTab === 'REPORT' ? 'rgba(124, 58, 237, 0.12)' : 'var(--notion-border)', color: pageTab === 'REPORT' ? '#7c3aed' : 'inherit', fontWeight: 800 }}>
+              {logs.length}
+            </span>
+          </button>
+        </div>
+
         {/* Action Header Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
@@ -768,6 +1054,29 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
             <span>{refreshing ? 'Refreshing...' : 'Refresh DB'}</span>
           </button>
 
+          {pageTab === 'REPORT' && (
+            <button
+              type="button"
+              onClick={handleExportReportCsv}
+              className="notion-btn notion-btn-primary"
+              style={{
+                fontSize: '12px',
+                padding: '7px 14px',
+                borderRadius: '8px',
+                gap: '6px',
+                background: 'linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 700,
+                boxShadow: '0 2px 8px rgba(124, 58, 237, 0.3)',
+              }}
+              title="Download filtered logs as CSV"
+            >
+              <Download size={13} />
+              <span>Export CSV</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={handlePrint}
@@ -779,25 +1088,29 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
             <span>Print Report</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => handleOpenCreateModal(activeFrequency === 'ALL' ? 'DAILY' : (activeFrequency as RoutineFrequency))}
-            className="notion-btn notion-btn-primary"
-            style={{
-              fontSize: '12.5px',
-              padding: '7px 16px',
-              borderRadius: '8px',
-              gap: '6px',
-              fontWeight: 700,
-              boxShadow: '0 2px 8px rgba(35, 131, 226, 0.3)',
-            }}
-          >
-            <Plus size={14} />
-            <span>Add Checklist Item</span>
-          </button>
+          {pageTab === 'CHECKLIST' && (
+            <button
+              type="button"
+              onClick={() => handleOpenCreateModal(activeFrequency === 'ALL' ? 'DAILY' : (activeFrequency as RoutineFrequency))}
+              className="notion-btn notion-btn-primary"
+              style={{
+                fontSize: '12.5px',
+                padding: '7px 16px',
+                borderRadius: '8px',
+                gap: '6px',
+                fontWeight: 700,
+                boxShadow: '0 2px 8px rgba(35, 131, 226, 0.3)',
+              }}
+            >
+              <Plus size={14} />
+              <span>Add Checklist Item</span>
+            </button>
+          )}
         </div>
       </div>
 
+      {pageTab === 'CHECKLIST' ? (
+        <>
       {/* ========================================================================= */}
       {/* DEPARTMENT SELECTOR BAR (Click any department to view only its checklists)*/}
       {/* ========================================================================= */}
@@ -1832,6 +2145,656 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
           })
         )}
       </div>
+      </>
+      ) : (
+        /* ========================================================================= */
+        /* REPORT & AUDIT LOG VIEW (Detailed operational metrics, count, export)     */
+        /* ========================================================================= */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Executive KPI Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+            {/* KPI 1: Total Completions */}
+            <div
+              style={{
+                background: 'var(--notion-card)',
+                borderRadius: '14px',
+                border: '1px solid var(--notion-border)',
+                padding: '16px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                boxShadow: 'var(--notion-shadow-sm)',
+              }}
+            >
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '10px',
+                  background: 'rgba(2, 132, 199, 0.12)',
+                  color: 'var(--notion-blue)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <CheckCircle2 size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--notion-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Total Completed Checks
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--notion-text)', lineHeight: 1.2 }}>
+                  {reportKpis.totalCompletions}
+                </div>
+                <div style={{ fontSize: '10.5px', color: 'var(--notion-text-dim)' }}>
+                  Across all active routines
+                </div>
+              </div>
+            </div>
+
+            {/* KPI 2: Total Daily Units Logged */}
+            <div
+              style={{
+                background: 'var(--notion-card)',
+                borderRadius: '14px',
+                border: '1px solid var(--notion-border)',
+                padding: '16px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                boxShadow: 'var(--notion-shadow-sm)',
+              }}
+            >
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '10px',
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  color: '#10b981',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <TrendingUp size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--notion-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Total Daily Units Logged
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 900, color: '#10b981', lineHeight: 1.2 }}>
+                  {reportKpis.totalCount.toLocaleString()}
+                </div>
+                <div style={{ fontSize: '10.5px', color: 'var(--notion-text-dim)' }}>
+                  Cumulative count recorded
+                </div>
+              </div>
+            </div>
+
+            {/* KPI 3: Participating Departments */}
+            <div
+              style={{
+                background: 'var(--notion-card)',
+                borderRadius: '14px',
+                border: '1px solid var(--notion-border)',
+                padding: '16px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                boxShadow: 'var(--notion-shadow-sm)',
+              }}
+            >
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '10px',
+                  background: 'rgba(124, 58, 237, 0.12)',
+                  color: '#7c3aed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Building2 size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--notion-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Active Departments
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--notion-text)', lineHeight: 1.2 }}>
+                  {reportKpis.uniqueDepartments}
+                </div>
+                <div style={{ fontSize: '10.5px', color: 'var(--notion-text-dim)' }}>
+                  Operating routine checklists
+                </div>
+              </div>
+            </div>
+
+            {/* KPI 4: Active Staff */}
+            <div
+              style={{
+                background: 'var(--notion-card)',
+                borderRadius: '14px',
+                border: '1px solid var(--notion-border)',
+                padding: '16px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                boxShadow: 'var(--notion-shadow-sm)',
+              }}
+            >
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '10px',
+                  background: 'rgba(245, 158, 11, 0.12)',
+                  color: '#f59e0b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Users size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--notion-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Active Staff Members
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--notion-text)', lineHeight: 1.2 }}>
+                  {reportKpis.uniqueStaff}
+                </div>
+                <div style={{ fontSize: '10.5px', color: 'var(--notion-text-dim)' }}>
+                  Logging checks &amp; counts
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Report Filters Card */}
+          <div
+            style={{
+              background: 'var(--notion-card)',
+              borderRadius: '14px',
+              border: '1px solid var(--notion-border)',
+              padding: '14px 18px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+          >
+            {/* Quick Date Presets Row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--notion-text-muted)', marginRight: '4px' }}>
+                  Date Range:
+                </span>
+                {[
+                  { id: 'TODAY', label: 'Today' },
+                  { id: 'YESTERDAY', label: 'Yesterday' },
+                  { id: 'THIS_WEEK', label: 'This Week' },
+                  { id: 'THIS_MONTH', label: 'This Month' },
+                  { id: 'LAST_30_DAYS', label: 'Last 30 Days' },
+                  { id: 'ALL_TIME', label: 'All Time' },
+                  { id: 'CUSTOM', label: 'Custom' },
+                ].map((preset) => {
+                  const isSelected = reportDateRange === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => setReportDateRange(preset.id as any)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: isSelected ? '1px solid #7c3aed' : '1px solid var(--notion-border)',
+                        background: isSelected ? 'rgba(124, 58, 237, 0.12)' : 'var(--notion-input-bg)',
+                        color: isSelected ? '#7c3aed' : 'var(--notion-text-muted)',
+                        fontSize: '11px',
+                        fontWeight: isSelected ? 800 : 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Start & End Date Inputs */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>From:</span>
+                  <input
+                    type="date"
+                    value={reportStartDate}
+                    onChange={(e) => {
+                      setReportStartDate(e.target.value);
+                      setReportDateRange('CUSTOM');
+                    }}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--notion-border)',
+                      background: 'var(--notion-input-bg)',
+                      color: 'var(--notion-text)',
+                      fontSize: '11.5px',
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>To:</span>
+                  <input
+                    type="date"
+                    value={reportEndDate}
+                    onChange={(e) => {
+                      setReportEndDate(e.target.value);
+                      setReportDateRange('CUSTOM');
+                    }}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--notion-border)',
+                      background: 'var(--notion-input-bg)',
+                      color: 'var(--notion-text)',
+                      fontSize: '11.5px',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Dropdowns & Search Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', paddingTop: '8px', borderTop: '1px solid var(--notion-border-subtle)' }}>
+              {/* Department Dropdown */}
+              <div>
+                <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-dim)', marginBottom: '3px' }}>
+                  DEPARTMENT
+                </label>
+                <select
+                  value={reportDeptFilter}
+                  onChange={(e) => setReportDeptFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px',
+                    borderRadius: '7px',
+                    border: '1px solid var(--notion-border)',
+                    background: 'var(--notion-input-bg)',
+                    color: 'var(--notion-text)',
+                    fontSize: '12px',
+                  }}
+                >
+                  <option value="ALL">All Departments ({departments.length})</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} ({d.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Frequency Dropdown */}
+              <div>
+                <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-dim)', marginBottom: '3px' }}>
+                  FREQUENCY
+                </label>
+                <select
+                  value={reportFrequencyFilter}
+                  onChange={(e) => setReportFrequencyFilter(e.target.value as any)}
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px',
+                    borderRadius: '7px',
+                    border: '1px solid var(--notion-border)',
+                    background: 'var(--notion-input-bg)',
+                    color: 'var(--notion-text)',
+                    fontSize: '12px',
+                  }}
+                >
+                  <option value="ALL">All Frequencies</option>
+                  <option value="DAILY">Daily</option>
+                  <option value="WEEKLY">Weekly</option>
+                  <option value="MONTHLY">Monthly</option>
+                  <option value="YEARLY">Yearly</option>
+                </select>
+              </div>
+
+              {/* Staff Dropdown */}
+              <div>
+                <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-dim)', marginBottom: '3px' }}>
+                  STAFF CONTRIBUTOR
+                </label>
+                <select
+                  value={reportStaffFilter}
+                  onChange={(e) => setReportStaffFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px',
+                    borderRadius: '7px',
+                    border: '1px solid var(--notion-border)',
+                    background: 'var(--notion-input-bg)',
+                    color: 'var(--notion-text)',
+                    fontSize: '12px',
+                  }}
+                >
+                  <option value="ALL">All Staff Members</option>
+                  {(staffList || []).map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.full_name || s.username}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Search Query */}
+              <div>
+                <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-dim)', marginBottom: '3px' }}>
+                  SEARCH ACTIVITY
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Search size={13} style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)', color: 'var(--notion-text-dim)' }} />
+                  <input
+                    type="text"
+                    placeholder="Search title, staff, notes..."
+                    value={reportSearch}
+                    onChange={(e) => setReportSearch(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px 6px 28px',
+                      borderRadius: '7px',
+                      border: '1px solid var(--notion-border)',
+                      background: 'var(--notion-input-bg)',
+                      color: 'var(--notion-text)',
+                      fontSize: '12px',
+                    }}
+                  />
+                  {reportSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setReportSearch('')}
+                      style={{
+                        position: 'absolute',
+                        right: '7px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--notion-text-muted)',
+                      }}
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Department Volume Matrix Summary */}
+          {departmentReportStats.length > 0 && (
+            <div>
+              <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Building2 size={14} style={{ color: '#7c3aed' }} />
+                <span>Department Volume &amp; Completion Breakdown</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
+                {departmentReportStats.map((dept) => (
+                  <div
+                    key={dept.id}
+                    style={{
+                      background: 'var(--notion-card)',
+                      borderRadius: '10px',
+                      border: '1px solid var(--notion-border)',
+                      padding: '10px 14px',
+                      boxShadow: 'var(--notion-shadow-sm)',
+                    }}
+                  >
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--notion-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {dept.name}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--notion-blue)' }}>
+                        {dept.completions} checks
+                      </span>
+                      {dept.totalCount > 0 && (
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#10b981' }}>
+                          • {dept.totalCount} units
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Detailed Audit & Activity Log Table */}
+          <div
+            style={{
+              background: 'var(--notion-card)',
+              borderRadius: '14px',
+              border: '1px solid var(--notion-border)',
+              overflow: 'hidden',
+              boxShadow: 'var(--notion-shadow-sm)',
+            }}
+          >
+            <div
+              style={{
+                padding: '12px 18px',
+                borderBottom: '1px solid var(--notion-border)',
+                background: 'linear-gradient(180deg, var(--notion-item-bg) 0%, transparent 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileSpreadsheet size={16} style={{ color: '#7c3aed' }} />
+                <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--notion-text)' }}>
+                  Detailed Operational Log Records
+                </h3>
+                <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'rgba(124, 58, 237, 0.1)', color: '#7c3aed' }}>
+                  {filteredReportLogs.length} Entries
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={handleExportReportCsv}
+                  className="notion-btn notion-btn-bordered"
+                  style={{ fontSize: '11.5px', padding: '4px 10px', borderRadius: '6px', gap: '5px' }}
+                  title="Download CSV spreadsheet"
+                >
+                  <Download size={12} />
+                  <span>Export CSV</span>
+                </button>
+              </div>
+            </div>
+
+            {filteredReportLogs.length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--notion-text-muted)' }}>
+                <CheckCircle2 size={36} style={{ margin: '0 auto 10px', opacity: 0.3 }} />
+                <div style={{ fontSize: '14px', fontWeight: 700 }}>No routine logs match your filter criteria</div>
+                <div style={{ fontSize: '12px', marginTop: '4px', color: 'var(--notion-text-dim)' }}>
+                  Try selecting a broader date range or clearing the search query.
+                </div>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12.5px' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--notion-item-bg)', borderBottom: '1px solid var(--notion-border)' }}>
+                      <th style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--notion-text-dim)', fontSize: '11px' }}>DATE / TIME</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--notion-text-dim)', fontSize: '11px' }}>CHECKLIST ITEM</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--notion-text-dim)', fontSize: '11px' }}>FREQUENCY</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--notion-text-dim)', fontSize: '11px' }}>DEPARTMENT</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--notion-text-dim)', fontSize: '11px' }}>COMPLETED BY</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--notion-text-dim)', fontSize: '11px', textAlign: 'right' }}>DAILY COUNT</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--notion-text-dim)', fontSize: '11px' }}>REMARKS / NOTES</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--notion-text-dim)', fontSize: '11px', textAlign: 'center' }}>ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredReportLogs.map((log) => {
+                      const item = items.find((i) => String(i.id) === String(log.item_id || (log as any).item));
+                      const d = log.completed_at ? new Date(log.completed_at) : null;
+                      const dateDisplay = d ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '-';
+                      const timeDisplay = d ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                      const freq = log.item_frequency || item?.frequency || 'DAILY';
+                      const deptName = log.department_name || item?.department_name || 'General';
+                      const unit = log.unit || item?.unit || '';
+                      const target = log.target_count || item?.target_count;
+
+                      return (
+                        <tr
+                          key={log.id}
+                          style={{
+                            borderBottom: '1px solid var(--notion-border-subtle)',
+                            transition: 'background 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--notion-item-bg)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          {/* Date / Time */}
+                          <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--notion-text)' }}>{dateDisplay}</div>
+                            <div style={{ fontSize: '10.5px', color: 'var(--notion-text-dim)' }}>{timeDisplay}</div>
+                          </td>
+
+                          {/* Item Title */}
+                          <td style={{ padding: '10px 14px' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--notion-text)' }}>
+                              {log.item_title || item?.title || `Routine #${log.item_id}`}
+                            </div>
+                            {item?.description && (
+                              <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)', maxWidth: '320px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {item.description}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Frequency */}
+                          <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                            {getFrequencyBadge(freq as RoutineFrequency)}
+                          </td>
+
+                          {/* Department */}
+                          <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                background: 'rgba(2, 132, 199, 0.1)',
+                                color: 'var(--notion-blue)',
+                              }}
+                            >
+                              {deptName}
+                            </span>
+                          </td>
+
+                          {/* Staff */}
+                          <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--notion-text)' }}>
+                              {log.completed_by_name || 'Staff Member'}
+                            </div>
+                            {log.completed_by_email && (
+                              <div style={{ fontSize: '10.5px', color: 'var(--notion-text-dim)' }}>
+                                {log.completed_by_email}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Daily Count */}
+                          <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            {log.count !== null && log.count !== undefined ? (
+                              <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                <span
+                                  style={{
+                                    fontSize: '12px',
+                                    fontWeight: 900,
+                                    padding: '2px 8px',
+                                    borderRadius: '6px',
+                                    background: 'rgba(16, 185, 129, 0.12)',
+                                    color: '#059669',
+                                  }}
+                                >
+                                  {log.count} {unit}
+                                </span>
+                                {target && (
+                                  <span style={{ fontSize: '10px', color: 'var(--notion-text-dim)', marginTop: '2px' }}>
+                                    Target: {target}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span style={{ color: 'var(--notion-text-dim)' }}>-</span>
+                            )}
+                          </td>
+
+                          {/* Notes */}
+                          <td style={{ padding: '10px 14px' }}>
+                            {log.notes ? (
+                              <span style={{ fontSize: '11.5px', color: 'var(--notion-text)' }}>
+                                {log.notes}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)', fontStyle: 'italic' }}>
+                                No remarks
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Actions */}
+                          <td style={{ padding: '10px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditReportLog(log)}
+                                className="notion-btn notion-btn-bordered"
+                                style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '5px', gap: '3px' }}
+                                title="Edit logged count or notes"
+                              >
+                                <Edit size={11} />
+                                <span>Edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteReportLog(log)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  color: '#ef4444',
+                                  padding: '4px',
+                                }}
+                                title="Undo / Delete log record"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Modal for Add / Edit Routine Checklist Item */}
       {isModalOpen && (
@@ -2183,24 +3146,27 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '20px',
+            padding: '12px',
             zIndex: 1000,
+            overflowY: 'auto',
           }}
         >
           <div
-            className="notion-modal"
+            className="notion-modal-content"
             onClick={(e) => e.stopPropagation()}
             style={{
-              maxWidth: '520px',
+              maxWidth: '460px',
               width: '100%',
-              maxHeight: '88vh',
+              maxHeight: 'min(90vh, 520px)',
+              margin: 'auto',
               display: 'flex',
               flexDirection: 'column',
-              borderRadius: '16px',
+              borderRadius: '14px',
               overflow: 'hidden',
               background: 'var(--notion-card)',
               border: '1px solid var(--notion-border)',
-              boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.35)',
+              boxShadow: '0 20px 50px -10px rgba(15, 23, 42, 0.45)',
+              position: 'relative',
             }}
           >
             {/* Header */}
@@ -2210,32 +3176,32 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '14px 20px',
+                padding: '10px 14px',
                 borderBottom: '1px solid var(--notion-border)',
                 background: 'linear-gradient(180deg, var(--notion-item-bg) 0%, transparent 100%)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div
                   style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '7px',
                     background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#ffffff',
-                    boxShadow: '0 4px 12px -2px rgba(16, 185, 129, 0.4)',
+                    boxShadow: '0 3px 8px -2px rgba(16, 185, 129, 0.4)',
                   }}
                 >
-                  <CheckCircle2 size={18} />
+                  <CheckCircle2 size={16} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--notion-text)' }}>
+                  <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: 'var(--notion-text)' }}>
                     {isUpdatingExisting ? 'Update Daily Routine Count' : 'Record Daily Routine Completion'}
                   </h3>
-                  <p style={{ margin: '1px 0 0 0', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
+                  <p style={{ margin: '1px 0 0 0', fontSize: '10.5px', color: 'var(--notion-text-dim)' }}>
                     Save today's completed count &amp; notes to database
                   </p>
                 </div>
@@ -2245,26 +3211,39 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
                 type="button"
                 onClick={() => !savingCompletion && setIsCompleteModalOpen(false)}
                 aria-label="Close"
+                title="Close"
                 style={{
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '8px',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '7px',
                   background: 'var(--notion-item-bg)',
-                  border: '1px solid var(--notion-border-subtle)',
+                  border: '1px solid var(--notion-border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  color: 'var(--notion-text-muted)',
+                  color: 'var(--notion-text)',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+                  e.currentTarget.style.color = '#ef4444';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--notion-item-bg)';
+                  e.currentTarget.style.color = 'var(--notion-text)';
+                  e.currentTarget.style.borderColor = 'var(--notion-border)';
                 }}
               >
-                <X size={15} />
+                <X size={15} strokeWidth={2.5} />
               </button>
             </div>
 
             {/* Form */}
             <form onSubmit={handleSaveCompletion} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden', margin: 0 }}>
-              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {/* Task Item Banner */}
                 <div
                   style={{
