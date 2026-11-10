@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Department, User, Role, Priority } from '../types';
 import { api } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
-import { X, Plus, AlertCircle, Calendar, Clock, Mail, ShieldAlert, CheckCircle2, UserCheck, Wrench, AlertTriangle, Camera, Star, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react';
+import { X, Plus, AlertCircle, Calendar, Clock, Mail, ShieldAlert, CheckCircle2, UserCheck, Wrench, AlertTriangle, Camera, Star, ShieldCheck, Trash2, UserPlus, Users, Video, Link as LinkIcon } from 'lucide-react';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -35,9 +35,16 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const isGM = currentUserRole === 'GENERAL_MANAGER' || currentUserRole === 'SUPER_ADMIN';
   const isRestrictedDept = isDeptManager || isStaff;
 
-  const [itemType, setItemType] = useState<'TASK' | 'ISSUE' | 'GM_TASK'>(
+  const [itemType, setItemType] = useState<'TASK' | 'ISSUE' | 'GM_TASK' | 'MEETING'>(
     initialIsIssue ? 'ISSUE' : (initialIsGmOwnTask ? 'GM_TASK' : 'TASK')
   );
+
+  // Meeting & Google Calendar Schedule state
+  const [meetingDate, setMeetingDate] = useState<string>('');
+  const [meetingTime, setMeetingTime] = useState<string>('10:00');
+  const [meetingDuration, setMeetingDuration] = useState<number>(45);
+  const [meetingLink, setMeetingLink] = useState<string>('');
+  const [meetingLocation, setMeetingLocation] = useState<string>('Google Meet');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -217,13 +224,29 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   };
 
   // Switch type mode
-  const handleTypeChange = (type: 'TASK' | 'ISSUE' | 'GM_TASK') => {
+  const handleTypeChange = (type: 'TASK' | 'ISSUE' | 'GM_TASK' | 'MEETING') => {
     setItemType(type);
-    if (type === 'ISSUE') {
+    if (type === 'MEETING') {
+      const today = new Date().toISOString().split('T')[0];
+      setMeetingDate(today);
+      if (!meetingLink) {
+        setMeetingLink('https://meet.google.com/new');
+      }
+      setFormData((prev) => ({
+        ...prev,
+        title: prev.title.replace(/^(\[ISSUE\]|\[MEETING\])\s*/i, '').trim()
+          ? `[MEETING] ${prev.title.replace(/^(\[ISSUE\]|\[MEETING\])\s*/i, '').trim()}`
+          : '[MEETING] ',
+        priority: 'HIGH',
+        due_date: prev.due_date || today,
+      }));
+    } else if (type === 'ISSUE') {
       if (!formData.title.startsWith('[ISSUE]')) {
         setFormData((prev) => ({
           ...prev,
-          title: prev.title.trim() ? `[ISSUE] ${prev.title}` : '[ISSUE] ',
+          title: prev.title.replace(/^(\[ISSUE\]|\[MEETING\])\s*/i, '').trim()
+            ? `[ISSUE] ${prev.title.replace(/^(\[ISSUE\]|\[MEETING\])\s*/i, '').trim()}`
+            : '[ISSUE] ',
           priority: prev.priority === 'LOW' || prev.priority === 'MEDIUM' ? 'HIGH' : prev.priority,
         }));
       }
@@ -231,7 +254,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       const gmDept = departments.find((d) => d.code === 'GM' || d.name.toLowerCase().includes('general management'));
       setFormData((prev) => ({
         ...prev,
-        title: prev.title.replace(/^\[ISSUE\]\s*/i, ''),
+        title: prev.title.replace(/^(\[ISSUE\]|\[MEETING\])\s*/i, '').trim(),
         department: gmDept ? String(gmDept.id) : prev.department,
         assigned_to: currentUserId ? String(currentUserId) : prev.assigned_to,
         priority: 'HIGH',
@@ -243,7 +266,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       // Standard Task
       setFormData((prev) => ({
         ...prev,
-        title: prev.title.replace(/^\[ISSUE\]\s*/i, ''),
+        title: prev.title.replace(/^(\[ISSUE\]|\[MEETING\])\s*/i, '').trim(),
       }));
     }
   };
@@ -296,6 +319,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       let finalTitle = formData.title.trim();
       if (itemType === 'ISSUE' && !finalTitle.toUpperCase().startsWith('[ISSUE]')) {
         finalTitle = `[ISSUE] ${finalTitle}`;
+      } else if (itemType === 'MEETING' && !finalTitle.toUpperCase().startsWith('[MEETING]')) {
+        finalTitle = `[MEETING] ${finalTitle}`;
       }
 
       const validAssignments = assignments.filter((a) => a.department);
@@ -338,6 +363,49 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           : `📋 Co-Assigned Departments & Staff Members:\n${teamText}\n<!-- CO_ASSIGN_TEAM:${metadataJson} -->`;
       }
 
+      // If Meeting mode, compile meeting schedule & Google Calendar metadata
+      if (itemType === 'MEETING') {
+        const targetDate = meetingDate || formData.due_date || new Date().toISOString().split('T')[0];
+        const startIso = `${targetDate}T${meetingTime || '10:00'}:00`;
+        const startDt = new Date(startIso);
+        const durationMins = Number(meetingDuration) || 45;
+        const endDt = new Date(startDt.getTime() + durationMins * 60 * 1000);
+        const endIso = !isNaN(endDt.getTime()) ? endDt.toISOString().slice(0, 19) : `${targetDate}T11:00:00`;
+
+        const meetingAttendees = validAssignments.map((target) => {
+          const deptObj = departments.find((d) => String(d.id) === String(target.department));
+          const staffObj = (staffCache[Number(target.department)] || departmentStaff).find(
+            (s) => String(s.id) === String(target.assigned_to)
+          );
+          return {
+            id: target.assigned_to,
+            name: staffObj ? staffObj.full_name || staffObj.username : 'Team Member',
+            email: staffObj?.email || '',
+            deptName: deptObj ? deptObj.name : '',
+          };
+        });
+
+        const meetingMeta = {
+          isMeeting: true,
+          meetingTime: startIso,
+          meetingEndTime: endIso,
+          meetingLink: meetingLink.trim() || 'https://meet.google.com/new',
+          location: meetingLocation.trim() || 'Google Meet',
+          attendees: meetingAttendees,
+        };
+
+        const meetingJson = JSON.stringify(meetingMeta);
+        const meetingSummaryHeader = `📅 Scheduled Meeting: ${targetDate} at ${meetingTime || '10:00 AM'} (${durationMins} mins)\n📍 Location / Mode: ${meetingLocation || 'Google Meet'}${meetingLink ? `\n📹 Google Meet: ${meetingLink}` : ''}`;
+
+        finalDescription = finalDescription
+          ? `${finalDescription}\n\n${meetingSummaryHeader}\n<!-- MEETING_DATA:${meetingJson} -->`
+          : `${meetingSummaryHeader}\n<!-- MEETING_DATA:${meetingJson} -->`;
+
+        if (!formData.due_date) {
+          formData.due_date = targetDate;
+        }
+      }
+
       // Create EXACTLY ONE unified task with the primary department and primary assignee
       const primaryTarget = validAssignments[0];
       const isGmOwn = itemType === 'GM_TASK' || (isGM && primaryTarget.assigned_to === String(currentUserId));
@@ -357,9 +425,15 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
       // Automatically dispatch email notification to assigned staff at creation time
       if (res && res.id && !isGmOwn) {
-        api.sendTaskAssignmentEmail(res.id).catch((err) => {
-          console.log('[CreateTaskModal] Auto-send email at creation notice:', err);
-        });
+        if (itemType === 'MEETING') {
+          api.sendMeetingReminder(res.id).catch((err) => {
+            console.log('[CreateTaskModal] Auto-send meeting invitation notice:', err);
+          });
+        } else {
+          api.sendTaskAssignmentEmail(res.id).catch((err) => {
+            console.log('[CreateTaskModal] Auto-send email at creation notice:', err);
+          });
+        }
       }
 
       // If additional staff members were co-assigned, post an audit record to the task's activity log
@@ -544,6 +618,26 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             <span>🚨</span>
             <span>{isTamil ? 'புகார் / பிரச்சனை' : 'Report Problem'}</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => handleTypeChange('MEETING')}
+            className="notion-btn"
+            style={{
+              fontSize: '12.5px',
+              padding: '6px 14px',
+              borderRadius: '8px',
+              background: itemType === 'MEETING' ? 'rgba(79, 70, 229, 0.15)' : 'transparent',
+              fontWeight: itemType === 'MEETING' ? 700 : 500,
+              color: itemType === 'MEETING' ? '#4f46e5' : 'var(--notion-text-dim)',
+              border: itemType === 'MEETING' ? '1px solid rgba(79, 70, 229, 0.4)' : '1px solid transparent',
+              boxShadow: itemType === 'MEETING' ? '0 1px 4px rgba(79, 70, 229, 0.1)' : 'none',
+              gap: '6px',
+            }}
+          >
+            <span>📅</span>
+            <span>{isTamil ? 'கூட்டம் / ஆலோசனை' : 'Meeting'}</span>
+          </button>
         </div>
 
         {/* Form Body */}
@@ -640,10 +734,57 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               </div>
             )}
 
+            {/* Meeting & Google Calendar Notice Banner */}
+            {itemType === 'MEETING' && (
+              <div
+                style={{
+                  marginBottom: '16px',
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(14, 165, 233, 0.08))',
+                  border: '1px solid rgba(79, 70, 229, 0.25)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  fontSize: '12.5px',
+                  color: 'var(--notion-text)',
+                }}
+              >
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: '#4f46e5',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    marginTop: '2px',
+                  }}
+                >
+                  <Calendar size={17} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, color: '#4f46e5', marginBottom: '2px' }}>
+                    Google Calendar & Meeting Integration
+                  </div>
+                  <div style={{ color: 'var(--notion-text-muted)', lineHeight: 1.5 }}>
+                    Schedule a coordinated meeting with staff. NextUp will generate a 1-click <strong>Add to Google Calendar</strong> link and automatically dispatch email invitations with your Google Meet URL and timeline reminders.
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Title Field */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '12px', color: 'var(--notion-text-dim)', marginBottom: '5px' }}>
-                {itemType === 'ISSUE' ? (isTamil ? 'பிரச்சனையின் தலைப்பு' : 'Problem Title') : t('taskTitle')}
+                {itemType === 'ISSUE'
+                  ? (isTamil ? 'பிரச்சனையின் தலைப்பு' : 'Problem Title')
+                  : itemType === 'MEETING'
+                  ? (isTamil ? 'கூட்டத்தின் தலைப்பு' : 'Meeting Title / Subject')
+                  : t('taskTitle')}
               </label>
               <input
                 type="text"
@@ -653,6 +794,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 placeholder={
                   itemType === 'ISSUE'
                     ? (isTamil ? '[புகார்] எ.கா: இணையம் / கணினி வேலை செய்யவில்லை...' : '[ISSUE] e.g. Network switch failure in CCTV rack')
+                    : itemType === 'MEETING'
+                    ? (isTamil ? '[MEETING] எ.கா: வாராந்திர துறை ஆய்வு கூட்டம்...' : '[MEETING] e.g. Weekly Coordination & Operations Sync')
                     : (isTamil ? 'என்ன வேலை செய்ய வேண்டும்? (எ.கா: மாதாந்திர அறிக்கை தயாரித்தல்)...' : 'What needs to be done? (e.g. Prepare monthly budget report)...')
                 }
                 value={formData.title}
@@ -660,6 +803,127 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 style={{ fontSize: '14px', fontWeight: 600 }}
               />
             </div>
+
+            {/* Meeting Specific Schedule Form */}
+            {itemType === 'MEETING' && (
+              <div
+                style={{
+                  marginBottom: '18px',
+                  padding: '16px',
+                  borderRadius: '10px',
+                  background: 'var(--notion-item-bg)',
+                  border: '1px solid var(--notion-border)',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '14px',
+                }}
+              >
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text-muted)', marginBottom: '5px' }}>
+                    📅 Meeting Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    className="notion-input"
+                    value={meetingDate}
+                    onChange={(e) => {
+                      setMeetingDate(e.target.value);
+                      setFormData({ ...formData, due_date: e.target.value });
+                    }}
+                    style={{ width: '100%', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text-muted)', marginBottom: '5px' }}>
+                    ⏰ Start Time
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    className="notion-input"
+                    value={meetingTime}
+                    onChange={(e) => setMeetingTime(e.target.value)}
+                    style={{ width: '100%', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text-muted)', marginBottom: '5px' }}>
+                    ⏱️ Duration
+                  </label>
+                  <select
+                    className="notion-input"
+                    value={meetingDuration}
+                    onChange={(e) => setMeetingDuration(Number(e.target.value))}
+                    style={{ width: '100%', fontSize: '13px' }}
+                  >
+                    <option value={15}>15 Minutes</option>
+                    <option value={30}>30 Minutes</option>
+                    <option value={45}>45 Minutes</option>
+                    <option value={60}>1 Hour (60m)</option>
+                    <option value={90}>1.5 Hours (90m)</option>
+                    <option value={120}>2 Hours</option>
+                  </select>
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600, color: 'var(--notion-text-muted)', marginBottom: '5px' }}>
+                    <span>📹 Google Meet / Video Link</span>
+                    <button
+                      type="button"
+                      onClick={() => setMeetingLink('https://meet.google.com/new')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#00832d',
+                        cursor: 'pointer',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        padding: 0,
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      + Set Google Meet
+                    </button>
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="url"
+                      className="notion-input"
+                      placeholder="https://meet.google.com/abc-defg-hij"
+                      value={meetingLink}
+                      onChange={(e) => setMeetingLink(e.target.value)}
+                      style={{ flex: 1, fontSize: '13px' }}
+                    />
+                    <a
+                      href="https://meet.google.com/new"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="notion-btn"
+                      style={{
+                        background: '#00832d',
+                        color: '#ffffff',
+                        border: 'none',
+                        fontSize: '12px',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        textDecoration: 'none',
+                        flexShrink: 0,
+                      }}
+                      title="Launch Google Meet in new tab to start a call"
+                    >
+                      <Video size={13} />
+                      <span>Open Meet</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Description Field */}
             <div style={{ marginBottom: '16px' }}>

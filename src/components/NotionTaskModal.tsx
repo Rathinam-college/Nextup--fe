@@ -4,9 +4,11 @@ import { api } from '../services/api';
 import { useLanguage, getTranslatedStatus, getTranslatedPriority } from '../context/LanguageContext';
 import { getCleanMediaUrl } from '../utils/mediaUrl';
 import { parseCoAssignedTeam } from '../utils/coAssignUtils';
+import { parseMeetingData, buildGoogleCalendarUrl, downloadIcsFile, formatMeetingDisplayTime } from '../utils/meetingUtils';
 import {
   X,
   Calendar,
+  Calendar as CalendarIcon,
   User as UserIcon,
   UserCheck,
   Building,
@@ -36,6 +38,9 @@ import {
   UserPlus,
   Paperclip,
   ExternalLink,
+  Video,
+  Download,
+  Bell,
 } from 'lucide-react';
 
 interface NotionTaskModalProps {
@@ -113,6 +118,15 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageSuccessNotice, setImageSuccessNotice] = useState<string | null>(null);
   const [previewModalImage, setPreviewModalImage] = useState<string | null>(null);
+
+  // Meeting & Google Calendar integration state
+  const [sendingMeetingReminder, setSendingMeetingReminder] = useState(false);
+  const [meetingReminderSuccess, setMeetingReminderSuccess] = useState<string | null>(null);
+
+  const meetingData = React.useMemo(() => parseMeetingData(task), [task]);
+  const cleanTaskDescription = React.useMemo(() => {
+    return (task?.description || '').replace(/<!--.*?-->/g, '').trim();
+  }, [task?.description]);
 
   // Compute all attachments (supports multi-attachment array and legacy single attachment string)
   const taskAttachments: string[] = React.useMemo(() => {
@@ -385,6 +399,21 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
       setError(`Failed to update assignee: ${err.message}`);
     } finally {
       setUpdatingAssignee(false);
+    }
+  };
+
+  const handleSendMeetingReminder = async () => {
+    if (!task) return;
+    setSendingMeetingReminder(true);
+    setMeetingReminderSuccess(null);
+    try {
+      const res = await api.sendMeetingReminder(task.id);
+      setMeetingReminderSuccess(res.message || 'Meeting reminder successfully sent to all attendees!');
+      setTimeout(() => setMeetingReminderSuccess(null), 6000);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to dispatch meeting reminder.');
+    } finally {
+      setSendingMeetingReminder(false);
     }
   };
 
@@ -1045,6 +1074,176 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                   </button>
                 )}
               </div>
+
+              {/* Meeting & Google Calendar Hub */}
+              {meetingData.isMeeting && (
+                <div
+                  style={{
+                    marginBottom: '20px',
+                    padding: '16px 18px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(14, 165, 233, 0.08))',
+                    border: '1px solid rgba(79, 70, 229, 0.25)',
+                    boxShadow: '0 4px 14px rgba(79, 70, 229, 0.06)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '10px',
+                          background: '#4f46e5',
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)',
+                        }}
+                      >
+                        <CalendarIcon size={20} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Scheduled Meeting & Google Calendar
+                        </div>
+                        <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--notion-text)', marginTop: '2px' }}>
+                          {formatMeetingDisplayTime(meetingData.meetingTime)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Meeting Action Buttons */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      {/* Google Meet Link Button */}
+                      {meetingData.meetingLink && (
+                        <a
+                          href={meetingData.meetingLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="notion-btn"
+                          style={{
+                            background: '#00832d',
+                            color: '#ffffff',
+                            border: 'none',
+                            fontWeight: 700,
+                            fontSize: '12px',
+                            padding: '7px 14px',
+                            borderRadius: '8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            textDecoration: 'none',
+                            boxShadow: '0 2px 8px rgba(0, 131, 45, 0.25)',
+                          }}
+                        >
+                          <Video size={14} />
+                          <span>Join Google Meet</span>
+                        </a>
+                      )}
+
+                      {/* 1-Click Add to Google Calendar */}
+                      <a
+                        href={buildGoogleCalendarUrl(task.title, meetingData, cleanTaskDescription)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="notion-btn"
+                        style={{
+                          background: 'var(--notion-card)',
+                          color: 'var(--notion-text)',
+                          border: '1px solid var(--notion-border)',
+                          fontWeight: 700,
+                          fontSize: '12px',
+                          padding: '7px 14px',
+                          borderRadius: '8px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          textDecoration: 'none',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                        }}
+                      >
+                        <span>🗓️</span>
+                        <span>Add to Google Calendar</span>
+                      </a>
+
+                      {/* Download .ics */}
+                      <button
+                        type="button"
+                        onClick={() => downloadIcsFile(task.title, meetingData, cleanTaskDescription)}
+                        className="notion-btn"
+                        style={{
+                          background: 'var(--notion-item-bg)',
+                          color: 'var(--notion-text-muted)',
+                          border: '1px solid var(--notion-border-subtle)',
+                          fontSize: '12px',
+                          padding: '7px 12px',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                        }}
+                        title="Download .ics for Apple / Outlook Calendar"
+                      >
+                        <Download size={13} />
+                        <span>.ics</span>
+                      </button>
+
+                      {/* Send Meeting Reminder to Attendees */}
+                      <button
+                        type="button"
+                        onClick={handleSendMeetingReminder}
+                        disabled={sendingMeetingReminder}
+                        className="notion-btn"
+                        style={{
+                          background: 'rgba(245, 158, 11, 0.12)',
+                          color: '#d97706',
+                          border: '1px solid rgba(245, 158, 11, 0.35)',
+                          fontWeight: 700,
+                          fontSize: '12px',
+                          padding: '7px 14px',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Bell size={13} />
+                        <span>{sendingMeetingReminder ? 'Sending...' : 'Remind Attendees'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Attendees List Preview */}
+                  {meetingData.attendees && meetingData.attendees.length > 0 && (
+                    <div style={{ borderTop: '1px solid rgba(79, 70, 229, 0.15)', paddingTop: '10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '12px' }}>
+                      <span style={{ color: 'var(--notion-text-muted)', fontWeight: 600 }}>Attendees:</span>
+                      {meetingData.attendees.map((att, aIdx) => (
+                        <span
+                          key={aIdx}
+                          style={{
+                            background: 'var(--notion-card)',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--notion-border-subtle)',
+                            color: 'var(--notion-text)',
+                            fontSize: '11.5px',
+                            fontWeight: 500,
+                          }}
+                        >
+                          👤 {att.name}{att.deptName ? ` (${att.deptName})` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Meeting Reminder Success Toast */}
+                  {meetingReminderSuccess && (
+                    <div style={{ marginTop: '10px', fontSize: '12px', color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <CheckCircle2 size={14} />
+                      <span>{meetingReminderSuccess}</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Properties Grid (Notion / Linear Property List) */}
               <div

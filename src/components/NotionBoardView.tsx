@@ -790,8 +790,24 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                     >
                       {/* Top Badges Row */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '7px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                           {getPriorityBadge(t.priority)}
+                          {(t.title.includes('[MEETING]') || t.description?.includes('MEETING_DATA')) && (
+                            <span
+                              className="notion-tag"
+                              style={{
+                                fontSize: '9.5px',
+                                background: 'rgba(79, 70, 229, 0.12)',
+                                color: '#4f46e5',
+                                border: '1px solid rgba(79, 70, 229, 0.3)',
+                                fontWeight: 700,
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                              }}
+                            >
+                              📅 Meeting
+                            </span>
+                          )}
                           {t.department_name && (
                             <span style={{ fontSize: '10px', color: 'var(--notion-text-dim)', fontWeight: 600 }}>
                               {t.department_name}

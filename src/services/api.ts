@@ -185,6 +185,10 @@ export const api = {
     request<{ status: string; message: string }>(`/api/tasks/${taskId}/send-assignment-email/`, {
       method: 'POST',
     }),
+  sendMeetingReminder: (taskId: number) =>
+    request<{ status: string; dispatched_count: number; message: string }>(`/api/tasks/${taskId}/send-meeting-reminder/`, {
+      method: 'POST',
+    }),
   pushMessageToAssignee: (
     taskId: number,
     data: { message: string; send_email?: boolean; send_in_app?: boolean; is_urgent?: boolean }
