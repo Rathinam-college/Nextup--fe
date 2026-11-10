@@ -32,6 +32,7 @@ import {
   Compass,
   Lock,
   Smartphone,
+  X,
 } from 'lucide-react';
 
 interface NotionSidebarProps {
@@ -48,6 +49,8 @@ interface NotionSidebarProps {
   onOpenActivityLogs: () => void;
   onExportCsv: () => void;
   onOpenCreateDepartment?: () => void;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export const NotionSidebar: React.FC<NotionSidebarProps> = ({
@@ -64,6 +67,8 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
   onOpenActivityLogs,
   onExportCsv,
   onOpenCreateDepartment,
+  isMobileOpen = false,
+  onCloseMobile,
 }) => {
   const { currentUser, personas, switchPersona, logout } = useAuth();
   const { t, isTamil } = useLanguage();
@@ -88,86 +93,110 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
   const isTasksViewActive = currentView === 'board' || currentView === 'list' || currentView === 'calendar' || currentView === 'table';
 
   return (
-    <aside
-      style={{
-        width: '270px',
-        background: 'var(--notion-sidebar)',
-        borderRight: '1px solid var(--notion-border)',
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        flexShrink: 0,
-        position: 'sticky',
-        top: 0,
-        boxShadow: 'var(--notion-shadow-sm)',
-        zIndex: 40,
-      }}
-    >
-      {/* Top Section: Brand + User Profile */}
-      <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        {/* Brand Header */}
+    <>
+      {isMobileOpen && (
         <div
-          style={{
-            padding: '16px 16px 12px',
-            borderBottom: '1px solid var(--notion-border-subtle)',
-          }}
-        >
+          className="notion-sidebar-backdrop"
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`notion-sidebar ${isMobileOpen ? 'mobile-open' : ''}`}
+        style={{
+          width: '270px',
+          background: 'var(--notion-sidebar)',
+          borderRight: '1px solid var(--notion-border)',
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+          position: 'sticky',
+          top: 0,
+          boxShadow: 'var(--notion-shadow-sm)',
+          zIndex: 40,
+        }}
+      >
+        {/* Top Section: Brand + User Profile */}
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          {/* Brand Header */}
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '6px 8px 12px',
+              padding: '16px 16px 12px',
               borderBottom: '1px solid var(--notion-border-subtle)',
             }}
           >
             <div
               style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '10px',
-                background: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                padding: '3px',
-                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)',
-                border: '1px solid rgba(15, 23, 42, 0.08)',
-                flexShrink: 0,
+                justifyContent: 'space-between',
+                padding: '6px 8px 12px',
+                borderBottom: '1px solid var(--notion-border-subtle)',
               }}
             >
-              <img
-                src={rathinamLogo}
-                alt="Rathinam"
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              />
-            </div>
-            <div style={{ overflow: 'hidden' }}>
-              <div
-                style={{
-                  fontSize: '14px',
-                  fontWeight: 800,
-                  letterSpacing: '-0.02em',
-                  color: 'var(--notion-text)',
-                  lineHeight: 1.2,
-                }}
-              >
-                Rathinam Group
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '3px',
+                    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)',
+                    border: '1px solid rgba(15, 23, 42, 0.08)',
+                    flexShrink: 0,
+                  }}
+                >
+                  <img
+                    src={rathinamLogo}
+                    alt="Rathinam"
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                </div>
+                <div style={{ overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 800,
+                      letterSpacing: '-0.02em',
+                      color: 'var(--notion-text)',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    Rathinam Group
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: 'var(--notion-blue)',
+                      letterSpacing: '0.02em',
+                      marginTop: '1px',
+                    }}
+                  >
+                    TaskTracker Enterprise
+                  </div>
+                </div>
               </div>
-              <div
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: 'var(--notion-blue)',
-                  letterSpacing: '0.02em',
-                  marginTop: '1px',
-                }}
-              >
-                TaskTracker Enterprise
-              </div>
+
+              {/* Close Button on Mobile Drawer */}
+              {onCloseMobile && (
+                <button
+                  type="button"
+                  onClick={onCloseMobile}
+                  className="mobile-sidebar-close-btn"
+                  title="Close Navigation"
+                  aria-label="Close Navigation"
+                >
+                  <X size={18} />
+                </button>
+              )}
             </div>
-          </div>
 
           {/* User Profile Bar */}
           <div
@@ -843,5 +872,6 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
         </button>
       </div>
     </aside>
+    </>
   );
 };

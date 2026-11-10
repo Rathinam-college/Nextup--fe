@@ -107,6 +107,9 @@ const DashboardContent: React.FC = () => {
     }
   };
 
+  // Mobile drawer state
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
   // Notion View & Filter State - bidirectional browser URL synchronization
   const [currentView, setCurrentView] = useState<ViewType>(() => {
     if (typeof window !== 'undefined') {
@@ -117,6 +120,7 @@ const DashboardContent: React.FC = () => {
 
   const handleSelectView = useCallback((view: ViewType) => {
     setCurrentView(view);
+    setIsMobileNavOpen(false);
     const targetPath = getPathFromView(view);
     if (window.location.pathname !== targetPath) {
       window.history.pushState({ view }, '', targetPath);
@@ -567,7 +571,7 @@ const DashboardContent: React.FC = () => {
   const canCreateDepartment = isGM;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--notion-bg)' }}>
+    <div className="notion-app-layout" style={{ display: 'flex', minHeight: '100vh', background: 'var(--notion-bg)' }}>
       {/* Notion Sidebar Navigation */}
       <NotionSidebar
         currentView={currentView}
@@ -575,6 +579,7 @@ const DashboardContent: React.FC = () => {
         selectedDeptId={selectedDeptId}
         onSelectDept={(deptId) => {
           setSelectedDeptId(deptId);
+          setIsMobileNavOpen(false);
           if (currentView === 'approvals' || currentView === 'departments') {
             handleSelectView('board');
           }
@@ -591,10 +596,12 @@ const DashboardContent: React.FC = () => {
           setEditingDepartment(null);
           setIsCreateDeptOpen(true);
         }}
+        isMobileOpen={isMobileNavOpen}
+        onCloseMobile={() => setIsMobileNavOpen(false)}
       />
 
       {/* Main Notion Content Workspace */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div className="notion-main-workspace" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <NotionTopBar
           currentView={currentView}
           onSelectView={handleSelectView}
@@ -616,6 +623,7 @@ const DashboardContent: React.FC = () => {
           onOpenCreateGmOwnTask={canCreateTask && isGM ? () => handleOpenCreateTask(undefined, false, true) : undefined}
           unreadNotifsCount={unreadNotifsCount}
           onOpenNotifications={() => setIsNotificationsOpen(true)}
+          onToggleMobileNav={() => setIsMobileNavOpen(!isMobileNavOpen)}
         />
 
         {/* Hourly Notification Prompt */}

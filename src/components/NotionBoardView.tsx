@@ -314,7 +314,7 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
   const isGM = currentUserRole === 'GENERAL_MANAGER' || currentUserRole === 'SUPER_ADMIN';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 80px)', background: 'var(--notion-bg)', padding: '16px 24px 28px' }}>
+    <div className="notion-board-container" style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 80px)', background: 'var(--notion-bg)', padding: '16px 24px 28px' }}>
       {/* ========================================================================= */}
       {/* TOP COMPACT FILTER BAR                                                    */}
       {/* ========================================================================= */}
@@ -677,6 +677,7 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
       {/* 5 CLEAN KANBAN COLUMNS                                                    */}
       {/* ========================================================================= */}
       <div
+        className="notion-kanban-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(5, 1fr)',
@@ -691,6 +692,7 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
           return (
             <div
               key={col.id}
+              className="notion-kanban-column"
               style={{
                 background: 'var(--notion-item-bg)',
                 borderRadius: '14px',

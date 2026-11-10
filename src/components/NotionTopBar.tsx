@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutGrid, List, Calendar, Table, Plus, Search, Filter, Sparkles, Command, Star, Bell } from 'lucide-react';
+import { LayoutGrid, List, Calendar, Table, Plus, Search, Filter, Sparkles, Command, Star, Bell, Menu } from 'lucide-react';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { LanguageToggle } from './LanguageToggle';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +22,7 @@ interface NotionTopBarProps {
   onOpenCreateGmOwnTask?: () => void;
   unreadNotifsCount?: number;
   onOpenNotifications?: () => void;
+  onToggleMobileNav?: () => void;
 }
 
 export const NotionTopBar: React.FC<NotionTopBarProps> = ({
@@ -39,6 +40,7 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
   onOpenCreateGmOwnTask,
   unreadNotifsCount = 0,
   onOpenNotifications,
+  onToggleMobileNav,
 }) => {
   const { currentUser } = useAuth();
   const { t, isTamil } = useLanguage();
@@ -73,6 +75,7 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
 
   return (
     <header
+      className="notion-topbar"
       style={{
         borderBottom: '1px solid var(--notion-border)',
         padding: '12px 28px',
@@ -86,10 +89,22 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
         backdropFilter: 'blur(10px)',
       }}
     >
-      {/* Left: Breadcrumbs & View Toggle Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {/* Left: Hamburger Menu (Mobile), Breadcrumbs & View Toggle Controls */}
+      <div className="notion-topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+        {onToggleMobileNav && (
+          <button
+            type="button"
+            onClick={onToggleMobileNav}
+            className="notion-mobile-menu-btn"
+            title="Open Navigation Menu"
+            aria-label="Open Navigation Menu"
+          >
+            <Menu size={19} />
+          </button>
+        )}
+
+        <div className="notion-topbar-breadcrumbs" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexShrink: 0 }}>
             <div
               style={{
                 width: '24px',
@@ -110,7 +125,7 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               />
             </div>
-            <span style={{ fontWeight: 800, color: 'var(--notion-text)', fontSize: '13.5px', letterSpacing: '-0.01em' }}>
+            <span className="notion-topbar-brand-title" style={{ fontWeight: 800, color: 'var(--notion-text)', fontSize: '13px', letterSpacing: '-0.01em' }}>
               Rathinam
             </span>
           </div>
@@ -118,11 +133,12 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
           <span style={{ color: 'var(--notion-text-dim)', fontSize: '12px' }}>/</span>
 
           <span
+            className="notion-topbar-view-title"
             style={{
               color: 'var(--notion-text)',
               fontWeight: 700,
               fontSize: '13.5px',
-              maxWidth: '380px',
+              maxWidth: '320px',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -135,6 +151,7 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
         {/* Linear/Segmented View Switcher Tabs (Board, List, Table, Calendar) */}
         {(currentView === 'board' || currentView === 'list' || currentView === 'calendar' || currentView === 'table') && (
           <div
+            className="notion-topbar-tabs"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -143,7 +160,7 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
               padding: '3px',
               borderRadius: '10px',
               border: '1px solid var(--notion-border-subtle)',
-              marginLeft: '6px',
+              marginLeft: '4px',
             }}
           >
             {/* Board View */}
@@ -251,9 +268,10 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
       </div>
 
       {/* Right Action Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div className="notion-topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {/* Search Bar with shortcut hint */}
         <div
+          className="notion-topbar-search"
           style={{
             display: 'flex',
             alignItems: 'center',
