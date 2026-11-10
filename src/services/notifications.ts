@@ -124,60 +124,23 @@ export function showBrowserNotification(
   }
 }
 
-const ONE_HOUR_MS = 60 * 60 * 1000; // 3,600,000 ms (1 Hour)
+// Institutional Work Policy:
+// 1-hour recurring reminders are disabled per policy.
+// Scheduled daily work emails and notifications are managed on the server
+// and fire strictly at 9:00 AM (Start) and 6:00 PM (Wrap-Up) IST (Monday – Saturday).
 let hourlyTimerId: ReturnType<typeof setTimeout> | number | null = null;
 
 /**
- * Schedules continuous 1-hour recurring work update reminders
- * Fires every 1 hour continuously as long as the application is active
+ * Institutional Schedule:
+ * Automated shift briefings (9:00 AM Start & 6:00 PM Wrap-Up) are server-managed.
+ * Continuous 1-hour recurring timers have been disabled.
  */
 export function startHourlyReminderSchedule(): void {
   if (hourlyTimerId) {
     clearTimeout(hourlyTimerId as any);
     hourlyTimerId = null;
   }
-
-  const lastTimestampStr = typeof window !== 'undefined' ? localStorage.getItem('nextup_last_hourly_reminder') : null;
-  let initialDelay = ONE_HOUR_MS;
-  if (lastTimestampStr) {
-    const lastTime = parseInt(lastTimestampStr, 10);
-    if (!isNaN(lastTime)) {
-      const elapsed = Date.now() - lastTime;
-      if (elapsed > 0 && elapsed < ONE_HOUR_MS) {
-        initialDelay = ONE_HOUR_MS - elapsed;
-      }
-    }
-  }
-
-  console.log(`[WebNotifications] Continuous 1-hour work reminder scheduled (next alert in ~${(initialDelay / 60000).toFixed(1)} mins).`);
-
-  const fireReminder = async () => {
-    // 1. Show browser desktop notification
-    showBrowserNotification('⏰ Hourly Work Update Reminder', {
-      body: "Time for your 1-hour check-in! Please update your active tasks, progress reports, and deliverables for today.",
-      tag: 'hourly-work-update-reminder',
-    });
-
-    // 2. Play subtle pleasant chime
-    playNotificationChime();
-
-    // 3. Trigger backend dispatch for in-app notification center & compliance trail
-    try {
-      await api.triggerHourlyReminder(false);
-    } catch {
-      // ignore
-    }
-
-    // 4. Save timestamp to localStorage
-    try {
-      localStorage.setItem('nextup_last_hourly_reminder', Date.now().toString());
-    } catch {}
-
-    // 5. Reschedule continuously for the next 1 hour (3600000 ms)
-    hourlyTimerId = setTimeout(fireReminder, ONE_HOUR_MS);
-  };
-
-  hourlyTimerId = setTimeout(fireReminder, initialDelay);
+  console.log('[WebNotifications] Routine 1-hour reminders are disabled. Daily briefings fire at 9:00 AM & 6:00 PM IST.');
 }
 
 /**
@@ -188,7 +151,7 @@ export function startDaily9AMReminderSchedule(): void {
 }
 
 /**
- * Cancels active continuous hourly reminder timer
+ * Cancels active reminder timer
  */
 export function stopHourlyReminderSchedule(): void {
   if (hourlyTimerId) {
