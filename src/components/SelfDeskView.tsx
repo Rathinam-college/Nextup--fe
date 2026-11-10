@@ -2417,7 +2417,10 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
             style={{
               maxWidth: '560px',
               width: '100%',
-              borderRadius: '20px',
+              maxHeight: '88vh',
+              display: 'flex',
+              flexDirection: 'column',
+              borderRadius: '16px',
               overflow: 'hidden',
               background: 'var(--notion-card)',
               border: '1px solid var(--notion-border)',
@@ -2427,33 +2430,34 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
             {/* Header */}
             <div
               style={{
+                flexShrink: 0,
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '20px 24px',
+                padding: '12px 18px',
                 borderBottom: '1px solid var(--notion-border)',
                 background: 'linear-gradient(180deg, var(--notion-item-bg) 0%, transparent 100%)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div
                   style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '11px',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
                     background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#ffffff',
-                    boxShadow: '0 6px 16px -2px rgba(79, 70, 229, 0.4)',
+                    boxShadow: '0 4px 12px -2px rgba(79, 70, 229, 0.4)',
                   }}
                 >
-                  <CheckSquare size={20} />
+                  <CheckSquare size={17} />
                 </div>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '-0.01em' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '-0.01em' }}>
                       {editingTask ? 'Edit Personal Task' : 'New Personal Task'}
                     </h3>
                     <span
@@ -2461,20 +2465,20 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '3px',
-                        fontSize: '10px',
+                        fontSize: '9.5px',
                         fontWeight: 800,
-                        padding: '2px 7px',
-                        borderRadius: '12px',
+                        padding: '1px 6px',
+                        borderRadius: '10px',
                         background: 'rgba(79, 70, 229, 0.1)',
                         color: '#4f46e5',
                         border: '1px solid rgba(79, 70, 229, 0.2)',
                       }}
                     >
-                      <Lock size={10} />
+                      <Lock size={9} />
                       PRIVATE
                     </span>
                   </div>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: 'var(--notion-text-dim)' }}>
+                  <p style={{ margin: '1px 0 0 0', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
                     Only you can view and track this personal task
                   </p>
                 </div>
@@ -2483,10 +2487,11 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
               <button
                 type="button"
                 onClick={() => setIsTaskModalOpen(false)}
+                aria-label="Close"
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '9px',
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '8px',
                   background: 'var(--notion-item-bg)',
                   border: '1px solid var(--notion-border-subtle)',
                   display: 'flex',
@@ -2497,237 +2502,240 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveTaskModal} style={{ padding: '22px 24px' }}>
-              {/* Task Title */}
-              <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '7px', letterSpacing: '0.02em' }}>
-                  TASK TITLE <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  placeholder="What needs to be done? e.g. Prepare monthly executive briefing"
-                  value={taskFormTitle}
-                  onChange={(e) => setTaskFormTitle(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px',
-                    borderRadius: '11px',
-                    border: '1px solid var(--notion-border)',
-                    background: 'var(--notion-input-bg)',
-                    color: 'var(--notion-text)',
-                    fontSize: '14px',
-                    fontFamily: 'inherit',
-                    outline: 'none',
-                    boxShadow: 'var(--notion-shadow-sm)',
-                    transition: 'all 0.15s ease',
-                  }}
-                />
-              </div>
-
-              {/* Description */}
-              <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '7px', letterSpacing: '0.02em' }}>
-                  DESCRIPTION &amp; CONTEXT <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)', fontWeight: 500 }}>(Optional)</span>
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Add notes, key links, or action items..."
-                  value={taskFormDesc}
-                  onChange={(e) => setTaskFormDesc(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '11px',
-                    border: '1px solid var(--notion-border)',
-                    background: 'var(--notion-input-bg)',
-                    color: 'var(--notion-text)',
-                    fontSize: '13px',
-                    fontFamily: 'inherit',
-                    lineHeight: 1.5,
-                    resize: 'vertical',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-
-              {/* Priority Chips */}
-              <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '7px', letterSpacing: '0.02em' }}>
-                  PRIORITY LEVEL
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                  {[
-                    { id: 'URGENT', label: 'Urgent', icon: Flame, color: '#ef4444', bg: 'rgba(239, 68, 68, 0.12)' },
-                    { id: 'HIGH', label: 'High', icon: Flag, color: '#f97316', bg: 'rgba(249, 115, 22, 0.12)' },
-                    { id: 'MEDIUM', label: 'Medium', icon: Clock, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.12)' },
-                    { id: 'LOW', label: 'Low', icon: Circle, color: '#64748b', bg: 'rgba(100, 116, 139, 0.12)' },
-                  ].map((p) => {
-                    const isSelected = taskFormPriority === p.id;
-                    const Icon = p.icon;
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => setTaskFormPriority(p.id as any)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          padding: '8px 6px',
-                          borderRadius: '10px',
-                          border: isSelected ? `2px solid ${p.color}` : '1px solid var(--notion-border)',
-                          background: isSelected ? p.bg : 'var(--notion-input-bg)',
-                          color: isSelected ? p.color : 'var(--notion-text-muted)',
-                          fontSize: '12px',
-                          fontWeight: isSelected ? 800 : 600,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                          transform: isSelected ? 'scale(1.02)' : 'none',
-                        }}
-                      >
-                        <Icon size={13} style={{ color: p.color }} />
-                        <span>{p.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Status Chips */}
-              <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '7px', letterSpacing: '0.02em' }}>
-                  INITIAL STATUS
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                  {[
-                    { id: 'TODO', label: 'To Do', icon: Circle, color: '#64748b' },
-                    { id: 'IN_PROGRESS', label: 'In Progress', icon: Clock, color: '#3b82f6' },
-                    { id: 'COMPLETED', label: 'Completed', icon: CheckCircle2, color: '#10b981' },
-                  ].map((s) => {
-                    const isSelected = taskFormStatus === s.id;
-                    const Icon = s.icon;
-                    return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => setTaskFormStatus(s.id as any)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          padding: '8px 8px',
-                          borderRadius: '10px',
-                          border: isSelected ? `2px solid ${s.color}` : '1px solid var(--notion-border)',
-                          background: isSelected ? 'rgba(79, 70, 229, 0.08)' : 'var(--notion-input-bg)',
-                          color: isSelected ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                          fontSize: '12px',
-                          fontWeight: isSelected ? 800 : 600,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        <Icon size={13} style={{ color: s.color }} />
-                        <span>{s.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Target Due Date with Quick Presets */}
-              <div style={{ marginBottom: '22px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '7px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '0.02em' }}>
-                    TARGET DUE DATE
+            <form onSubmit={handleSaveTaskModal} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden', margin: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Task Title */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                    TASK TITLE <span style={{ color: '#ef4444' }}>*</span>
                   </label>
-                  {/* Quick Preset Buttons */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    {[
-                      { label: 'Today', action: 'today' },
-                      { label: 'Tomorrow', action: 'tomorrow' },
-                      { label: '+1 Week', action: 'nextWeek' },
-                      { label: 'Clear', action: 'clear' },
-                    ].map((preset) => (
-                      <button
-                        key={preset.label}
-                        type="button"
-                        onClick={() => handleSetQuickDueDate(preset.action as any)}
-                        style={{
-                          fontSize: '10.5px',
-                          padding: '2px 7px',
-                          borderRadius: '6px',
-                          border: '1px solid var(--notion-border-subtle)',
-                          background: 'var(--notion-item-bg)',
-                          color: 'var(--notion-text-muted)',
-                          cursor: 'pointer',
-                          fontWeight: 600,
-                        }}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '8px 14px',
-                    borderRadius: '11px',
-                    border: '1px solid var(--notion-border)',
-                    background: 'var(--notion-input-bg)',
-                  }}
-                >
-                  <Calendar size={15} style={{ color: '#4f46e5' }} />
                   <input
-                    type="date"
-                    value={taskFormDueDate}
-                    onChange={(e) => setTaskFormDueDate(e.target.value)}
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder="What needs to be done? e.g. Prepare monthly executive briefing"
+                    value={taskFormTitle}
+                    onChange={(e) => setTaskFormTitle(e.target.value)}
                     style={{
                       width: '100%',
-                      border: 'none',
-                      background: 'transparent',
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--notion-border)',
+                      background: 'var(--notion-input-bg)',
                       color: 'var(--notion-text)',
-                      fontSize: '13px',
+                      fontSize: '13.5px',
+                      fontFamily: 'inherit',
                       outline: 'none',
-                      cursor: 'pointer',
+                      boxShadow: 'var(--notion-shadow-sm)',
+                      transition: 'all 0.15s ease',
                     }}
                   />
                 </div>
+
+                {/* Description */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                    DESCRIPTION &amp; CONTEXT <span style={{ fontSize: '10.5px', color: 'var(--notion-text-dim)', fontWeight: 500 }}>(Optional)</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Add notes, key links, or action items..."
+                    value={taskFormDesc}
+                    onChange={(e) => setTaskFormDesc(e.target.value)}
+                    style={{
+                      width: '100%',
+                      minHeight: '60px',
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--notion-border)',
+                      background: 'var(--notion-input-bg)',
+                      color: 'var(--notion-text)',
+                      fontSize: '12.5px',
+                      fontFamily: 'inherit',
+                      lineHeight: 1.45,
+                      resize: 'vertical',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                {/* Priority Chips */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                    PRIORITY LEVEL
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                    {[
+                      { id: 'URGENT', label: 'Urgent', icon: Flame, color: '#ef4444', bg: 'rgba(239, 68, 68, 0.12)' },
+                      { id: 'HIGH', label: 'High', icon: Flag, color: '#f97316', bg: 'rgba(249, 115, 22, 0.12)' },
+                      { id: 'MEDIUM', label: 'Medium', icon: Clock, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.12)' },
+                      { id: 'LOW', label: 'Low', icon: Circle, color: '#64748b', bg: 'rgba(100, 116, 139, 0.12)' },
+                    ].map((p) => {
+                      const isSelected = taskFormPriority === p.id;
+                      const Icon = p.icon;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setTaskFormPriority(p.id as any)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '5px',
+                            padding: '6px 4px',
+                            borderRadius: '8px',
+                            border: isSelected ? `2px solid ${p.color}` : '1px solid var(--notion-border)',
+                            background: isSelected ? p.bg : 'var(--notion-input-bg)',
+                            color: isSelected ? p.color : 'var(--notion-text-muted)',
+                            fontSize: '11px',
+                            fontWeight: isSelected ? 800 : 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <Icon size={12} style={{ color: p.color }} />
+                          <span>{p.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Status Chips */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                    INITIAL STATUS
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                    {[
+                      { id: 'TODO', label: 'To Do', icon: Circle, color: '#64748b' },
+                      { id: 'IN_PROGRESS', label: 'In Progress', icon: Clock, color: '#3b82f6' },
+                      { id: 'COMPLETED', label: 'Completed', icon: CheckCircle2, color: '#10b981' },
+                    ].map((s) => {
+                      const isSelected = taskFormStatus === s.id;
+                      const Icon = s.icon;
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => setTaskFormStatus(s.id as any)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '5px',
+                            padding: '6px 6px',
+                            borderRadius: '8px',
+                            border: isSelected ? `2px solid ${s.color}` : '1px solid var(--notion-border)',
+                            background: isSelected ? 'rgba(79, 70, 229, 0.08)' : 'var(--notion-input-bg)',
+                            color: isSelected ? 'var(--notion-text)' : 'var(--notion-text-muted)',
+                            fontSize: '11px',
+                            fontWeight: isSelected ? 800 : 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <Icon size={12} style={{ color: s.color }} />
+                          <span>{s.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Target Due Date with Quick Presets */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '0.02em' }}>
+                      TARGET DUE DATE
+                    </label>
+                    {/* Quick Preset Buttons */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {[
+                        { label: 'Today', action: 'today' },
+                        { label: 'Tomorrow', action: 'tomorrow' },
+                        { label: '+1 Week', action: 'nextWeek' },
+                        { label: 'Clear', action: 'clear' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => handleSetQuickDueDate(preset.action as any)}
+                          style={{
+                            fontSize: '10px',
+                            padding: '2px 6px',
+                            borderRadius: '5px',
+                            border: '1px solid var(--notion-border-subtle)',
+                            background: 'var(--notion-item-bg)',
+                            color: 'var(--notion-text-muted)',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '7px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--notion-border)',
+                      background: 'var(--notion-input-bg)',
+                    }}
+                  >
+                    <Calendar size={14} style={{ color: '#4f46e5' }} />
+                    <input
+                      type="date"
+                      value={taskFormDueDate}
+                      onChange={(e) => setTaskFormDueDate(e.target.value)}
+                      style={{
+                        width: '100%',
+                        border: 'none',
+                        background: 'transparent',
+                        color: 'var(--notion-text)',
+                        fontSize: '12.5px',
+                        outline: 'none',
+                        cursor: 'pointer',
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Modal Footer */}
+              {/* Modal Footer - Always Visible */}
               <div
                 style={{
+                  flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   borderTop: '1px solid var(--notion-border)',
-                  paddingTop: '18px',
-                  marginTop: '6px',
+                  padding: '10px 18px',
+                  background: 'var(--notion-item-bg)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--notion-text-dim)' }}>
-                  <Lock size={12} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
+                  <Lock size={11} />
                   <span>Private task visible only to you</span>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
                   <button
                     type="button"
                     onClick={() => setIsTaskModalOpen(false)}
                     className="notion-btn notion-btn-bordered"
-                    style={{ padding: '9px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600 }}
+                    style={{ padding: '7px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600 }}
                   >
                     Cancel
                   </button>
@@ -2736,21 +2744,21 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                     disabled={savingTask || !taskFormTitle.trim()}
                     className="notion-btn"
                     style={{
-                      padding: '9px 22px',
-                      borderRadius: '10px',
-                      fontSize: '13px',
+                      padding: '7px 20px',
+                      borderRadius: '8px',
+                      fontSize: '12.5px',
                       fontWeight: 700,
                       background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
                       color: '#ffffff',
                       border: 'none',
-                      boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)',
+                      boxShadow: '0 4px 12px rgba(79, 70, 229, 0.35)',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      cursor: 'pointer',
+                      gap: '5px',
+                      cursor: savingTask || !taskFormTitle.trim() ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    <Sparkles size={14} />
+                    <Sparkles size={13} />
                     <span>{savingTask ? 'Saving...' : editingTask ? 'Update Task' : 'Create Task'}</span>
                   </button>
                 </div>
@@ -2781,9 +2789,12 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
             className="notion-modal"
             onClick={(e) => e.stopPropagation()}
             style={{
-              maxWidth: '680px',
+              maxWidth: '560px',
               width: '100%',
-              borderRadius: '20px',
+              maxHeight: '88vh',
+              display: 'flex',
+              flexDirection: 'column',
+              borderRadius: '16px',
               overflow: 'hidden',
               background: 'var(--notion-card)',
               border: '1px solid var(--notion-border)',
@@ -2799,39 +2810,41 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                 background: noteFormColor || '#8b5cf6',
                 boxShadow: `0 0 12px ${noteFormColor || '#8b5cf6'}`,
                 transition: 'background 0.3s ease',
+                flexShrink: 0,
               }}
             />
 
-            {/* Header */}
+            {/* Header - Fixed at Top */}
             <div
               style={{
+                flexShrink: 0,
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '20px 24px',
+                padding: '12px 18px',
                 borderBottom: '1px solid var(--notion-border)',
                 background: 'linear-gradient(180deg, var(--notion-item-bg) 0%, transparent 100%)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div
                   style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '11px',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
                     background: `linear-gradient(135deg, ${noteFormColor} 0%, #a855f7 100%)`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#ffffff',
-                    boxShadow: `0 6px 16px -2px ${noteFormColor}50`,
+                    boxShadow: `0 4px 12px -2px ${noteFormColor}50`,
                   }}
                 >
-                  <StickyNote size={20} />
+                  <StickyNote size={17} />
                 </div>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '-0.01em' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '-0.01em' }}>
                       {editingNote ? 'Edit Personal Note' : 'New Personal Note'}
                     </h3>
                     <span
@@ -2839,20 +2852,20 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '3px',
-                        fontSize: '10px',
+                        fontSize: '9.5px',
                         fontWeight: 800,
-                        padding: '2px 7px',
-                        borderRadius: '12px',
+                        padding: '1px 6px',
+                        borderRadius: '10px',
                         background: 'rgba(139, 92, 246, 0.1)',
                         color: '#8b5cf6',
                         border: '1px solid rgba(139, 92, 246, 0.2)',
                       }}
                     >
-                      <Lock size={10} />
+                      <Lock size={9} />
                       PRIVATE NOTE
                     </span>
                   </div>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: 'var(--notion-text-dim)' }}>
+                  <p style={{ margin: '1px 0 0 0', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
                     Capture ideas, meeting minutes, thoughts, or checklists
                   </p>
                 </div>
@@ -2861,10 +2874,11 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
               <button
                 type="button"
                 onClick={() => setIsNoteModalOpen(false)}
+                aria-label="Close"
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '9px',
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '8px',
                   background: 'var(--notion-item-bg)',
                   border: '1px solid var(--notion-border-subtle)',
                   display: 'flex',
@@ -2875,161 +2889,246 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveNoteModal} style={{ padding: '22px 24px' }}>
-              {/* Note Title */}
-              <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '7px', letterSpacing: '0.02em' }}>
-                  NOTE TITLE <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  placeholder="e.g. Weekly Executive Review • Key Takeaways"
-                  value={noteFormTitle}
-                  onChange={(e) => setNoteFormTitle(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px',
-                    borderRadius: '11px',
-                    border: '1px solid var(--notion-border)',
-                    background: 'var(--notion-input-bg)',
-                    color: 'var(--notion-text)',
-                    fontSize: '15px',
-                    fontWeight: 700,
-                    fontFamily: 'inherit',
-                    outline: 'none',
-                    boxShadow: 'var(--notion-shadow-sm)',
-                    transition: 'all 0.15s ease',
-                  }}
-                />
-              </div>
-
-              {/* Category Selector Chips */}
-              <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '7px', letterSpacing: '0.02em' }}>
-                  CATEGORY
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
-                  {[
-                    { id: 'WORK', label: 'Work', icon: Briefcase, color: '#4f46e5' },
-                    { id: 'MEETING', label: 'Meetings', icon: Users, color: '#0284c7' },
-                    { id: 'IDEA', label: 'Ideas', icon: Lightbulb, color: '#f59e0b' },
-                    { id: 'CHECKLIST', label: 'Checklist', icon: ListChecks, color: '#10b981' },
-                    { id: 'GENERAL', label: 'General', icon: FileText, color: '#8b5cf6' },
-                  ].map((cat) => {
-                    const isSelected = noteFormCategory === cat.id;
-                    const Icon = cat.icon;
-                    return (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => setNoteFormCategory(cat.id as any)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '5px',
-                          padding: '8px 4px',
-                          borderRadius: '10px',
-                          border: isSelected ? `2px solid ${cat.color}` : '1px solid var(--notion-border)',
-                          background: isSelected ? `${cat.color}15` : 'var(--notion-input-bg)',
-                          color: isSelected ? cat.color : 'var(--notion-text-muted)',
-                          fontSize: '11.5px',
-                          fontWeight: isSelected ? 800 : 600,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        <Icon size={13} style={{ color: cat.color }} />
-                        <span>{cat.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Color Swatches & Pin Toggle Row */}
+            <form onSubmit={handleSaveNoteModal} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden', margin: 0 }}>
+              {/* Scrollable Modal Content */}
               <div
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '16px',
-                  marginBottom: '18px',
-                  alignItems: 'center',
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '14px 18px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
                 }}
               >
-                {/* Accent Color Palette */}
+                {/* Note Title */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '7px', letterSpacing: '0.02em' }}>
-                    ACCENT COLOR
+                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                    NOTE TITLE <span style={{ color: '#ef4444' }}>*</span>
                   </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '2px' }}>
-                    {colorPresets.map((c) => {
-                      const isSelected = noteFormColor === c.hex;
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder="e.g. Weekly Executive Review • Key Takeaways"
+                    value={noteFormTitle}
+                    onChange={(e) => setNoteFormTitle(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--notion-border)',
+                      background: 'var(--notion-input-bg)',
+                      color: 'var(--notion-text)',
+                      fontSize: '13.5px',
+                      fontWeight: 700,
+                      fontFamily: 'inherit',
+                      outline: 'none',
+                      boxShadow: 'var(--notion-shadow-sm)',
+                      transition: 'all 0.15s ease',
+                    }}
+                  />
+                </div>
+
+                {/* Category Selector Chips */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                    CATEGORY
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
+                    {[
+                      { id: 'WORK', label: 'Work', icon: Briefcase, color: '#4f46e5' },
+                      { id: 'MEETING', label: 'Meetings', icon: Users, color: '#0284c7' },
+                      { id: 'IDEA', label: 'Ideas', icon: Lightbulb, color: '#f59e0b' },
+                      { id: 'CHECKLIST', label: 'Checklist', icon: ListChecks, color: '#10b981' },
+                      { id: 'GENERAL', label: 'General', icon: FileText, color: '#8b5cf6' },
+                    ].map((cat) => {
+                      const isSelected = noteFormCategory === cat.id;
+                      const Icon = cat.icon;
                       return (
-                        <div
-                          key={c.hex}
-                          onClick={() => setNoteFormColor(c.hex)}
-                          title={c.label}
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setNoteFormCategory(cat.id as any)}
                           style={{
-                            width: '26px',
-                            height: '26px',
-                            borderRadius: '50%',
-                            background: c.hex,
-                            cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            border: isSelected ? '2.5px solid var(--notion-text)' : '2px solid transparent',
-                            transform: isSelected ? 'scale(1.2)' : 'none',
-                            boxShadow: isSelected ? `0 0 10px ${c.hex}80` : 'none',
+                            gap: '4px',
+                            padding: '6px 3px',
+                            borderRadius: '8px',
+                            border: isSelected ? `2px solid ${cat.color}` : '1px solid var(--notion-border)',
+                            background: isSelected ? `${cat.color}15` : 'var(--notion-input-bg)',
+                            color: isSelected ? cat.color : 'var(--notion-text-muted)',
+                            fontSize: '11px',
+                            fontWeight: isSelected ? 800 : 600,
+                            cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
                         >
-                          {isSelected && <Check size={13} color="#ffffff" strokeWidth={3} />}
-                        </div>
+                          <Icon size={12} style={{ color: cat.color }} />
+                          <span>{cat.label}</span>
+                        </button>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Pin to Top Card */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '7px', letterSpacing: '0.02em' }}>
-                    PIN PRIORITY
-                  </label>
-                  <div
-                    onClick={() => setNoteFormPinned(!noteFormPinned)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 12px',
-                      borderRadius: '10px',
-                      border: noteFormPinned ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--notion-border)',
-                      background: noteFormPinned ? 'rgba(245, 158, 11, 0.08)' : 'var(--notion-input-bg)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Pin size={14} style={{ color: noteFormPinned ? '#f59e0b' : 'var(--notion-text-dim)', transform: 'rotate(45deg)' }} />
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: noteFormPinned ? '#f59e0b' : 'var(--notion-text)' }}>
-                        {noteFormPinned ? 'Pinned to Top' : 'Not Pinned'}
-                      </span>
+                {/* Color Swatches & Pin Toggle Row */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '12px',
+                    alignItems: 'center',
+                  }}
+                >
+                  {/* Accent Color Palette */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                      ACCENT COLOR
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px', paddingTop: '1px' }}>
+                      {colorPresets.map((c) => {
+                        const isSelected = noteFormColor === c.hex;
+                        return (
+                          <div
+                            key={c.hex}
+                            onClick={() => setNoteFormColor(c.hex)}
+                            title={c.label}
+                            style={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              background: c.hex,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: isSelected ? '2px solid var(--notion-text)' : '2px solid transparent',
+                              transform: isSelected ? 'scale(1.15)' : 'none',
+                              boxShadow: isSelected ? `0 0 8px ${c.hex}80` : 'none',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            {isSelected && <Check size={11} color="#ffffff" strokeWidth={3} />}
+                          </div>
+                        );
+                      })}
                     </div>
+                  </div>
+
+                  {/* Pin to Top Card */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '5px', letterSpacing: '0.02em' }}>
+                      PIN PRIORITY
+                    </label>
                     <div
+                      onClick={() => setNoteFormPinned(!noteFormPinned)}
                       style={{
-                        width: '34px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 10px',
+                        borderRadius: '9px',
+                        border: noteFormPinned ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--notion-border)',
+                        background: noteFormPinned ? 'rgba(245, 158, 11, 0.08)' : 'var(--notion-input-bg)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Pin size={13} style={{ color: noteFormPinned ? '#f59e0b' : 'var(--notion-text-dim)', transform: 'rotate(45deg)' }} />
+                        <span style={{ fontSize: '11.5px', fontWeight: 700, color: noteFormPinned ? '#f59e0b' : 'var(--notion-text)' }}>
+                          {noteFormPinned ? 'Pinned' : 'Not Pinned'}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          width: '30px',
+                          height: '16px',
+                          borderRadius: '8px',
+                          background: noteFormPinned ? '#f59e0b' : 'var(--notion-border)',
+                          position: 'relative',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            background: '#ffffff',
+                            position: 'absolute',
+                            top: '2px',
+                            left: noteFormPinned ? '16px' : '2px',
+                            transition: 'all 0.2s ease',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Calendar Date & Notification Reminder Section */}
+                <div
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: '11px',
+                    border: noteFormReminderEnabled ? '1.5px solid rgba(139, 92, 246, 0.4)' : '1px solid var(--notion-border)',
+                    background: noteFormReminderEnabled ? 'rgba(139, 92, 246, 0.05)' : 'var(--notion-item-bg)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: noteFormReminderEnabled ? '8px' : 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                      <div
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '6px',
+                          background: noteFormReminderEnabled ? '#8b5cf6' : 'var(--notion-input-bg)',
+                          color: noteFormReminderEnabled ? '#ffffff' : 'var(--notion-text-dim)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Bell size={12} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--notion-text)' }}>
+                          Calendar Schedule &amp; Notification Reminder
+                        </div>
+                        <div style={{ fontSize: '10.5px', color: 'var(--notion-text-dim)' }}>
+                          Pin to calendar dates and send push &amp; desktop alerts
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Toggle Switch */}
+                    <div
+                      onClick={() => {
+                        const next = !noteFormReminderEnabled;
+                        setNoteFormReminderEnabled(next);
+                        if (next && !noteFormReminderDate) {
+                          setNoteFormReminderDate(todayStr);
+                        }
+                        if (next) {
+                          requestBrowserNotificationPermission().catch(() => {});
+                        }
+                      }}
+                      style={{
+                        width: '32px',
                         height: '18px',
                         borderRadius: '9px',
-                        background: noteFormPinned ? '#f59e0b' : 'var(--notion-border)',
+                        background: noteFormReminderEnabled ? '#8b5cf6' : 'var(--notion-border)',
                         position: 'relative',
+                        cursor: 'pointer',
                         transition: 'all 0.2s ease',
                       }}
                     >
@@ -3041,328 +3140,257 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                           background: '#ffffff',
                           position: 'absolute',
                           top: '2px',
-                          left: noteFormPinned ? '18px' : '2px',
+                          left: noteFormReminderEnabled ? '16px' : '2px',
                           transition: 'all 0.2s ease',
                         }}
                       />
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Calendar Date & Notification Reminder Section */}
-              <div
-                style={{
-                  marginBottom: '18px',
-                  padding: '14px',
-                  borderRadius: '12px',
-                  border: noteFormReminderEnabled ? '1.5px solid rgba(139, 92, 246, 0.4)' : '1px solid var(--notion-border)',
-                  background: noteFormReminderEnabled ? 'rgba(139, 92, 246, 0.05)' : 'var(--notion-item-bg)',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: noteFormReminderEnabled ? '12px' : 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div
-                      style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '7px',
-                        background: noteFormReminderEnabled ? '#8b5cf6' : 'var(--notion-input-bg)',
-                        color: noteFormReminderEnabled ? '#ffffff' : 'var(--notion-text-dim)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Bell size={14} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--notion-text)' }}>
-                        Calendar Schedule &amp; Notification Reminder
+                  {noteFormReminderEnabled && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--notion-border-subtle)' }}>
+                      {/* Date Presets */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-dim)' }}>Quick:</span>
+                        {[
+                          { label: 'Today', days: 0 },
+                          { label: 'Tomorrow', days: 1 },
+                          { label: 'In 3 Days', days: 3 },
+                          { label: 'Next Week', days: 7 },
+                        ].map((preset) => {
+                          const d = new Date();
+                          d.setDate(d.getDate() + preset.days);
+                          const dStr = d.toISOString().split('T')[0];
+                          const isSelected = noteFormReminderDate === dStr;
+                          return (
+                            <button
+                              key={preset.label}
+                              type="button"
+                              onClick={() => setNoteFormReminderDate(dStr)}
+                              style={{
+                                fontSize: '10.5px',
+                                padding: '2px 7px',
+                                borderRadius: '5px',
+                                border: isSelected ? '1px solid #8b5cf6' : '1px solid var(--notion-border-subtle)',
+                                background: isSelected ? 'rgba(139, 92, 246, 0.15)' : 'var(--notion-input-bg)',
+                                color: isSelected ? '#8b5cf6' : 'var(--notion-text-muted)',
+                                cursor: 'pointer',
+                                fontWeight: isSelected ? 700 : 500,
+                              }}
+                            >
+                              {preset.label}
+                            </button>
+                          );
+                        })}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>
-                        Pin to calendar dates and send push &amp; desktop alerts
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Toggle Switch */}
-                  <div
-                    onClick={() => {
-                      const next = !noteFormReminderEnabled;
-                      setNoteFormReminderEnabled(next);
-                      if (next && !noteFormReminderDate) {
-                        setNoteFormReminderDate(todayStr);
-                      }
-                      if (next) {
-                        requestBrowserNotificationPermission().catch(() => {});
-                      }
-                    }}
-                    style={{
-                      width: '36px',
-                      height: '20px',
-                      borderRadius: '10px',
-                      background: noteFormReminderEnabled ? '#8b5cf6' : 'var(--notion-border)',
-                      position: 'relative',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '16px',
-                        height: '16px',
-                        borderRadius: '50%',
-                        background: '#ffffff',
-                        position: 'absolute',
-                        top: '2px',
-                        left: noteFormReminderEnabled ? '18px' : '2px',
-                        transition: 'all 0.2s ease',
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {noteFormReminderEnabled && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--notion-border-subtle)' }}>
-                    {/* Date Presets */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--notion-text-dim)' }}>Quick:</span>
-                      {[
-                        { label: 'Today', days: 0 },
-                        { label: 'Tomorrow', days: 1 },
-                        { label: 'In 3 Days', days: 3 },
-                        { label: 'Next Week', days: 7 },
-                      ].map((preset) => {
-                        const d = new Date();
-                        d.setDate(d.getDate() + preset.days);
-                        const dStr = d.toISOString().split('T')[0];
-                        const isSelected = noteFormReminderDate === dStr;
-                        return (
-                          <button
-                            key={preset.label}
-                            type="button"
-                            onClick={() => setNoteFormReminderDate(dStr)}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px' }}>
+                        {/* Reminder Date Picker */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-muted)', marginBottom: '3px' }}>
+                            SCHEDULE DATE
+                          </label>
+                          <div
                             style={{
-                              fontSize: '11px',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              border: isSelected ? '1px solid #8b5cf6' : '1px solid var(--notion-border-subtle)',
-                              background: isSelected ? 'rgba(139, 92, 246, 0.15)' : 'var(--notion-input-bg)',
-                              color: isSelected ? '#8b5cf6' : 'var(--notion-text-muted)',
-                              cursor: 'pointer',
-                              fontWeight: isSelected ? 700 : 500,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '6px 10px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--notion-border)',
+                              background: 'var(--notion-input-bg)',
                             }}
                           >
-                            {preset.label}
+                            <Calendar size={13} style={{ color: '#8b5cf6' }} />
+                            <input
+                              type="date"
+                              value={noteFormReminderDate}
+                              onChange={(e) => setNoteFormReminderDate(e.target.value)}
+                              style={{
+                                width: '100%',
+                                border: 'none',
+                                background: 'transparent',
+                                color: 'var(--notion-text)',
+                                fontSize: '12px',
+                                outline: 'none',
+                                cursor: 'pointer',
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Reminder Time Picker */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-muted)', marginBottom: '3px' }}>
+                            ALERT TIME
+                          </label>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '6px 10px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--notion-border)',
+                              background: 'var(--notion-input-bg)',
+                            }}
+                          >
+                            <Clock size={13} style={{ color: '#8b5cf6' }} />
+                            <input
+                              type="time"
+                              value={noteFormReminderTime}
+                              onChange={(e) => setNoteFormReminderTime(e.target.value)}
+                              style={{
+                                width: '100%',
+                                border: 'none',
+                                background: 'transparent',
+                                color: 'var(--notion-text)',
+                                fontSize: '12px',
+                                outline: 'none',
+                                cursor: 'pointer',
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Immediate Dispatch Button if editing */}
+                      {editingNote && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px' }}>
+                          <span style={{ fontSize: '10.5px', color: noteFormReminderSent ? '#10b981' : 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {noteFormReminderSent ? '✓ Reminder previously sent' : 'Reminder pending trigger'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleSendImmediateReminder(editingNote)}
+                            disabled={sendingReminderId === editingNote.id}
+                            className="notion-btn notion-btn-bordered"
+                            style={{
+                              fontSize: '11px',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              color: '#8b5cf6',
+                              borderColor: 'rgba(139, 92, 246, 0.4)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <BellRing size={11} className={sendingReminderId === editingNote.id ? 'animate-spin' : ''} />
+                            <span>{sendingReminderId === editingNote.id ? 'Sending...' : 'Test / Send Alert Now'}</span>
                           </button>
-                        );
-                      })}
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px' }}>
-                      {/* Reminder Date Picker */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--notion-text-muted)', marginBottom: '4px' }}>
-                          SCHEDULE DATE
-                        </label>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '8px 12px',
-                            borderRadius: '9px',
-                            border: '1px solid var(--notion-border)',
-                            background: 'var(--notion-input-bg)',
-                          }}
-                        >
-                          <Calendar size={14} style={{ color: '#8b5cf6' }} />
-                          <input
-                            type="date"
-                            value={noteFormReminderDate}
-                            onChange={(e) => setNoteFormReminderDate(e.target.value)}
-                            style={{
-                              width: '100%',
-                              border: 'none',
-                              background: 'transparent',
-                              color: 'var(--notion-text)',
-                              fontSize: '12.5px',
-                              outline: 'none',
-                              cursor: 'pointer',
-                            }}
-                          />
                         </div>
-                      </div>
-
-                      {/* Reminder Time Picker */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--notion-text-muted)', marginBottom: '4px' }}>
-                          ALERT TIME
-                        </label>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '8px 12px',
-                            borderRadius: '9px',
-                            border: '1px solid var(--notion-border)',
-                            background: 'var(--notion-input-bg)',
-                          }}
-                        >
-                          <Clock size={14} style={{ color: '#8b5cf6' }} />
-                          <input
-                            type="time"
-                            value={noteFormReminderTime}
-                            onChange={(e) => setNoteFormReminderTime(e.target.value)}
-                            style={{
-                              width: '100%',
-                              border: 'none',
-                              background: 'transparent',
-                              color: 'var(--notion-text)',
-                              fontSize: '12.5px',
-                              outline: 'none',
-                              cursor: 'pointer',
-                            }}
-                          />
-                        </div>
-                      </div>
+                      )}
                     </div>
-
-                    {/* Immediate Dispatch Button if editing */}
-                    {editingNote && (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '6px' }}>
-                        <span style={{ fontSize: '11px', color: noteFormReminderSent ? '#10b981' : 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          {noteFormReminderSent ? '✓ Reminder previously sent' : 'Reminder pending trigger'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleSendImmediateReminder(editingNote)}
-                          disabled={sendingReminderId === editingNote.id}
-                          className="notion-btn notion-btn-bordered"
-                          style={{
-                            fontSize: '11.5px',
-                            padding: '4px 10px',
-                            borderRadius: '7px',
-                            color: '#8b5cf6',
-                            borderColor: 'rgba(139, 92, 246, 0.4)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                          }}
-                        >
-                          <BellRing size={12} className={sendingReminderId === editingNote.id ? 'animate-spin' : ''} />
-                          <span>{sendingReminderId === editingNote.id ? 'Sending...' : 'Test / Send Alert Now'}</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Note Content with Writing Toolbar */}
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '7px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '0.02em' }}>
-                    NOTE CONTENT
-                  </label>
-                  {/* Quick Format Snippets */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleInsertNoteSnippet('[ ] Checklist item')}
-                      style={{
-                        fontSize: '11px',
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--notion-border-subtle)',
-                        background: 'var(--notion-item-bg)',
-                        color: 'var(--notion-text-muted)',
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                      }}
-                    >
-                      + [ ] Checkbox
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleInsertNoteSnippet('• Bullet point')}
-                      style={{
-                        fontSize: '11px',
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--notion-border-subtle)',
-                        background: 'var(--notion-item-bg)',
-                        color: 'var(--notion-text-muted)',
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                      }}
-                    >
-                      + • Bullet
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleInsertNoteSnippet(`📅 ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}: `)}
-                      style={{
-                        fontSize: '11px',
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--notion-border-subtle)',
-                        background: 'var(--notion-item-bg)',
-                        color: 'var(--notion-text-muted)',
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                      }}
-                    >
-                      + 📅 Timestamp
-                    </button>
-                  </div>
+                  )}
                 </div>
 
-                <textarea
-                  rows={8}
-                  placeholder="Type your notes, meeting minutes, key decisions, or brainstorms here..."
-                  value={noteFormContent}
-                  onChange={(e) => setNoteFormContent(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    borderRadius: '11px',
-                    border: '1px solid var(--notion-border)',
-                    background: 'var(--notion-input-bg)',
-                    color: 'var(--notion-text)',
-                    fontSize: '13.5px',
-                    fontFamily: 'inherit',
-                    lineHeight: 1.6,
-                    resize: 'vertical',
-                    outline: 'none',
-                    boxShadow: 'var(--notion-shadow-sm)',
-                  }}
-                />
+                {/* Note Content with Writing Toolbar */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '0.02em' }}>
+                      NOTE CONTENT
+                    </label>
+                    {/* Quick Format Snippets */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleInsertNoteSnippet('[ ] Checklist item')}
+                        style={{
+                          fontSize: '10.5px',
+                          padding: '2px 6px',
+                          borderRadius: '5px',
+                          border: '1px solid var(--notion-border-subtle)',
+                          background: 'var(--notion-item-bg)',
+                          color: 'var(--notion-text-muted)',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                        }}
+                      >
+                        + [ ] Checkbox
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleInsertNoteSnippet('• Bullet point')}
+                        style={{
+                          fontSize: '10.5px',
+                          padding: '2px 6px',
+                          borderRadius: '5px',
+                          border: '1px solid var(--notion-border-subtle)',
+                          background: 'var(--notion-item-bg)',
+                          color: 'var(--notion-text-muted)',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                        }}
+                      >
+                        + • Bullet
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleInsertNoteSnippet(`📅 ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}: `)}
+                        style={{
+                          fontSize: '10.5px',
+                          padding: '2px 6px',
+                          borderRadius: '5px',
+                          border: '1px solid var(--notion-border-subtle)',
+                          background: 'var(--notion-item-bg)',
+                          color: 'var(--notion-text-muted)',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                        }}
+                      >
+                        + 📅 Timestamp
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    rows={4}
+                    placeholder="Type your notes, meeting minutes, key decisions, or brainstorms here..."
+                    value={noteFormContent}
+                    onChange={(e) => setNoteFormContent(e.target.value)}
+                    style={{
+                      width: '100%',
+                      minHeight: '85px',
+                      maxHeight: '200px',
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--notion-border)',
+                      background: 'var(--notion-input-bg)',
+                      color: 'var(--notion-text)',
+                      fontSize: '13px',
+                      fontFamily: 'inherit',
+                      lineHeight: 1.5,
+                      resize: 'vertical',
+                      outline: 'none',
+                      boxShadow: 'var(--notion-shadow-sm)',
+                    }}
+                  />
+                </div>
               </div>
 
-              {/* Modal Footer */}
+              {/* Fixed Modal Footer - Always Visible */}
               <div
                 style={{
+                  flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   borderTop: '1px solid var(--notion-border)',
-                  paddingTop: '18px',
+                  padding: '10px 18px',
+                  background: 'var(--notion-item-bg)',
                 }}
               >
-                <div style={{ fontSize: '11.5px', color: 'var(--notion-text-dim)' }}>
+                <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>
                   {noteFormContent ? `${noteFormContent.trim().split(/\s+/).filter(Boolean).length} words • ${noteFormContent.length} chars` : '0 words'}
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
                   <button
                     type="button"
                     onClick={() => setIsNoteModalOpen(false)}
                     className="notion-btn notion-btn-bordered"
-                    style={{ padding: '9px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600 }}
+                    style={{ padding: '7px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600 }}
                   >
                     Cancel
                   </button>
@@ -3371,21 +3399,21 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
                     disabled={savingNote || !noteFormTitle.trim()}
                     className="notion-btn"
                     style={{
-                      padding: '9px 24px',
-                      borderRadius: '10px',
-                      fontSize: '13px',
+                      padding: '7px 20px',
+                      borderRadius: '8px',
+                      fontSize: '12.5px',
                       fontWeight: 700,
                       background: `linear-gradient(135deg, ${noteFormColor} 0%, #7c3aed 100%)`,
                       color: '#ffffff',
                       border: 'none',
-                      boxShadow: `0 4px 14px ${noteFormColor}40`,
+                      boxShadow: `0 4px 12px ${noteFormColor}40`,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      cursor: 'pointer',
+                      gap: '5px',
+                      cursor: savingNote || !noteFormTitle.trim() ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    <Sparkles size={14} />
+                    <Sparkles size={13} />
                     <span>{savingNote ? 'Saving...' : editingNote ? 'Update Note' : 'Save Note'}</span>
                   </button>
                 </div>
