@@ -241,6 +241,9 @@ export interface RoutineWorkItem {
   created_by_name?: string;
   priority: Priority;
   target_time?: string;
+  target_count?: number | null;
+  unit?: string;
+  last_completed_count?: number | null;
   is_active: boolean;
   is_completed?: boolean;
   last_completed_at?: string | null;
@@ -258,5 +261,6 @@ export interface RoutineWorkLog {
   completed_by_name?: string;
   completed_at: string;
   period_identifier: string;
+  count?: number | null;
   notes?: string;
 }

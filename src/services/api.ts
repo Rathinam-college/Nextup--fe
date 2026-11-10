@@ -598,14 +598,24 @@ export const api = {
       method: 'DELETE',
     }),
 
-  toggleCompleteRoutineItem: (id: number | string, period_identifier: string, notes?: string) =>
-    request<{ completed: boolean; period_identifier: string; completed_by_name?: string; completed_at?: string }>(
-      `/api/routine-items/${id}/toggle-complete/`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ period_identifier, notes }),
-      }
-    ),
+  toggleCompleteRoutineItem: (
+    id: number | string,
+    period_identifier: string,
+    notes?: string,
+    count?: number,
+    update_existing?: boolean
+  ) =>
+    request<{
+      completed: boolean;
+      period_identifier: string;
+      completed_by_name?: string;
+      completed_at?: string;
+      count?: number;
+      notes?: string;
+    }>(`/api/routine-items/${id}/toggle-complete/`, {
+      method: 'POST',
+      body: JSON.stringify({ period_identifier, notes, count, update_existing }),
+    }),
 
   getRoutineLogs: (params?: { item?: number | string; period_identifier?: string }) => {
     const searchParams = new URLSearchParams();

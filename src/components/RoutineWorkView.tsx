@@ -176,7 +176,20 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
   const [formAssignee, setFormAssignee] = useState<number | ''>('');
   const [formPriority, setFormPriority] = useState<Priority>('MEDIUM');
   const [formTargetTime, setFormTargetTime] = useState('');
+  const [formTargetCount, setFormTargetCount] = useState<number | ''>('');
+  const [formUnit, setFormUnit] = useState('');
   const [savingItem, setSavingItem] = useState(false);
+
+  // Daily / Routine Completion Modal State (Asks Count & Notes)
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  const [completingItem, setCompletingItem] = useState<RoutineWorkItem | null>(null);
+  const [completeCount, setCompleteCount] = useState<number>(1);
+  const [completeNotes, setCompleteNotes] = useState<string>('');
+  const [isUpdatingExisting, setIsUpdatingExisting] = useState<boolean>(false);
+  const [savingCompletion, setSavingCompletion] = useState<boolean>(false);
+
+  // Already Completed Action Modal State
+  const [alreadyCompletedModalItem, setAlreadyCompletedModalItem] = useState<RoutineWorkItem | null>(null);
 
   // Expandable SOP accordion state
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
@@ -198,58 +211,121 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
     return { completed: false };
   };
 
-  // Toggle completion -> Save in DB table
-  const handleToggleComplete = async (item: RoutineWorkItem) => {
+  // User clicked checkbox on an item: asks count for daily completion
+  const handleClickItemCheckbox = (item: RoutineWorkItem) => {
+    const { completed, log } = isItemCompletedCurrentCycle(item);
+    if (completed) {
+      // Already completed -> open action modal (Update count or Undo)
+      setAlreadyCompletedModalItem(item);
+    } else {
+      // Not completed -> open Completion Modal and ask count
+      setCompletingItem(item);
+      const defaultCnt = item.target_count && item.target_count > 0 ? item.target_count : 1;
+      setCompleteCount(defaultCnt);
+      setCompleteNotes('');
+      setIsUpdatingExisting(false);
+      setIsCompleteModalOpen(true);
+    }
+  };
+
+  // Open modal to update existing completion count
+  const handleOpenUpdateCount = (item: RoutineWorkItem) => {
+    const { log } = isItemCompletedCurrentCycle(item);
+    setAlreadyCompletedModalItem(null);
+    setCompletingItem(item);
+    setCompleteCount(Number(log?.count ?? item.last_completed_count) || 1);
+    setCompleteNotes(log?.notes || item.completion_notes || '');
+    setIsUpdatingExisting(true);
+    setIsCompleteModalOpen(true);
+  };
+
+  // Direct undo / uncheck completion -> Remove from DB
+  const handleDirectUndoComplete = async (item: RoutineWorkItem) => {
+    setAlreadyCompletedModalItem(null);
     const period = getPeriodIdentifier(item.frequency);
-    const { completed } = isItemCompletedCurrentCycle(item);
 
     // Optimistic UI update
-    if (completed) {
-      setLogs((prev) => prev.filter((l) => !(String(l.item_id || (l as any).item) === String(item.id) && l.period_identifier === period)));
-      setItems((prev) =>
-        prev.map((i) => {
-          if (String(i.id) === String(item.id)) {
-            return { ...i, last_completed_at: null, last_completed_by: null, last_completed_by_name: undefined };
-          }
-          return i;
-        })
-      );
-    } else {
-      const nowIso = new Date().toISOString();
-      const newLog: RoutineWorkLog = {
-        id: `log_${Date.now()}`,
-        item_id: item.id,
-        completed_by: currentUser.id,
-        completed_by_name: currentUser.full_name || currentUser.username,
-        completed_at: nowIso,
-        period_identifier: period,
-      };
-      setLogs((prev) => [newLog, ...prev]);
-      setItems((prev) =>
-        prev.map((i) => {
-          if (String(i.id) === String(item.id)) {
-            return {
-              ...i,
-              last_completed_at: nowIso,
-              last_completed_by: currentUser.id,
-              last_completed_by_name: currentUser.full_name || currentUser.username,
-            };
-          }
-          return i;
-        })
-      );
-    }
+    setLogs((prev) => prev.filter((l) => !(String(l.item_id || (l as any).item) === String(item.id) && l.period_identifier === period)));
+    setItems((prev) =>
+      prev.map((i) => {
+        if (String(i.id) === String(item.id)) {
+          return { ...i, last_completed_at: null, last_completed_by: null, last_completed_by_name: undefined, last_completed_count: 0 };
+        }
+        return i;
+      })
+    );
 
-    // Call API to persist in database table
     try {
       await api.toggleCompleteRoutineItem(item.id, period);
     } catch (err: any) {
-      console.warn('Persist completion to DB failed, updating local store:', err);
-      // Persist in local storage
+      console.warn('Persist undo to DB failed, updating local store:', err);
       try {
         localStorage.setItem(LOCAL_STORAGE_BACKUP_KEY, JSON.stringify(items));
         localStorage.setItem(LOCAL_STORAGE_LOGS_KEY, JSON.stringify(logs));
       } catch {}
+    }
+  };
+
+  // Save completion modal (Persist daily count and notes to DB)
+  const handleSaveCompletion = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!completingItem) return;
+
+    setSavingCompletion(true);
+    const period = getPeriodIdentifier(completingItem.frequency);
+    const nowIso = new Date().toISOString();
+    const finalCount = Math.max(1, Number(completeCount) || 1);
+    const finalNotes = completeNotes.trim();
+
+    // Optimistic UI update
+    const newLog: RoutineWorkLog = {
+      id: isUpdatingExisting ? `log_upd_${Date.now()}` : `log_${Date.now()}`,
+      item_id: completingItem.id,
+      completed_by: currentUser.id,
+      completed_by_name: currentUser.full_name || currentUser.username,
+      completed_at: nowIso,
+      period_identifier: period,
+      count: finalCount,
+      notes: finalNotes,
+    };
+
+    if (isUpdatingExisting) {
+      setLogs((prev) => {
+        const withoutOld = prev.filter((l) => !(String(l.item_id || (l as any).item) === String(completingItem.id) && l.period_identifier === period));
+        return [newLog, ...withoutOld];
+      });
+    } else {
+      setLogs((prev) => [newLog, ...prev]);
+    }
+
+    setItems((prev) =>
+      prev.map((i) => {
+        if (String(i.id) === String(completingItem.id)) {
+          return {
+            ...i,
+            last_completed_at: nowIso,
+            last_completed_by: currentUser.id,
+            last_completed_by_name: currentUser.full_name || currentUser.username,
+            last_completed_count: finalCount,
+            completion_notes: finalNotes,
+          };
+        }
+        return i;
+      })
+    );
+
+    try {
+      await api.toggleCompleteRoutineItem(completingItem.id, period, finalNotes, finalCount, isUpdatingExisting);
+    } catch (err: any) {
+      console.warn('Persist completion to DB failed, updating local store:', err);
+      try {
+        localStorage.setItem(LOCAL_STORAGE_BACKUP_KEY, JSON.stringify(items));
+        localStorage.setItem(LOCAL_STORAGE_LOGS_KEY, JSON.stringify(logs));
+      } catch {}
+    } finally {
+      setSavingCompletion(false);
+      setIsCompleteModalOpen(false);
+      setCompletingItem(null);
     }
   };
 
@@ -285,6 +361,8 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
         ? '1st of month'
         : 'January'
     );
+    setFormTargetCount('');
+    setFormUnit('');
     setIsModalOpen(true);
   };
 
@@ -298,6 +376,8 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
     setFormAssignee(item.assigned_to || '');
     setFormPriority(item.priority || 'MEDIUM');
     setFormTargetTime(item.target_time || '');
+    setFormTargetCount(item.target_count || '');
+    setFormUnit(item.unit || '');
     setIsModalOpen(true);
   };
 
@@ -318,6 +398,8 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
       assigned_to: formAssignee ? Number(formAssignee) : null,
       priority: formPriority,
       target_time: formTargetTime.trim(),
+      target_count: formTargetCount ? Number(formTargetCount) : 0,
+      unit: formUnit.trim(),
       is_active: true,
     };
 
@@ -351,6 +433,8 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
           created_by_name: currentUser.full_name || currentUser.username,
           priority: formPriority,
           target_time: formTargetTime.trim(),
+          target_count: formTargetCount ? Number(formTargetCount) : 0,
+          unit: formUnit.trim(),
           is_active: true,
           created_at: new Date().toISOString(),
         };
@@ -553,8 +637,21 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
 
     const calc = (freq: RoutineFrequency) => {
       const list = scoped.filter((i) => i.frequency === freq);
-      const done = list.filter((i) => isItemCompletedCurrentCycle(i).completed).length;
-      return { total: list.length, completed: done, percent: list.length > 0 ? Math.round((done / list.length) * 100) : 0 };
+      let done = 0;
+      let totalCount = 0;
+      list.forEach((i) => {
+        const { completed, log } = isItemCompletedCurrentCycle(i);
+        if (completed) {
+          done++;
+          totalCount += Number(log?.count ?? i.last_completed_count) || 1;
+        }
+      });
+      return {
+        total: list.length,
+        completed: done,
+        percent: list.length > 0 ? Math.round((done / list.length) * 100) : 0,
+        totalCount,
+      };
     };
 
     return {
@@ -989,6 +1086,12 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
           <div style={{ marginTop: '8px', fontSize: '20px', fontWeight: 800, color: 'var(--notion-text)' }}>
             {stats.DAILY.completed} <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--notion-text-muted)' }}>/ {stats.DAILY.total} Today</span>
           </div>
+          {stats.DAILY.totalCount > 0 && (
+            <div style={{ marginTop: '3px', fontSize: '11px', color: '#059669', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>📊 Daily Count Logged:</span>
+              <strong style={{ fontSize: '12px' }}>{stats.DAILY.totalCount}</strong>
+            </div>
+          )}
           <div style={{ marginTop: '8px', height: '5px', borderRadius: '4px', background: 'var(--notion-item-bg)', overflow: 'hidden' }}>
             <div style={{ width: `${stats.DAILY.percent}%`, height: '100%', background: '#3b82f6', borderRadius: '4px', transition: 'width 0.3s' }} />
           </div>
@@ -1472,7 +1575,7 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
                     {/* Checkbox */}
                     <button
                       type="button"
-                      onClick={() => handleToggleComplete(item)}
+                      onClick={() => handleClickItemCheckbox(item)}
                       style={{
                         background: 'transparent',
                         border: 'none',
@@ -1485,7 +1588,7 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
                         color: completed ? '#10b981' : 'var(--notion-border-dark, #cbd5e1)',
                         transition: 'color 0.15s ease, transform 0.1s ease',
                       }}
-                      title={completed ? 'Click to mark pending' : 'Click to mark completed for this cycle'}
+                      title={completed ? `Completed (Count: ${log?.count ?? item.last_completed_count ?? 1}). Click to view or update.` : 'Click to record completion and enter count'}
                     >
                       {completed ? (
                         <CheckCircle2 size={20} style={{ color: '#10b981' }} />
@@ -1560,17 +1663,70 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
                         )}
                       </div>
 
-                      {/* Completed Attribution Bar */}
+                      {/* Completed Attribution Bar & Daily Count */}
                       {completed && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', fontSize: '11.5px', color: '#059669', fontWeight: 600 }}>
-                          <ShieldCheck size={13} />
-                          <span>
-                            Completed for current {item.frequency.toLowerCase()} cycle by{' '}
-                            <strong>{log?.completed_by_name || item.last_completed_by_name || 'Staff'}</strong>
-                            {log?.completed_at ? ` at ${new Date(log.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
-                          </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '5px', fontSize: '11.5px', color: '#059669', fontWeight: 600 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <ShieldCheck size={13} />
+                            <span>
+                              Completed for current {item.frequency.toLowerCase()} cycle by{' '}
+                              <strong>{log?.completed_by_name || item.last_completed_by_name || 'Staff'}</strong>
+                              {log?.completed_at ? ` at ${new Date(log.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                            </span>
+                          </div>
+
+                          {/* Daily Count Badge with click to edit */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenUpdateCount(item)}
+                            style={{
+                              background: '#ecfdf5',
+                              border: '1px solid #a7f3d0',
+                              color: '#047857',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                            title="Click to edit recorded count"
+                          >
+                            <span>📊 Count: <strong>{log?.count ?? item.last_completed_count ?? 1}</strong> {item.unit || ''}</span>
+                            <Edit size={10} />
+                          </button>
+
+                          {log?.notes && (
+                            <span style={{ color: 'var(--notion-text-muted)', fontStyle: 'italic', fontSize: '11px' }}>
+                              💬 "{log.notes}"
+                            </span>
+                          )}
                         </div>
                       )}
+
+                      {/* Pending Target Badge */}
+                      {!completed && item.target_count && item.target_count > 0 ? (
+                        <div style={{ marginTop: '4px' }}>
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '1px 7px',
+                              borderRadius: '6px',
+                              background: 'rgba(59, 130, 246, 0.08)',
+                              border: '1px solid rgba(59, 130, 246, 0.2)',
+                              color: '#2563eb',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                            }}
+                          >
+                            🎯 Target Goal: {item.target_count} {item.unit || 'units'}
+                          </span>
+                        </div>
+                      ) : null}
 
                       {/* SOP Instructions Accordion */}
                       {item.description && (
@@ -1914,6 +2070,56 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
                 />
               </div>
 
+              {/* Target Count & Unit (Optional) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: 'var(--notion-text)' }}>
+                    Target Count / Quota <span style={{ fontSize: '11px', color: 'var(--notion-text-muted)', fontWeight: 500 }}>(Optional)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 50 (daily goal)"
+                    value={formTargetCount}
+                    onChange={(e) => setFormTargetCount(e.target.value ? Number(e.target.value) : '')}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--notion-border)',
+                      background: 'var(--notion-item-bg)',
+                      color: 'var(--notion-text)',
+                      fontSize: '12.5px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: 'var(--notion-text)' }}>
+                    Count Unit <span style={{ fontSize: '11px', color: 'var(--notion-text-muted)', fontWeight: 500 }}>(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. calls, files, audits, tickets"
+                    value={formUnit}
+                    onChange={(e) => setFormUnit(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--notion-border)',
+                      background: 'var(--notion-item-bg)',
+                      color: 'var(--notion-text)',
+                      fontSize: '12.5px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+
               {/* SOP / Description */}
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: 'var(--notion-text)' }}>
@@ -1960,6 +2166,462 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: RECORD ROUTINE / DAILY WORK COMPLETION & ASK COUNT                 */}
+      {/* ========================================================================= */}
+      {isCompleteModalOpen && completingItem && (
+        <div
+          className="notion-modal-overlay"
+          onClick={() => !savingCompletion && setIsCompleteModalOpen(false)}
+          style={{
+            backdropFilter: 'blur(8px)',
+            background: 'rgba(15, 23, 42, 0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            className="notion-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              maxHeight: '88vh',
+              display: 'flex',
+              flexDirection: 'column',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              background: 'var(--notion-card)',
+              border: '1px solid var(--notion-border)',
+              boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.35)',
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                flexShrink: 0,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '14px 20px',
+                borderBottom: '1px solid var(--notion-border)',
+                background: 'linear-gradient(180deg, var(--notion-item-bg) 0%, transparent 100%)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ffffff',
+                    boxShadow: '0 4px 12px -2px rgba(16, 185, 129, 0.4)',
+                  }}
+                >
+                  <CheckCircle2 size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--notion-text)' }}>
+                    {isUpdatingExisting ? 'Update Daily Routine Count' : 'Record Daily Routine Completion'}
+                  </h3>
+                  <p style={{ margin: '1px 0 0 0', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
+                    Save today's completed count &amp; notes to database
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => !savingCompletion && setIsCompleteModalOpen(false)}
+                aria-label="Close"
+                style={{
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '8px',
+                  background: 'var(--notion-item-bg)',
+                  border: '1px solid var(--notion-border-subtle)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--notion-text-muted)',
+                }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSaveCompletion} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden', margin: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* Task Item Banner */}
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    background: 'var(--notion-item-bg)',
+                    border: '1px solid var(--notion-border)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                    {getFrequencyBadge(completingItem.frequency)}
+                    {(completingItem.department_name || completingItem.department_code) && (
+                      <span className="notion-tag tag-purple" style={{ fontSize: '10.5px' }}>
+                        🏢 {completingItem.department_name || completingItem.department_code}
+                      </span>
+                    )}
+                    {completingItem.target_time && (
+                      <span style={{ fontSize: '11px', color: 'var(--notion-text-muted)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <Clock size={11} /> {completingItem.target_time}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--notion-text)' }}>
+                    {completingItem.title}
+                  </div>
+                  {completingItem.target_count ? (
+                    <div style={{ marginTop: '4px', fontSize: '11.5px', color: '#2563eb', fontWeight: 700 }}>
+                      🎯 Expected Target: {completingItem.target_count} {completingItem.unit || 'units'}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Daily Count Input */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '0.01em' }}>
+                      DAILY COUNT / UNITS DONE <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>
+                      Units: {completingItem.unit || 'records / items'}
+                    </span>
+                  </div>
+
+                  {/* Counter Stepper Control */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setCompleteCount((prev) => Math.max(1, prev - 1))}
+                      style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '9px',
+                        border: '1px solid var(--notion-border)',
+                        background: 'var(--notion-input-bg)',
+                        color: 'var(--notion-text)',
+                        fontSize: '18px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      -
+                    </button>
+
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      autoFocus
+                      value={completeCount}
+                      onChange={(e) => setCompleteCount(Math.max(1, parseInt(e.target.value) || 1))}
+                      style={{
+                        flex: 1,
+                        padding: '9px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--notion-border)',
+                        background: 'var(--notion-input-bg)',
+                        color: 'var(--notion-text)',
+                        fontSize: '18px',
+                        fontWeight: 800,
+                        textAlign: 'center',
+                        outline: 'none',
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => setCompleteCount((prev) => prev + 1)}
+                      style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '9px',
+                        border: '1px solid var(--notion-border)',
+                        background: 'var(--notion-input-bg)',
+                        color: 'var(--notion-text)',
+                        fontSize: '18px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  {/* Quick Count Preset Pills */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-dim)' }}>Quick Add:</span>
+                    {[1, 5, 10, 25, 50].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setCompleteCount((prev) => (prev === 1 ? num : prev + num))}
+                        style={{
+                          fontSize: '11px',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid var(--notion-border-subtle)',
+                          background: 'var(--notion-item-bg)',
+                          color: 'var(--notion-text)',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                        }}
+                      >
+                        +{num}
+                      </button>
+                    ))}
+                    {completingItem.target_count && completingItem.target_count > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setCompleteCount(completingItem.target_count || 1)}
+                        style={{
+                          fontSize: '11px',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(59, 130, 246, 0.4)',
+                          background: 'rgba(59, 130, 246, 0.1)',
+                          color: '#2563eb',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                        }}
+                      >
+                        🎯 Target ({completingItem.target_count})
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Work Remarks / Notes */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--notion-text)', marginBottom: '6px', letterSpacing: '0.01em' }}>
+                    WORK REMARKS &amp; NOTES <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)', fontWeight: 500 }}>(Optional)</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="e.g. Completed all scheduled verification calls, verified document uploads..."
+                    value={completeNotes}
+                    onChange={(e) => setCompleteNotes(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--notion-border)',
+                      background: 'var(--notion-input-bg)',
+                      color: 'var(--notion-text)',
+                      fontSize: '13px',
+                      fontFamily: 'inherit',
+                      lineHeight: 1.5,
+                      resize: 'vertical',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div
+                style={{
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderTop: '1px solid var(--notion-border)',
+                  padding: '12px 20px',
+                  background: 'var(--notion-item-bg)',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setIsCompleteModalOpen(false)}
+                  className="notion-btn notion-btn-bordered"
+                  style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600 }}
+                  disabled={savingCompletion}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={savingCompletion || !completeCount || completeCount < 1}
+                  className="notion-btn"
+                  style={{
+                    padding: '8px 22px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: savingCompletion ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  <CheckCircle2 size={14} />
+                  <span>{savingCompletion ? 'Saving...' : isUpdatingExisting ? 'Update Daily Count' : 'Save & Mark Complete'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ALREADY COMPLETED ACTION (Update Count / Notes OR Mark Pending)    */}
+      {/* ========================================================================= */}
+      {alreadyCompletedModalItem && (
+        <div
+          className="notion-modal-overlay"
+          onClick={() => setAlreadyCompletedModalItem(null)}
+          style={{
+            backdropFilter: 'blur(8px)',
+            background: 'rgba(15, 23, 42, 0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            className="notion-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '460px',
+              width: '100%',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              background: 'var(--notion-card)',
+              border: '1px solid var(--notion-border)',
+              boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.35)',
+              padding: '20px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <ShieldCheck size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--notion-text)' }}>
+                    Routine Item Completed
+                  </h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
+                    Logged for current {alreadyCompletedModalItem.frequency.toLowerCase()} cycle
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAlreadyCompletedModalItem(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--notion-text-muted)' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ margin: '16px 0', padding: '12px', borderRadius: '10px', background: 'var(--notion-item-bg)', border: '1px solid var(--notion-border)' }}>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--notion-text)' }}>
+                {alreadyCompletedModalItem.title}
+              </div>
+              {(() => {
+                const { log } = isItemCompletedCurrentCycle(alreadyCompletedModalItem);
+                const recordedCount = log?.count ?? alreadyCompletedModalItem.last_completed_count;
+                return (
+                  <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '11.5px' }}>
+                    {recordedCount != null && (
+                      <span style={{ fontWeight: 800, color: '#059669', background: '#ecfdf5', padding: '2px 8px', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
+                        📊 Recorded Count: {recordedCount} {alreadyCompletedModalItem.unit || ''}
+                      </span>
+                    )}
+                    {log?.completed_by_name && (
+                      <span style={{ color: 'var(--notion-text-muted)' }}>
+                        by <strong>{log.completed_by_name}</strong>
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => handleOpenUpdateCount(alreadyCompletedModalItem)}
+                className="notion-btn notion-btn-primary"
+                style={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  padding: '9px 14px',
+                  borderRadius: '9px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  gap: '6px',
+                }}
+              >
+                <Edit size={14} />
+                <span>Update Today's Count &amp; Notes</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDirectUndoComplete(alreadyCompletedModalItem)}
+                className="notion-btn notion-btn-bordered"
+                style={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  padding: '9px 14px',
+                  borderRadius: '9px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  gap: '6px',
+                  color: '#ef4444',
+                  borderColor: 'rgba(239, 68, 68, 0.3)',
+                }}
+              >
+                <RotateCcw size={14} />
+                <span>Mark as Pending (Undo)</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
