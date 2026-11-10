@@ -104,6 +104,9 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
   // Priority filter for task filtering
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
 
+  // Task display density mode: 'compact' (sleek modern pills) vs 'detailed' (expanded cards)
+  const [taskDensity, setTaskDensity] = useState<'compact' | 'detailed'>('compact');
+
   // Department cards expanded vs compact horizontal bar
   const [showDeptDetails, setShowDeptDetails] = useState(false);
 
@@ -741,6 +744,20 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
     }
   };
 
+  const getPriorityColor = (p: string) => {
+    switch (p) {
+      case 'URGENT':
+        return '#ef4444';
+      case 'HIGH':
+        return '#f97316';
+      case 'MEDIUM':
+        return '#0284c7';
+      case 'LOW':
+      default:
+        return '#94a3b8';
+    }
+  };
+
   return (
     <div style={{ padding: '24px 32px', maxWidth: '1680px', margin: '0 auto' }}>
       {/* =========================================================================
@@ -1351,35 +1368,38 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
       </div>
 
       {/* =========================================================================
-          4. WORKLOAD DISTRIBUTION & FILTER CONTROL CENTER
+          4. COMPACT WORKLOAD DISTRIBUTION & FILTER CONTROL CENTER (Small UI)
           ========================================================================= */}
       <div
         style={{
           background: 'var(--notion-card)',
           border: '1px solid var(--notion-border)',
-          borderRadius: '14px',
-          padding: '16px 20px',
-          marginBottom: '20px',
+          borderRadius: '12px',
+          padding: '10px 14px',
+          marginBottom: '16px',
           boxShadow: 'var(--notion-shadow-sm)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
         }}
       >
-        {/* Top Header Row: Title, Summary & Global Search */}
+        {/* ROW 1: Sleek Title, Inline Search, Reset, and Density Toggle */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: '14px',
+            gap: '10px',
             flexWrap: 'wrap',
-            gap: '12px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Title & Stats */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div
               style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '9px',
+                width: '26px',
+                height: '26px',
+                borderRadius: '7px',
                 background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(2, 132, 199, 0.15))',
                 color: '#6366f1',
                 display: 'flex',
@@ -1388,49 +1408,44 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                 flexShrink: 0,
               }}
             >
-              <Activity size={18} />
+              <Activity size={14} />
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '-0.01em' }}>
-                  Team Workload &amp; Capacity Monitor
-                </span>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: '999px',
-                    background: 'var(--notion-item-bg)',
-                    color: 'var(--notion-text-muted)',
-                    border: '1px solid var(--notion-border)',
-                  }}
-                >
-                  {staffMatrixData.length} of {filteredStaffList.length} staff showing
-                </span>
-              </div>
-              <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)', marginTop: '2px' }}>
-                Instant capacity tracking · Select a workload profile below to filter
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '-0.01em' }}>
+                Team Workload &amp; Capacity Monitor
+              </span>
+              <span
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  padding: '1px 6px',
+                  borderRadius: '999px',
+                  background: 'var(--notion-item-bg)',
+                  color: 'var(--notion-text-muted)',
+                  border: '1px solid var(--notion-border)',
+                }}
+              >
+                {staffMatrixData.length} of {filteredStaffList.length} staff
+              </span>
             </div>
           </div>
 
-          {/* Quick Search & Clear Filters */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Quick Search, Reset & Density Switcher */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1', justifyContent: 'flex-end', maxWidth: '520px', minWidth: '240px', flexWrap: 'wrap' }}>
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '6px 12px',
-                borderRadius: '999px',
+                gap: '6px',
+                padding: '4px 10px',
+                borderRadius: '8px',
                 background: 'var(--notion-input-bg)',
                 border: '1px solid var(--notion-border)',
-                width: '260px',
-                transition: 'border-color 0.15s ease',
+                width: '100%',
+                maxWidth: '240px',
               }}
             >
-              <Search size={14} style={{ color: 'var(--notion-text-dim)', flexShrink: 0 }} />
+              <Search size={13} style={{ color: 'var(--notion-text-dim)', flexShrink: 0 }} />
               <input
                 type="text"
                 placeholder="Search staff, role, #task..."
@@ -1440,7 +1455,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  fontSize: '12px',
+                  fontSize: '11.5px',
                   color: 'var(--notion-text)',
                   width: '100%',
                 }}
@@ -1449,15 +1464,9 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    color: 'var(--notion-text-dim)',
-                  }}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--notion-text-dim)' }}
                 >
-                  <X size={13} />
+                  <X size={12} />
                 </button>
               )}
             </div>
@@ -1470,413 +1479,184 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                   setWorkloadFilter('ALL');
                   setPriorityFilter('ALL');
                 }}
-                className="notion-btn notion-btn-bordered"
                 style={{
                   fontSize: '11px',
-                  padding: '5px 12px',
-                  borderRadius: '999px',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
                   whiteSpace: 'nowrap',
-                  gap: '5px',
+                  gap: '4px',
                   color: '#ef4444',
-                  borderColor: 'rgba(239, 68, 68, 0.3)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
                   background: 'rgba(239, 68, 68, 0.06)',
                   fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
                 }}
                 title="Reset all search and filters"
               >
-                <X size={12} />
-                <span>Reset Filters</span>
+                <X size={11} />
+                <span>Reset</span>
               </button>
             )}
+
+            {/* Density Switcher */}
+            <div
+              style={{
+                display: 'inline-flex',
+                background: 'var(--notion-item-bg)',
+                border: '1px solid var(--notion-border)',
+                borderRadius: '6px',
+                padding: '2px',
+                gap: '2px',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setTaskDensity('compact')}
+                style={{
+                  fontSize: '11px',
+                  padding: '3px 8px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: taskDensity === 'compact' ? 700 : 500,
+                  background: taskDensity === 'compact' ? 'var(--notion-card)' : 'transparent',
+                  color: taskDensity === 'compact' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
+                  boxShadow: taskDensity === 'compact' ? 'var(--notion-shadow-sm)' : 'none',
+                }}
+                title="Ultra-compact sleek pills"
+              >
+                🗜️ Compact
+              </button>
+              <button
+                type="button"
+                onClick={() => setTaskDensity('detailed')}
+                style={{
+                  fontSize: '11px',
+                  padding: '3px 8px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: taskDensity === 'detailed' ? 700 : 500,
+                  background: taskDensity === 'detailed' ? 'var(--notion-card)' : 'transparent',
+                  color: taskDensity === 'detailed' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
+                  boxShadow: taskDensity === 'detailed' ? 'var(--notion-shadow-sm)' : 'none',
+                }}
+                title="Detailed task cards"
+              >
+                📋 Detailed
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* WORKLOAD CAPACITY CARDS (The 5 Interactive State Tabs) */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(185px, 1fr))',
-            gap: '10px',
-            marginBottom: '14px',
-          }}
-        >
-          {/* TAB 1: ALL STAFF */}
-          <button
-            type="button"
-            onClick={() => setWorkloadFilter('ALL')}
-            style={{
-              padding: '10px 14px',
-              borderRadius: '11px',
-              border: workloadFilter === 'ALL'
-                ? '2px solid #6366f1'
-                : '1px solid var(--notion-border)',
-              background: workloadFilter === 'ALL'
-                ? 'rgba(99, 102, 241, 0.1)'
-                : 'var(--notion-item-bg)',
-              color: workloadFilter === 'ALL' ? '#6366f1' : 'var(--notion-text)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              transition: 'all 0.15s ease',
-              textAlign: 'left',
-              boxShadow: workloadFilter === 'ALL' ? '0 3px 10px rgba(99, 102, 241, 0.2)' : 'none',
-              transform: workloadFilter === 'ALL' ? 'translateY(-1px)' : 'none',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-              <div
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '8px',
-                  background: workloadFilter === 'ALL' ? '#6366f1' : 'rgba(99, 102, 241, 0.12)',
-                  color: workloadFilter === 'ALL' ? '#ffffff' : '#6366f1',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <Users size={15} />
-              </div>
-              <div>
-                <div style={{ fontSize: '12.5px', fontWeight: 800, lineHeight: 1.2 }}>
-                  All Staff
-                </div>
-                <div style={{ fontSize: '10px', color: 'var(--notion-text-dim)', marginTop: '2px' }}>
-                  Entire directory
-                </div>
-              </div>
-            </div>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                padding: '2px 8px',
-                borderRadius: '999px',
-                background: workloadFilter === 'ALL' ? '#6366f1' : 'var(--notion-border)',
-                color: workloadFilter === 'ALL' ? '#ffffff' : 'var(--notion-text-muted)',
-              }}
-            >
-              {workloadCounts.all}
-            </span>
-          </button>
-
-          {/* TAB 2: ACTIVE WORK */}
-          <button
-            type="button"
-            onClick={() => setWorkloadFilter('ACTIVE_ONLY')}
-            style={{
-              padding: '10px 14px',
-              borderRadius: '11px',
-              border: workloadFilter === 'ACTIVE_ONLY'
-                ? '2px solid #0284c7'
-                : '1px solid var(--notion-border)',
-              background: workloadFilter === 'ACTIVE_ONLY'
-                ? 'rgba(2, 132, 199, 0.12)'
-                : 'var(--notion-item-bg)',
-              color: workloadFilter === 'ACTIVE_ONLY' ? '#0284c7' : 'var(--notion-text)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              transition: 'all 0.15s ease',
-              textAlign: 'left',
-              boxShadow: workloadFilter === 'ACTIVE_ONLY' ? '0 3px 10px rgba(2, 132, 199, 0.2)' : 'none',
-              transform: workloadFilter === 'ACTIVE_ONLY' ? 'translateY(-1px)' : 'none',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-              <div
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '8px',
-                  background: workloadFilter === 'ACTIVE_ONLY' ? '#0284c7' : 'rgba(2, 132, 199, 0.12)',
-                  color: workloadFilter === 'ACTIVE_ONLY' ? '#ffffff' : '#0284c7',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <Zap size={15} />
-              </div>
-              <div>
-                <div style={{ fontSize: '12.5px', fontWeight: 800, lineHeight: 1.2 }}>
-                  Active Work
-                </div>
-                <div style={{ fontSize: '10px', color: 'var(--notion-text-dim)', marginTop: '2px' }}>
-                  Has ongoing tasks
-                </div>
-              </div>
-            </div>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                padding: '2px 8px',
-                borderRadius: '999px',
-                background: workloadFilter === 'ACTIVE_ONLY' ? '#0284c7' : 'var(--notion-border)',
-                color: workloadFilter === 'ACTIVE_ONLY' ? '#ffffff' : 'var(--notion-text-muted)',
-              }}
-            >
-              {workloadCounts.active}
-            </span>
-          </button>
-
-          {/* TAB 3: HEAVY LOAD (4+ TASKS) */}
-          <button
-            type="button"
-            onClick={() => setWorkloadFilter('HEAVY')}
-            style={{
-              padding: '10px 14px',
-              borderRadius: '11px',
-              border: workloadFilter === 'HEAVY'
-                ? '2px solid #ea580c'
-                : '1px solid var(--notion-border)',
-              background: workloadFilter === 'HEAVY'
-                ? 'rgba(234, 88, 12, 0.12)'
-                : 'var(--notion-item-bg)',
-              color: workloadFilter === 'HEAVY' ? '#ea580c' : 'var(--notion-text)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              transition: 'all 0.15s ease',
-              textAlign: 'left',
-              boxShadow: workloadFilter === 'HEAVY' ? '0 3px 10px rgba(234, 88, 12, 0.22)' : 'none',
-              transform: workloadFilter === 'HEAVY' ? 'translateY(-1px)' : 'none',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-              <div
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '8px',
-                  background: workloadFilter === 'HEAVY' ? '#ea580c' : 'rgba(234, 88, 12, 0.14)',
-                  color: workloadFilter === 'HEAVY' ? '#ffffff' : '#ea580c',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <Flame size={15} />
-              </div>
-              <div>
-                <div style={{ fontSize: '12.5px', fontWeight: 800, lineHeight: 1.2 }}>
-                  Heavy Load
-                </div>
-                <div style={{ fontSize: '10px', color: 'var(--notion-text-dim)', marginTop: '2px' }}>
-                  4+ active deliverables
-                </div>
-              </div>
-            </div>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                padding: '2px 8px',
-                borderRadius: '999px',
-                background: workloadFilter === 'HEAVY' ? '#ea580c' : 'var(--notion-border)',
-                color: workloadFilter === 'HEAVY' ? '#ffffff' : 'var(--notion-text-muted)',
-              }}
-            >
-              {workloadCounts.heavy}
-            </span>
-          </button>
-
-          {/* TAB 4: URGENT / ATTENTION */}
-          <button
-            type="button"
-            onClick={() => setWorkloadFilter('URGENT')}
-            style={{
-              padding: '10px 14px',
-              borderRadius: '11px',
-              border: workloadFilter === 'URGENT'
-                ? '2px solid #ef4444'
-                : '1px solid var(--notion-border)',
-              background: workloadFilter === 'URGENT'
-                ? 'rgba(239, 68, 68, 0.12)'
-                : 'var(--notion-item-bg)',
-              color: workloadFilter === 'URGENT' ? '#ef4444' : 'var(--notion-text)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              transition: 'all 0.15s ease',
-              textAlign: 'left',
-              boxShadow: workloadFilter === 'URGENT' ? '0 3px 10px rgba(239, 68, 68, 0.22)' : 'none',
-              transform: workloadFilter === 'URGENT' ? 'translateY(-1px)' : 'none',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-              <div
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '8px',
-                  background: workloadFilter === 'URGENT' ? '#ef4444' : 'rgba(239, 68, 68, 0.14)',
-                  color: workloadFilter === 'URGENT' ? '#ffffff' : '#ef4444',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <AlertTriangle size={15} />
-              </div>
-              <div>
-                <div style={{ fontSize: '12.5px', fontWeight: 800, lineHeight: 1.2 }}>
-                  Attention
-                </div>
-                <div style={{ fontSize: '10px', color: 'var(--notion-text-dim)', marginTop: '2px' }}>
-                  Urgent or overdue
-                </div>
-              </div>
-            </div>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                padding: '2px 8px',
-                borderRadius: '999px',
-                background: workloadFilter === 'URGENT' ? '#ef4444' : 'var(--notion-border)',
-                color: workloadFilter === 'URGENT' ? '#ffffff' : 'var(--notion-text-muted)',
-              }}
-            >
-              {workloadCounts.urgent}
-            </span>
-          </button>
-
-          {/* TAB 5: AVAILABLE CAPACITY */}
-          <button
-            type="button"
-            onClick={() => setWorkloadFilter('AVAILABLE')}
-            style={{
-              padding: '10px 14px',
-              borderRadius: '11px',
-              border: workloadFilter === 'AVAILABLE'
-                ? '2px solid #10b981'
-                : '1px solid var(--notion-border)',
-              background: workloadFilter === 'AVAILABLE'
-                ? 'rgba(16, 185, 129, 0.12)'
-                : 'var(--notion-item-bg)',
-              color: workloadFilter === 'AVAILABLE' ? '#10b981' : 'var(--notion-text)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              transition: 'all 0.15s ease',
-              textAlign: 'left',
-              boxShadow: workloadFilter === 'AVAILABLE' ? '0 3px 10px rgba(16, 185, 129, 0.22)' : 'none',
-              transform: workloadFilter === 'AVAILABLE' ? 'translateY(-1px)' : 'none',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-              <div
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '8px',
-                  background: workloadFilter === 'AVAILABLE' ? '#10b981' : 'rgba(16, 185, 129, 0.14)',
-                  color: workloadFilter === 'AVAILABLE' ? '#ffffff' : '#10b981',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <CheckCircle2 size={15} />
-              </div>
-              <div>
-                <div style={{ fontSize: '12.5px', fontWeight: 800, lineHeight: 1.2 }}>
-                  Available
-                </div>
-                <div style={{ fontSize: '10px', color: 'var(--notion-text-dim)', marginTop: '2px' }}>
-                  Ready for new tasks
-                </div>
-              </div>
-            </div>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                padding: '2px 8px',
-                borderRadius: '999px',
-                background: workloadFilter === 'AVAILABLE' ? '#10b981' : 'var(--notion-border)',
-                color: workloadFilter === 'AVAILABLE' ? '#ffffff' : 'var(--notion-text-muted)',
-              }}
-            >
-              {workloadCounts.available}
-            </span>
-          </button>
-        </div>
-
-        {/* Bottom Row: Task Priority Filter Chips Strip */}
+        {/* ROW 2: Segmented Capacity Pills & Priority Filter Chips */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingTop: '12px',
-            borderTop: '1px solid var(--notion-border-subtle)',
+            gap: '8px',
             flexWrap: 'wrap',
-            gap: '10px',
+            paddingTop: '6px',
+            borderTop: '1px solid var(--notion-border-subtle)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--notion-text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Filter by Task Priority:
+          {/* Capacity Segmented Pills */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: '4px' }}>
+              Capacity:
             </span>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-              {[
-                { key: 'ALL', label: 'All Priorities', icon: null },
-                { key: 'URGENT', label: 'Urgent', icon: <Flame size={12} style={{ color: '#ef4444' }} /> },
-                { key: 'HIGH', label: 'High', icon: <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#f97316' }} /> },
-                { key: 'MEDIUM', label: 'Medium', icon: <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#0284c7' }} /> },
-                { key: 'LOW', label: 'Low', icon: <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#94a3b8' }} /> },
-              ].map((p) => {
-                const isSelected = priorityFilter === p.key;
-                return (
-                  <button
-                    key={p.key}
-                    type="button"
-                    onClick={() => setPriorityFilter(p.key)}
+            {[
+              { key: 'ALL', label: 'All Staff', count: workloadCounts.all, color: '#6366f1', icon: <Users size={12} /> },
+              { key: 'ACTIVE_ONLY', label: 'Active', count: workloadCounts.active, color: '#0284c7', icon: <Zap size={12} /> },
+              { key: 'HEAVY', label: 'Heavy Load', count: workloadCounts.heavy, color: '#ea580c', icon: <Flame size={12} /> },
+              { key: 'URGENT', label: 'Attention', count: workloadCounts.urgent, color: '#ef4444', icon: <AlertTriangle size={12} /> },
+              { key: 'AVAILABLE', label: 'Available', count: workloadCounts.available, color: '#10b981', icon: <CheckCircle2 size={12} /> },
+            ].map((tab) => {
+              const active = workloadFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setWorkloadFilter(tab.key as WorkloadFilter)}
+                  style={{
+                    fontSize: '11px',
+                    padding: '3px 9px',
+                    borderRadius: '7px',
+                    border: active ? `1.5px solid ${tab.color}` : '1px solid var(--notion-border)',
+                    background: active ? `${tab.color}18` : 'var(--notion-item-bg)',
+                    color: active ? tab.color : 'var(--notion-text)',
+                    fontWeight: active ? 700 : 500,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    transition: 'all 0.12s ease',
+                  }}
+                >
+                  <span style={{ color: active ? tab.color : 'var(--notion-text-dim)', display: 'flex' }}>
+                    {tab.icon}
+                  </span>
+                  <span>{tab.label}</span>
+                  <span
                     style={{
-                      fontSize: '11.5px',
-                      padding: '4px 12px',
+                      fontSize: '9.5px',
+                      fontWeight: 800,
+                      padding: '1px 5px',
                       borderRadius: '999px',
-                      border: isSelected ? '1.5px solid #6366f1' : '1px solid var(--notion-border)',
-                      background: isSelected ? 'rgba(99, 102, 241, 0.12)' : 'var(--notion-item-bg)',
-                      color: isSelected ? '#6366f1' : 'var(--notion-text-muted)',
-                      fontWeight: isSelected ? 700 : 500,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      transition: 'all 0.12s ease',
+                      background: active ? tab.color : 'var(--notion-border)',
+                      color: active ? '#ffffff' : 'var(--notion-text-muted)',
                     }}
                   >
-                    {p.icon}
-                    <span>{p.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          <div style={{ fontSize: '11.5px', color: 'var(--notion-text-dim)' }}>
-            Showing <strong>{staffMatrixData.length}</strong> active profiles matching filters
+          {/* Priority Quick Filter Chips */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: '4px' }}>
+              Priority:
+            </span>
+
+            {[
+              { key: 'ALL', label: 'All', icon: null },
+              { key: 'URGENT', label: 'Urgent', icon: <Flame size={11} style={{ color: '#ef4444' }} /> },
+              { key: 'HIGH', label: 'High', icon: <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f97316' }} /> },
+              { key: 'MEDIUM', label: 'Med', icon: <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#0284c7' }} /> },
+              { key: 'LOW', label: 'Low', icon: <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#94a3b8' }} /> },
+            ].map((p) => {
+              const active = priorityFilter === p.key;
+              return (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => setPriorityFilter(p.key)}
+                  style={{
+                    fontSize: '11px',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    border: active ? '1.5px solid #6366f1' : '1px solid var(--notion-border)',
+                    background: active ? 'rgba(99, 102, 241, 0.12)' : 'var(--notion-item-bg)',
+                    color: active ? '#6366f1' : 'var(--notion-text-muted)',
+                    fontWeight: active ? 700 : 500,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.12s ease',
+                  }}
+                >
+                  {p.icon}
+                  <span>{p.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1909,35 +1689,35 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                     background: 'var(--notion-item-bg)',
                     borderBottom: '2px solid var(--notion-border)',
                     color: 'var(--notion-text)',
-                    fontSize: '12px',
+                    fontSize: '11.5px',
                     fontWeight: 700,
                   }}
                 >
-                  <th style={{ padding: '14px 18px', width: '22%', minWidth: '240px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <UserIcon size={15} style={{ color: '#6366f1' }} />
+                  <th style={{ padding: '10px 14px', width: '22%', minWidth: '220px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                      <UserIcon size={14} style={{ color: '#6366f1' }} />
                       <span>{t('staffMember')}</span>
                     </div>
                   </th>
-                  <th style={{ padding: '14px 18px', width: '25%', minWidth: '260px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Clock size={15} style={{ color: '#64748b' }} />
+                  <th style={{ padding: '10px 14px', width: '26%', minWidth: '240px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                      <Clock size={14} style={{ color: '#64748b' }} />
                       <span>{t('openTasks')}</span>
                     </div>
                   </th>
-                  <th style={{ padding: '14px 18px', width: '25%', minWidth: '260px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Flame size={15} style={{ color: '#0284c7' }} />
+                  <th style={{ padding: '10px 14px', width: '26%', minWidth: '240px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                      <Flame size={14} style={{ color: '#0284c7' }} />
                       <span>{t('inProgressTasks')} &amp; Review</span>
                     </div>
                   </th>
-                  <th style={{ padding: '14px 18px', width: '18%', minWidth: '220px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <CheckCircle2 size={15} style={{ color: '#10b981' }} />
+                  <th style={{ padding: '10px 14px', width: '16%', minWidth: '180px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                      <CheckCircle2 size={14} style={{ color: '#10b981' }} />
                       <span>{t('completedTasks')}</span>
                     </div>
                   </th>
-                  <th style={{ padding: '14px 18px', width: '10%', minWidth: '120px', textAlign: 'center' }}>
+                  <th style={{ padding: '10px 14px', width: '10%', minWidth: '110px', textAlign: 'center' }}>
                     <span>Workload &amp; Rate</span>
                   </th>
                 </tr>
@@ -1969,48 +1749,47 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--notion-hover)')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
-                      {/* COLUMN 1: STAFF MEMBER CARD */}
-                      <td style={{ padding: '16px 18px', borderRight: '1px solid var(--notion-border-subtle)' }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                      {/* COLUMN 1: COMPACT STAFF MEMBER PROFILE */}
+                      <td style={{ padding: '10px 14px', borderRight: '1px solid var(--notion-border-subtle)' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                           <div
                             style={{
-                              width: '38px',
-                              height: '38px',
-                              borderRadius: '10px',
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '8px',
                               background: 'linear-gradient(135deg, #0284c7, #6366f1)',
                               color: '#ffffff',
-                              fontSize: '13px',
+                              fontSize: '12px',
                               fontWeight: 700,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               flexShrink: 0,
-                              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                              boxShadow: '0 2px 5px rgba(2, 132, 199, 0.25)',
                             }}
                           >
                             {(row.staff.full_name || row.staff.username || '?').charAt(0).toUpperCase()}
                           </div>
 
-                          <div style={{ overflow: 'hidden', flex: 1 }}>
-                            <div style={{ fontWeight: 700, color: 'var(--notion-text)', fontSize: '13.5px', lineHeight: 1.2 }}>
-                              {row.staff.full_name || row.staff.username}
-                            </div>
-                            <div style={{ fontSize: '11px', color: 'var(--notion-text-muted)', marginTop: '2px', wordBreak: 'break-all' }}>
-                              {row.staff.email}
-                            </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
-                              {getRoleTag(row.staff.role)}
-                              {row.staff.department_name && (
-                                <span className="notion-tag tag-purple" style={{ fontSize: '9.5px', padding: '1px 5px' }}>
-                                  {row.staff.department_name}
-                                </span>
-                              )}
+                          <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 700, color: 'var(--notion-text)', fontSize: '12.5px', lineHeight: 1.2 }}>
+                                {row.staff.full_name || row.staff.username}
+                              </span>
                               {getWorkloadLevelBadge(row.workloadLevel, row.activeCount)}
                             </div>
 
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px', flexWrap: 'wrap' }}>
+                              {getRoleTag(row.staff.role)}
+                              {row.staff.department_name && (
+                                <span className="notion-tag tag-purple" style={{ fontSize: '9px', padding: '1px 5px' }}>
+                                  {row.staff.department_name}
+                                </span>
+                              )}
+                            </div>
+
                             {/* Staff Action Buttons: Share Work + Add Task */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '7px' }}>
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -2021,19 +1800,19 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                                 }}
                                 className="notion-btn notion-btn-bordered"
                                 style={{
-                                  fontSize: '10.5px',
-                                  padding: '3px 8px',
-                                  gap: '4px',
+                                  fontSize: '10px',
+                                  padding: '2px 7px',
+                                  gap: '3px',
                                   color: '#0284c7',
                                   borderColor: 'rgba(2, 132, 199, 0.3)',
-                                  borderRadius: '6px',
+                                  borderRadius: '5px',
                                   background: 'rgba(2, 132, 199, 0.05)',
                                   fontWeight: 600,
                                 }}
                                 title={`Send work summary & digest to ${row.staff.full_name || row.staff.username}`}
                               >
-                                <Share2 size={11} />
-                                <span>Share Work</span>
+                                <Share2 size={10} />
+                                <span>Share</span>
                               </button>
 
                               {canCreateTask && onOpenCreateTask && (
@@ -2045,15 +1824,15 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                                   }}
                                   className="notion-btn notion-btn-bordered"
                                   style={{
-                                    fontSize: '10.5px',
-                                    padding: '3px 8px',
+                                    fontSize: '10px',
+                                    padding: '2px 7px',
                                     gap: '3px',
-                                    borderRadius: '6px',
+                                    borderRadius: '5px',
                                     color: 'var(--notion-text-muted)',
                                   }}
                                   title={`Assign new task to ${row.staff.full_name || row.staff.username}`}
                                 >
-                                  <Plus size={11} />
+                                  <Plus size={10} />
                                   <span>Assign</span>
                                 </button>
                               )}
@@ -2062,15 +1841,15 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                         </div>
                       </td>
 
-                      {/* COLUMN 2: OPEN / TO DO TASKS */}
-                      <td style={{ padding: '14px 16px', borderRight: '1px solid var(--notion-border-subtle)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      {/* COLUMN 2: OPEN / TO DO TASKS (Compact Small UI) */}
+                      <td style={{ padding: '10px 12px', borderRight: '1px solid var(--notion-border-subtle)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                           <span
                             className="notion-tag tag-gray"
                             style={{
-                              fontSize: '11px',
+                              fontSize: '10.5px',
                               fontWeight: 700,
-                              padding: '2px 8px',
+                              padding: '1px 6px',
                             }}
                           >
                             {row.openTasks.length} Open
@@ -2078,7 +1857,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                         </div>
 
                         {row.openTasks.length === 0 ? (
-                          <div style={{ fontSize: '11.5px', color: 'var(--notion-text-dim)', fontStyle: 'italic', padding: '6px 0' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)', fontStyle: 'italic', padding: '4px 0' }}>
                             — No open tasks
                           </div>
                         ) : (
@@ -2086,16 +1865,125 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                             style={{
                               display: 'flex',
                               flexDirection: 'column',
-                              gap: '8px',
-                              maxHeight: '340px',
+                              gap: taskDensity === 'compact' ? '4px' : '8px',
+                              maxHeight: '360px',
                               overflowY: 'auto',
-                              paddingRight: '4px',
+                              paddingRight: '3px',
                             }}
                           >
                             {row.openTasks.map((task) => {
                               const isOverdue = task.due_date && task.due_date < todayStr;
                               const isDueToday = task.due_date && task.due_date === todayStr;
 
+                              if (taskDensity === 'compact') {
+                                return (
+                                  <div
+                                    key={task.id}
+                                    onClick={() => onSelectTask(task)}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      gap: '6px',
+                                      padding: '3px 8px',
+                                      borderRadius: '6px',
+                                      background: 'var(--notion-item-bg)',
+                                      border: isOverdue ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--notion-border)',
+                                      borderLeft: `3.5px solid ${getPriorityColor(task.priority)}`,
+                                      cursor: 'pointer',
+                                      minHeight: '28px',
+                                      transition: 'all 0.12s ease',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.borderColor = '#0284c7';
+                                      e.currentTarget.style.borderLeftColor = getPriorityColor(task.priority);
+                                      e.currentTarget.style.transform = 'translateY(-1px)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.borderColor = isOverdue ? 'rgba(239, 68, 68, 0.4)' : 'var(--notion-border)';
+                                      e.currentTarget.style.borderLeftColor = getPriorityColor(task.priority);
+                                      e.currentTarget.style.transform = 'none';
+                                    }}
+                                    title={`#${task.id} (${task.priority}): ${task.title}`}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, flex: 1 }}>
+                                      <span
+                                        style={{
+                                          fontSize: '9.5px',
+                                          fontWeight: 800,
+                                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                                          color: 'var(--notion-text-muted)',
+                                          background: 'var(--notion-card)',
+                                          padding: '1px 4px',
+                                          borderRadius: '3px',
+                                          border: '1px solid var(--notion-border)',
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        #{task.id}
+                                      </span>
+                                      <span
+                                        style={{
+                                          fontSize: '11px',
+                                          fontWeight: 600,
+                                          color: 'var(--notion-text)',
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                        }}
+                                      >
+                                        {task.title}
+                                      </span>
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                                      {task.status === 'CHANGES_REQUESTED' && (
+                                        <span style={{ fontSize: '8.5px', fontWeight: 700, padding: '1px 4px', borderRadius: '3px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' }}>
+                                          Changes
+                                        </span>
+                                      )}
+                                      {isOverdue && (
+                                        <span style={{ fontSize: '8.5px', fontWeight: 700, padding: '1px 4px', borderRadius: '3px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }} title={task.due_date || undefined}>
+                                          ⚠️ Overdue
+                                        </span>
+                                      )}
+                                      {isDueToday && (
+                                        <span style={{ fontSize: '8.5px', fontWeight: 700, padding: '1px 4px', borderRadius: '3px', background: 'rgba(245, 158, 11, 0.15)', color: '#d97706' }} title="Due Today">
+                                          📅 Today
+                                        </span>
+                                      )}
+                                      {onStartTask && (currentUserRole === 'GENERAL_MANAGER' || currentUserRole === 'SUPER_ADMIN' || currentUserId === task.assigned_to) && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onStartTask(task);
+                                          }}
+                                          style={{
+                                            fontSize: '9px',
+                                            padding: '2px 5px',
+                                            borderRadius: '4px',
+                                            border: '1px solid rgba(2, 132, 199, 0.3)',
+                                            background: 'rgba(2, 132, 199, 0.1)',
+                                            color: '#0284c7',
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '2px',
+                                          }}
+                                          title="Start working on this task"
+                                        >
+                                          <Play size={8} />
+                                          <span>Start</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              // Detailed Mode
                               return (
                                 <div
                                   key={task.id}
@@ -2104,9 +1992,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                                     padding: '8px 10px',
                                     borderRadius: '8px',
                                     background: 'var(--notion-item-bg)',
-                                    border: isOverdue
-                                      ? '1px solid rgba(239, 68, 68, 0.4)'
-                                      : '1px solid var(--notion-border)',
+                                    border: isOverdue ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--notion-border)',
                                     cursor: 'pointer',
                                     transition: 'all 0.15s ease',
                                     boxShadow: 'var(--notion-shadow-sm)',
@@ -2116,9 +2002,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                                     e.currentTarget.style.transform = 'translateY(-1px)';
                                   }}
                                   onMouseLeave={(e) => {
-                                    e.currentTarget.style.borderColor = isOverdue
-                                      ? 'rgba(239, 68, 68, 0.4)'
-                                      : 'var(--notion-border)';
+                                    e.currentTarget.style.borderColor = isOverdue ? 'rgba(239, 68, 68, 0.4)' : 'var(--notion-border)';
                                     e.currentTarget.style.transform = 'none';
                                   }}
                                   title={`Inspect #${task.id}: ${task.title}`}
@@ -2150,7 +2034,6 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                                       )}
                                     </div>
 
-                                    {/* Quick Start Action */}
                                     {onStartTask && (currentUserRole === 'GENERAL_MANAGER' || currentUserRole === 'SUPER_ADMIN' || currentUserId === task.assigned_to) && (
                                       <button
                                         type="button"
@@ -2181,15 +2064,15 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                         )}
                       </td>
 
-                      {/* COLUMN 3: IN PROGRESS & PENDING REVIEW */}
-                      <td style={{ padding: '14px 16px', borderRight: '1px solid var(--notion-border-subtle)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      {/* COLUMN 3: IN PROGRESS & PENDING REVIEW (Compact Small UI) */}
+                      <td style={{ padding: '10px 12px', borderRight: '1px solid var(--notion-border-subtle)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                           <span
                             className="notion-tag tag-blue"
                             style={{
-                              fontSize: '11px',
+                              fontSize: '10.5px',
                               fontWeight: 700,
-                              padding: '2px 8px',
+                              padding: '1px 6px',
                             }}
                           >
                             {row.inProcessTasks.length} Active
@@ -2197,7 +2080,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                         </div>
 
                         {row.inProcessTasks.length === 0 ? (
-                          <div style={{ fontSize: '11.5px', color: 'var(--notion-text-dim)', fontStyle: 'italic', padding: '6px 0' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)', fontStyle: 'italic', padding: '4px 0' }}>
                             — No active work
                           </div>
                         ) : (
@@ -2205,10 +2088,10 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                             style={{
                               display: 'flex',
                               flexDirection: 'column',
-                              gap: '8px',
-                              maxHeight: '340px',
+                              gap: taskDensity === 'compact' ? '4px' : '8px',
+                              maxHeight: '360px',
                               overflowY: 'auto',
-                              paddingRight: '4px',
+                              paddingRight: '3px',
                             }}
                           >
                             {row.inProcessTasks.map((task) => {
@@ -2216,6 +2099,144 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                               const isOverdue = task.due_date && task.due_date < todayStr;
                               const isDueToday = task.due_date && task.due_date === todayStr;
 
+                              if (taskDensity === 'compact') {
+                                return (
+                                  <div
+                                    key={task.id}
+                                    onClick={() => onSelectTask(task)}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      gap: '6px',
+                                      padding: '3px 8px',
+                                      borderRadius: '6px',
+                                      background: isReview ? 'rgba(245, 158, 11, 0.08)' : 'rgba(2, 132, 199, 0.06)',
+                                      border: isReview ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(2, 132, 199, 0.25)',
+                                      borderLeft: `3.5px solid ${isReview ? '#d97706' : getPriorityColor(task.priority)}`,
+                                      cursor: 'pointer',
+                                      minHeight: '28px',
+                                      transition: 'all 0.12s ease',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.borderColor = isReview ? '#d97706' : '#0284c7';
+                                      e.currentTarget.style.borderLeftColor = isReview ? '#d97706' : getPriorityColor(task.priority);
+                                      e.currentTarget.style.transform = 'translateY(-1px)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.borderColor = isReview ? 'rgba(245, 158, 11, 0.35)' : 'rgba(2, 132, 199, 0.25)';
+                                      e.currentTarget.style.borderLeftColor = isReview ? '#d97706' : getPriorityColor(task.priority);
+                                      e.currentTarget.style.transform = 'none';
+                                    }}
+                                    title={`#${task.id} (${task.priority}): ${task.title}`}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, flex: 1 }}>
+                                      <span
+                                        style={{
+                                          fontSize: '9.5px',
+                                          fontWeight: 700,
+                                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                                          color: isReview ? '#d97706' : '#0284c7',
+                                          background: 'var(--notion-card)',
+                                          padding: '1px 4px',
+                                          borderRadius: '3px',
+                                          border: '1px solid var(--notion-border)',
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        #{task.id}
+                                      </span>
+                                      <span
+                                        style={{
+                                          fontSize: '11px',
+                                          fontWeight: 600,
+                                          color: 'var(--notion-text)',
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                        }}
+                                      >
+                                        {task.title}
+                                      </span>
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                                      {isReview ? (
+                                        <span style={{ fontSize: '8.5px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', background: '#d97706', color: '#ffffff' }}>
+                                          Review
+                                        </span>
+                                      ) : (
+                                        <span style={{ fontSize: '8.5px', fontWeight: 600, padding: '1px 5px', borderRadius: '3px', background: 'rgba(2, 132, 199, 0.15)', color: '#0284c7' }}>
+                                          Active
+                                        </span>
+                                      )}
+                                      {isOverdue && (
+                                        <span style={{ fontSize: '8.5px', fontWeight: 700, padding: '1px 4px', borderRadius: '3px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }} title={task.due_date || undefined}>
+                                          ⚠️ Overdue
+                                        </span>
+                                      )}
+
+                                      {/* Quick Action: Approve */}
+                                      {isReview && onQuickApprove && (currentUserRole === 'GENERAL_MANAGER' || currentUserRole === 'SUPER_ADMIN') && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onQuickApprove(task);
+                                          }}
+                                          style={{
+                                            fontSize: '9px',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            background: '#10b981',
+                                            border: 'none',
+                                            color: '#ffffff',
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '2px',
+                                          }}
+                                          title="Quick approve deliverable"
+                                        >
+                                          <Check size={8} />
+                                          <span>Approve</span>
+                                        </button>
+                                      )}
+
+                                      {/* Quick Action: Submit */}
+                                      {!isReview && onSubmitTask && (currentUserId === task.assigned_to || currentUserRole === 'GENERAL_MANAGER' || currentUserRole === 'SUPER_ADMIN') && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onSubmitTask(task);
+                                          }}
+                                          style={{
+                                            fontSize: '9px',
+                                            padding: '2px 5px',
+                                            borderRadius: '4px',
+                                            border: '1px solid rgba(2, 132, 199, 0.3)',
+                                            background: 'rgba(2, 132, 199, 0.12)',
+                                            color: '#0284c7',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '2px',
+                                          }}
+                                          title="Submit task for approval"
+                                        >
+                                          <Send size={8} />
+                                          <span>Submit</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              // Detailed Mode
                               return (
                                 <div
                                   key={task.id}
@@ -2325,23 +2346,23 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                         )}
                       </td>
 
-                      {/* COLUMN 4: COMPLETED DELIVERABLES */}
-                      <td style={{ padding: '14px 16px', borderRight: '1px solid var(--notion-border-subtle)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      {/* COLUMN 4: COMPLETED DELIVERABLES (Compact Small UI) */}
+                      <td style={{ padding: '10px 12px', borderRight: '1px solid var(--notion-border-subtle)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                           <span
                             className="notion-tag tag-green"
                             style={{
-                              fontSize: '11px',
+                              fontSize: '10.5px',
                               fontWeight: 700,
-                              padding: '2px 8px',
+                              padding: '1px 6px',
                             }}
                           >
-                            {row.completedTasks.length} Completed
+                            {row.completedTasks.length} Done
                           </span>
                         </div>
 
                         {row.completedTasks.length === 0 ? (
-                          <div style={{ fontSize: '11.5px', color: 'var(--notion-text-dim)', fontStyle: 'italic', padding: '6px 0' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)', fontStyle: 'italic', padding: '4px 0' }}>
                             — None completed yet
                           </div>
                         ) : (
@@ -2349,78 +2370,137 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                             style={{
                               display: 'flex',
                               flexDirection: 'column',
-                              gap: '6px',
-                              maxHeight: '340px',
+                              gap: taskDensity === 'compact' ? '3px' : '6px',
+                              maxHeight: '360px',
                               overflowY: 'auto',
-                              paddingRight: '4px',
+                              paddingRight: '3px',
                             }}
                           >
-                            {row.completedTasks.map((task) => (
-                              <div
-                                key={task.id}
-                                onClick={() => onSelectTask(task)}
-                                style={{
-                                  padding: '6px 8px',
-                                  borderRadius: '6px',
-                                  background: 'rgba(16, 185, 129, 0.05)',
-                                  border: '1px solid rgba(16, 185, 129, 0.18)',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  gap: '6px',
-                                  transition: 'all 0.12s ease',
-                                }}
-                                onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#10b981')}
-                                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.18)')}
-                                title={`Inspect completed #${task.id}: ${task.title}`}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
-                                  <CheckCircle2 size={12} style={{ color: '#10b981', flexShrink: 0 }} />
-                                  <span
+                            {row.completedTasks.map((task) => {
+                              if (taskDensity === 'compact') {
+                                return (
+                                  <div
+                                    key={task.id}
+                                    onClick={() => onSelectTask(task)}
                                     style={{
-                                      fontSize: '11.5px',
-                                      color: 'var(--notion-text-dim)',
-                                      textDecoration: 'line-through',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      gap: '6px',
+                                      padding: '2px 7px',
+                                      borderRadius: '5px',
+                                      background: 'rgba(16, 185, 129, 0.05)',
+                                      border: '1px solid rgba(16, 185, 129, 0.18)',
+                                      borderLeft: '3px solid #10b981',
+                                      cursor: 'pointer',
+                                      minHeight: '26px',
+                                      transition: 'all 0.12s ease',
                                     }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#10b981')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.18)')}
+                                    title={`Completed #${task.id}: ${task.title}`}
                                   >
-                                    #{task.id}: {task.title}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden', minWidth: 0, flex: 1 }}>
+                                      <CheckCircle2 size={11} style={{ color: '#10b981', flexShrink: 0 }} />
+                                      <span
+                                        style={{
+                                          fontSize: '9.5px',
+                                          fontWeight: 700,
+                                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                                          color: '#10b981',
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        #{task.id}
+                                      </span>
+                                      <span
+                                        style={{
+                                          fontSize: '11px',
+                                          color: 'var(--notion-text-dim)',
+                                          textDecoration: 'line-through',
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                        }}
+                                      >
+                                        {task.title}
+                                      </span>
+                                    </div>
+                                    <span style={{ fontSize: '8.5px', color: '#10b981', fontWeight: 700, flexShrink: 0 }}>
+                                      Done
+                                    </span>
+                                  </div>
+                                );
+                              }
+
+                              // Detailed Mode
+                              return (
+                                <div
+                                  key={task.id}
+                                  onClick={() => onSelectTask(task)}
+                                  style={{
+                                    padding: '6px 8px',
+                                    borderRadius: '6px',
+                                    background: 'rgba(16, 185, 129, 0.05)',
+                                    border: '1px solid rgba(16, 185, 129, 0.18)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: '6px',
+                                    transition: 'all 0.12s ease',
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#10b981')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.18)')}
+                                  title={`Inspect completed #${task.id}: ${task.title}`}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                                    <CheckCircle2 size={12} style={{ color: '#10b981', flexShrink: 0 }} />
+                                    <span
+                                      style={{
+                                        fontSize: '11.5px',
+                                        color: 'var(--notion-text-dim)',
+                                        textDecoration: 'line-through',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                      }}
+                                    >
+                                      #{task.id}: {task.title}
+                                    </span>
+                                  </div>
+                                  <span className="notion-tag tag-green" style={{ fontSize: '8.5px', padding: '0 4px', flexShrink: 0 }}>
+                                    Done
                                   </span>
                                 </div>
-                                <span className="notion-tag tag-green" style={{ fontSize: '8.5px', padding: '0 4px', flexShrink: 0 }}>
-                                  Done
-                                </span>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </td>
 
-                      {/* COLUMN 5: WORKLOAD RATE & METRICS */}
-                      <td style={{ padding: '16px 18px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                          <span
-                            style={{
-                              fontSize: '16px',
-                              fontWeight: 800,
-                              color: 'var(--notion-text)',
-                            }}
-                          >
-                            {row.totalTasks}
-                          </span>
-                          <span style={{ fontSize: '10.5px', color: 'var(--notion-text-dim)' }}>
-                            total tasks
-                          </span>
+                      {/* COLUMN 5: WORKLOAD RATE & METRICS (Compact) */}
+                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
+                            <span
+                              style={{
+                                fontSize: '15px',
+                                fontWeight: 800,
+                                color: 'var(--notion-text)',
+                              }}
+                            >
+                              {row.totalTasks}
+                            </span>
+                            <span style={{ fontSize: '10px', color: 'var(--notion-text-dim)' }}>tasks</span>
+                          </div>
 
                           {/* Stacked Progress Bar */}
                           {row.totalTasks > 0 ? (
-                            <div style={{ width: '100%', maxWidth: '90px', marginTop: '4px' }}>
+                            <div style={{ width: '100%', maxWidth: '80px' }}>
                               <div
                                 style={{
-                                  height: '6px',
+                                  height: '5px',
                                   background: 'var(--notion-border)',
                                   borderRadius: '3px',
                                   overflow: 'hidden',
@@ -2449,12 +2529,12 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                                   title={`${row.openTasks.length} Open`}
                                 />
                               </div>
-                              <div style={{ fontSize: '11px', fontWeight: 700, color: '#10b981', marginTop: '4px' }}>
-                                {row.completionRate}% Done
+                              <div style={{ fontSize: '10px', fontWeight: 700, color: '#10b981', marginTop: '2px' }}>
+                                {row.completionRate}%
                               </div>
                             </div>
                           ) : (
-                            <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>0%</span>
+                            <span style={{ fontSize: '10px', color: 'var(--notion-text-dim)' }}>0%</span>
                           )}
                         </div>
                       </td>
@@ -2462,28 +2542,28 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                   ))
                 )}
 
-                {/* SPECIAL ROW: UNASSIGNED TASKS IN DEPARTMENT */}
+                {/* SPECIAL ROW: UNASSIGNED TASKS IN DEPARTMENT (Compact Small UI) */}
                 {unassignedTasks.total > 0 && (
                   <tr
                     style={{
-                      background: 'rgba(245, 158, 11, 0.05)',
+                      background: 'rgba(245, 158, 11, 0.04)',
                       borderTop: '2px dashed rgba(245, 158, 11, 0.3)',
                       verticalAlign: 'top',
                     }}
                   >
-                    <td style={{ padding: '16px 18px', borderRight: '1px solid var(--notion-border-subtle)' }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                        <AlertTriangle size={18} style={{ color: '#d97706', marginTop: '2px', flexShrink: 0 }} />
+                    <td style={{ padding: '10px 14px', borderRight: '1px solid var(--notion-border-subtle)' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                        <AlertTriangle size={15} style={{ color: '#d97706', marginTop: '2px', flexShrink: 0 }} />
                         <div>
-                          <div style={{ fontWeight: 800, color: '#d97706', fontSize: '13px' }}>
+                          <div style={{ fontWeight: 800, color: '#d97706', fontSize: '12px' }}>
                             Unassigned Tasks
                           </div>
-                          <div style={{ fontSize: '11px', color: 'var(--notion-text-muted)', marginTop: '2px' }}>
-                            Requires personnel allocation
+                          <div style={{ fontSize: '10px', color: 'var(--notion-text-muted)', marginTop: '1px' }}>
+                            Needs allocation
                           </div>
                           <span
                             className="notion-tag tag-yellow"
-                            style={{ fontSize: '9.5px', marginTop: '6px', display: 'inline-block', fontWeight: 700 }}
+                            style={{ fontSize: '9px', marginTop: '4px', display: 'inline-block', fontWeight: 700 }}
                           >
                             {unassignedTasks.total} unassigned
                           </span>
@@ -2492,87 +2572,102 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                     </td>
 
                     {/* Unassigned Open */}
-                    <td style={{ padding: '14px 16px', borderRight: '1px solid var(--notion-border-subtle)' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginBottom: '6px' }}>
+                    <td style={{ padding: '10px 12px', borderRight: '1px solid var(--notion-border-subtle)' }}>
+                      <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>
                         {unassignedTasks.open.length} Open
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                         {unassignedTasks.open.map((t) => (
                           <div
                             key={t.id}
                             onClick={() => onSelectTask(t)}
                             style={{
-                              padding: '6px 8px',
-                              borderRadius: '6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '3px 7px',
+                              borderRadius: '5px',
                               background: 'var(--notion-card)',
                               border: '1px solid var(--notion-border)',
+                              borderLeft: `3px solid ${getPriorityColor(t.priority)}`,
                               cursor: 'pointer',
-                              fontSize: '11.5px',
+                              fontSize: '11px',
                               fontWeight: 600,
                             }}
                           >
-                            #{t.id}: {t.title}
+                            <span style={{ fontSize: '9.5px', color: 'var(--notion-text-muted)', fontFamily: 'ui-monospace, monospace' }}>#{t.id}</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
                           </div>
                         ))}
                       </div>
                     </td>
 
                     {/* Unassigned In Process */}
-                    <td style={{ padding: '14px 16px', borderRight: '1px solid var(--notion-border-subtle)' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#0284c7', marginBottom: '6px' }}>
+                    <td style={{ padding: '10px 12px', borderRight: '1px solid var(--notion-border-subtle)' }}>
+                      <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#0284c7', marginBottom: '4px' }}>
                         {unassignedTasks.inProcess.length} Active
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                         {unassignedTasks.inProcess.map((t) => (
                           <div
                             key={t.id}
                             onClick={() => onSelectTask(t)}
                             style={{
-                              padding: '6px 8px',
-                              borderRadius: '6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '3px 7px',
+                              borderRadius: '5px',
                               background: 'var(--notion-card)',
                               border: '1px solid var(--notion-border)',
+                              borderLeft: `3px solid ${getPriorityColor(t.priority)}`,
                               cursor: 'pointer',
-                              fontSize: '11.5px',
+                              fontSize: '11px',
                               fontWeight: 600,
                             }}
                           >
-                            #{t.id}: {t.title}
+                            <span style={{ fontSize: '9.5px', color: '#0284c7', fontFamily: 'ui-monospace, monospace' }}>#{t.id}</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
                           </div>
                         ))}
                       </div>
                     </td>
 
                     {/* Unassigned Completed */}
-                    <td style={{ padding: '14px 16px', borderRight: '1px solid var(--notion-border-subtle)' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#10b981', marginBottom: '6px' }}>
+                    <td style={{ padding: '10px 12px', borderRight: '1px solid var(--notion-border-subtle)' }}>
+                      <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#10b981', marginBottom: '4px' }}>
                         {unassignedTasks.completed.length} Completed
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                         {unassignedTasks.completed.map((t) => (
                           <div
                             key={t.id}
                             onClick={() => onSelectTask(t)}
                             style={{
-                              padding: '6px 8px',
-                              borderRadius: '6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '2px 7px',
+                              borderRadius: '5px',
                               background: 'var(--notion-card)',
                               border: '1px solid var(--notion-border)',
+                              borderLeft: '3px solid #10b981',
                               cursor: 'pointer',
-                              fontSize: '11.5px',
+                              fontSize: '11px',
                               textDecoration: 'line-through',
                               color: 'var(--notion-text-dim)',
                             }}
                           >
-                            #{t.id}: {t.title}
+                            <span style={{ fontSize: '9.5px', color: '#10b981', fontFamily: 'ui-monospace, monospace' }}>#{t.id}</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
                           </div>
                         ))}
                       </div>
                     </td>
 
                     {/* Unassigned Total */}
-                    <td style={{ padding: '16px 18px', textAlign: 'center' }}>
-                      <span style={{ fontSize: '16px', fontWeight: 800, color: '#d97706' }}>
+                    <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: '#d97706' }}>
                         {unassignedTasks.total}
                       </span>
                     </td>
