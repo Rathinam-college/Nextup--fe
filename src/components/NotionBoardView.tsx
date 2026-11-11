@@ -657,59 +657,8 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
             })}
           </div>
 
-          {/* Action Tools: Density Toggle, Staff Work Table Shortcut, Export & Print */}
+          {/* Action Tools: Export CSV, Print & New Task */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {/* Card Density Toggle */}
-            <button
-              type="button"
-              onClick={handleToggleDensity}
-              className="notion-btn notion-btn-bordered"
-              style={{
-                fontSize: '11.5px',
-                padding: '5px 10px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                color: 'var(--notion-text)',
-                background: 'var(--notion-item-bg)',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-              }}
-              title="Toggle between comfortable and compact cards"
-            >
-              <SlidersHorizontal size={12} style={{ color: '#6366f1' }} />
-              <span>{cardDensity === 'comfortable' ? 'Comfortable' : 'Compact'}</span>
-            </button>
-
-            {/* Direct Switch to Staff Work Table */}
-            {onSelectView && (
-              <button
-                type="button"
-                onClick={() => onSelectView('table')}
-                style={{
-                  fontSize: '11.5px',
-                  padding: '5px 11px',
-                  background: 'var(--notion-item-bg)',
-                  border: '1px solid var(--notion-border-subtle)',
-                  color: 'var(--notion-text)',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  fontWeight: 650,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-                title={t('staffMatrix')}
-              >
-                <Table size={12} style={{ color: '#10b981' }} />
-                <span>{isTamil ? 'பணியாளர் பணி அட்டவணை' : 'Staff Work Table'}</span>
-              </button>
-            )}
-
             {/* Export Official CSV */}
             <button
               type="button"
