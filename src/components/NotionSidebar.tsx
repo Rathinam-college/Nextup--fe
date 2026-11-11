@@ -27,7 +27,6 @@ import {
   BarChart3,
   Settings,
   Flame,
-  Table,
   Briefcase,
   Compass,
   Lock,
@@ -327,7 +326,7 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
           }}
         >
           {/* Group 1: Workspace */}
-          {(isUserAllowedToViewPage(currentUser, 'board') || isUserAllowedToViewPage(currentUser, 'table') || isUserAllowedToViewPage(currentUser, 'self_desk')) && (
+          {(isUserAllowedToViewPage(currentUser, 'board') || isUserAllowedToViewPage(currentUser, 'self_desk')) && (
             <div
               style={{
                 padding: '6px 10px 4px',
@@ -352,10 +351,10 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
                 justifyContent: 'space-between',
                 padding: '8px 12px',
                 borderRadius: '9px',
-                background: isTasksViewActive && currentView !== 'table' ? 'var(--notion-item-bg)' : 'transparent',
-                border: isTasksViewActive && currentView !== 'table' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                fontWeight: isTasksViewActive && currentView !== 'table' ? 700 : 500,
-                color: isTasksViewActive && currentView !== 'table' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
+                background: isTasksViewActive ? 'var(--notion-item-bg)' : 'transparent',
+                border: isTasksViewActive ? '1px solid var(--notion-border)' : '1px solid transparent',
+                fontWeight: isTasksViewActive ? 700 : 500,
+                color: isTasksViewActive ? 'var(--notion-text)' : 'var(--notion-text-muted)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -364,33 +363,6 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
               </div>
               <span className="notion-tag tag-blue" style={{ fontSize: '10px', padding: '1px 7px' }}>
                 {isTamil ? 'பார்வை' : 'Views'}
-              </span>
-            </button>
-          )}
-
-          {/* Staff Matrix Sub-View */}
-          {isUserAllowedToViewPage(currentUser, 'table') && (
-            <button
-              onClick={() => onSelectView('table')}
-              className="notion-btn"
-              style={{
-                width: '100%',
-                justifyContent: 'space-between',
-                padding: '7px 12px 7px 28px',
-                borderRadius: '9px',
-                background: currentView === 'table' ? 'var(--notion-item-bg)' : 'transparent',
-                border: currentView === 'table' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                fontWeight: currentView === 'table' ? 700 : 500,
-                fontSize: '12.5px',
-                color: currentView === 'table' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Table size={14} style={{ color: '#10b981' }} />
-                <span>{t('staffMatrix')}</span>
-              </div>
-              <span className="notion-tag tag-green" style={{ fontSize: '9.5px', padding: '1px 6px' }}>
-                {t('tableView')}
               </span>
             </button>
           )}

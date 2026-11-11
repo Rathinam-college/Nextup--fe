@@ -617,9 +617,10 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
+              title={t('staffMatrix')}
             >
               <Table size={13} style={{ color: '#10b981' }} />
-              <span>Table</span>
+              <span>{isTamil ? 'பணியாளர் பணி அட்டவணை' : 'Staff Work Table'}</span>
             </button>
           )}
 
