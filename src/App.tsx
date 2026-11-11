@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
-import { Task, Department, User, NotificationItem, DispatchedEmail, ActivityLogItem } from './types';
+import { Task, TaskStatus, Department, User, NotificationItem, DispatchedEmail, ActivityLogItem } from './types';
 import { api } from './services/api';
 import { NotionSidebar } from './components/NotionSidebar';
 import { NotionTopBar } from './components/NotionTopBar';
@@ -358,6 +358,25 @@ const DashboardContent: React.FC = () => {
       loadAllData();
     } catch (err: any) {
       alert(err.message || 'Failed to submit task for approval');
+    }
+  };
+
+  const handleUpdateTaskStatus = async (taskId: number, newStatus: TaskStatus, notes?: string) => {
+    try {
+      if (newStatus === 'IN_PROGRESS') {
+        await api.startWork(taskId);
+      } else if (newStatus === 'PENDING_GM_APPROVAL') {
+        await api.submitForApproval(taskId);
+      } else if (newStatus === 'CLOSED') {
+        await api.gmReview(taskId, 'APPROVE', notes || 'Approved & verified via Board');
+      } else if (newStatus === 'CHANGES_REQUESTED') {
+        await api.gmReview(taskId, 'REQUEST_CHANGES', notes || 'Changes requested via Board');
+      } else {
+        await api.updateTask(taskId, { status: newStatus });
+      }
+      loadAllData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update task status');
     }
   };
 
@@ -734,6 +753,7 @@ const DashboardContent: React.FC = () => {
                   onStartTask={handleStartTask}
                   onSubmitTask={handleSubmitTask}
                   onQuickApprove={handleQuickApprove}
+                  onUpdateTaskStatus={handleUpdateTaskStatus}
                   currentUserRole={currentUser?.role}
                   currentUserId={currentUser?.id}
                   canCreateTask={canCreateTask}
