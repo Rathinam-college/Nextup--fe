@@ -446,15 +446,16 @@ const DashboardContent: React.FC = () => {
         return false;
       }
     }
-    if (!isGM && currentUser?.department && t.department !== currentUser.department) {
+    const isCreator = t.created_by === currentUser?.id;
+    if (!isGM && currentUser?.department && t.department !== currentUser.department && !isCreator) {
       return false;
     }
-    // Strict Task Isolation: Non-GM users ONLY see tasks directly assigned to them or co-assigned to them
+    // Strict Task Isolation: Non-GM users see tasks directly assigned, co-assigned, or created by them
     if (!isGM) {
       const { team } = parseCoAssignedTeam(t.description);
       const isDirectAssignee = t.assigned_to === currentUser?.id;
       const isCoAssignee = team.some((m) => m.assignedToId === currentUser?.id || m.staffId === currentUser?.id);
-      if (!isDirectAssignee && !isCoAssignee) {
+      if (!isDirectAssignee && !isCoAssignee && !isCreator) {
         return false;
       }
     }

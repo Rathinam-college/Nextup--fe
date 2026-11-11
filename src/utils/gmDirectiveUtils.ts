@@ -111,3 +111,4 @@ export function buildGmDirectiveMetadata(channel: GmDirectiveChannel, notes?: st
   if (channel === 'NONE') return '';
   return `<!-- GM_DIRECTIVE:${JSON.stringify({ channel, notes: notes ? notes.trim() : '' })} -->\n`;
 }
+

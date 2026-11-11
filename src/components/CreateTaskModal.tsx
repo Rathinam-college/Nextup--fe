@@ -1185,12 +1185,14 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                 ? (isTamil ? '— ஒதுக்கப்படவில்லை (மேலாளர் பார்வைக்கு) —' : '— Unassigned (Department Queue) —')
                                 : (isTamil ? '— ஒதுக்கப்படவில்லை (யாருக்கும் தரப்படவில்லை) —' : '— Unassigned (Department Backlog) —')}
                             </option>
-                            {isGM && currentUserId && (
+                            {currentUserId && (
                               <option
                                 value={String(currentUserId)}
                                 disabled={otherSelectedStaffIds.has(String(currentUserId))}
                               >
-                                {isTamil ? '⭐ நானே செய்துகொள்கிறேன் (எனது சொந்த மேசை)' : '⭐ General Manager (Myself) — Assign to my own desk'} {otherSelectedStaffIds.has(String(currentUserId)) ? '(Already selected)' : ''}
+                                {isGM
+                                  ? (isTamil ? '⭐ நானே செய்துகொள்கிறேன் (எனது சொந்த மேசை)' : '⭐ General Manager (Myself) — Assign to my own desk')
+                                  : (isTamil ? '👤 நானே செய்கிறேன் (எனக்கு ஒதுக்கு)' : `👤 ${currentUserName || 'Myself'} (Assign to me)`)} {otherSelectedStaffIds.has(String(currentUserId)) ? '(Already selected)' : ''}
                               </option>
                             )}
                             {deptStaff.filter((s) => s.id !== currentUserId).map((s) => {
@@ -1579,8 +1581,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             <button
               type="submit"
               className="notion-btn notion-btn-primary"
-              disabled={loading || !isGM}
-              title={!isGM ? "Only General Manager and Super Admin can create tasks" : undefined}
+              disabled={loading}
               style={{
                 borderRadius: '8px',
                 padding: '7px 20px',
