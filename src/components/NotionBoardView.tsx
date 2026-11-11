@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Task, TaskStatus, Role, Department, User } from '../types';
 import { parseCoAssignedTeam } from '../utils/coAssignUtils';
+import { parseGmDirective } from '../utils/gmDirectiveUtils';
 import { isTaskAssignedToStaff, isTaskInDepartment, buildAvailableStaffList } from '../utils/taskFilterUtils';
 import {
   Plus,
@@ -792,6 +793,33 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '7px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                           {getPriorityBadge(t.priority)}
+                          {(() => {
+                            const directive = parseGmDirective(t);
+                            if (directive.isAssignedByGm) {
+                              return (
+                                <span
+                                  className="notion-tag"
+                                  title={`Assigned by General Manager (${directive.channelDisplay}) • Created by ${t.created_by_name || 'Staff'}`}
+                                  style={{
+                                    fontSize: '9.5px',
+                                    background: 'rgba(124, 58, 237, 0.12)',
+                                    color: '#7c3aed',
+                                    border: '1px solid rgba(124, 58, 237, 0.3)',
+                                    fontWeight: 700,
+                                    padding: '1px 5px',
+                                    borderRadius: '4px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                  }}
+                                >
+                                  <span>{directive.channelIcon}</span>
+                                  <span>GM</span>
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                           {(t.title.includes('[MEETING]') || t.description?.includes('MEETING_DATA')) && (
                             <span
                               className="notion-tag"

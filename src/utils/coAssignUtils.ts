@@ -61,6 +61,7 @@ export function parseCoAssignedTeam(desc?: string | null): { team: CoAssignMembe
   // Clean description removing the metadata block and header
   let cleanDesc = desc
     .replace(/<!-- CO_ASSIGN_TEAM:.*?-->/gs, '')
+    .replace(/<!-- GM_DIRECTIVE:.*?-->/gs, '')
     .replace(/📋 Co-Assigned Departments & Staff Members:(\n• .*)*/gs, '')
     .trim();
 

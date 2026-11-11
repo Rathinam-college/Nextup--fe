@@ -62,6 +62,10 @@ export interface Task {
   assigned_to_phone?: string;
   created_by: number;
   created_by_name: string;
+  created_by_role?: Role;
+  assigned_by_gm?: boolean;
+  gm_directive_channel?: 'PHONE' | 'EMAIL' | 'IN_PERSON' | 'MESSAGE' | 'DIRECT' | 'NONE';
+  gm_directive_channel_display?: string;
   priority: Priority;
   priority_display: string;
   status: TaskStatus;

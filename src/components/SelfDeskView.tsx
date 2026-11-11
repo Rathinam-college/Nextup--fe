@@ -2413,12 +2413,12 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
           }}
         >
           <div
-            className="notion-modal-content"
+            className="notion-modal-content notion-compact-note-modal"
             onClick={(e) => e.stopPropagation()}
             style={{
-              maxWidth: '460px',
+              maxWidth: '440px',
               width: '100%',
-              maxHeight: 'min(90vh, 540px)',
+              maxHeight: 'min(82vh, 480px)',
               margin: 'auto',
               display: 'flex',
               flexDirection: 'column',
@@ -2428,6 +2428,7 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
               border: '1px solid var(--notion-border)',
               boxShadow: '0 20px 50px -10px rgba(15, 23, 42, 0.45)',
               position: 'relative',
+              padding: 0,
             }}
           >
             {/* Header */}
@@ -2803,12 +2804,12 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
           }}
         >
           <div
-            className="notion-modal-content"
+            className="notion-modal-content notion-compact-note-modal"
             onClick={(e) => e.stopPropagation()}
             style={{
-              maxWidth: '460px',
+              maxWidth: '440px',
               width: '100%',
-              maxHeight: 'min(90vh, 540px)',
+              maxHeight: 'min(82vh, 480px)',
               margin: 'auto',
               display: 'flex',
               flexDirection: 'column',
@@ -2818,6 +2819,7 @@ export const SelfDeskView: React.FC<SelfDeskViewProps> = ({ currentUser }) => {
               border: '1px solid var(--notion-border)',
               boxShadow: '0 20px 50px -10px rgba(15, 23, 42, 0.45)',
               position: 'relative',
+              padding: 0,
             }}
           >
             {/* Dynamic Accent Color Strip across the top */}

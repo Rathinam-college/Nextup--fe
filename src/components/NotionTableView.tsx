@@ -1922,6 +1922,23 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                                       >
                                         #{task.id}
                                       </span>
+                                      {(task.assigned_by_gm || task.description?.includes('GM_DIRECTIVE')) && (
+                                        <span
+                                          style={{
+                                            fontSize: '8.5px',
+                                            fontWeight: 800,
+                                            padding: '1px 3px',
+                                            borderRadius: '3px',
+                                            background: 'rgba(124, 58, 237, 0.15)',
+                                            color: '#7c3aed',
+                                            border: '1px solid rgba(124, 58, 237, 0.3)',
+                                            flexShrink: 0,
+                                          }}
+                                          title={`Assigned by GM • Created by ${task.created_by_name || 'Staff'}`}
+                                        >
+                                          GM
+                                        </span>
+                                      )}
                                       <span
                                         style={{
                                           fontSize: '11px',
@@ -2146,6 +2163,23 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                                       >
                                         #{task.id}
                                       </span>
+                                      {(task.assigned_by_gm || task.description?.includes('GM_DIRECTIVE')) && (
+                                        <span
+                                          style={{
+                                            fontSize: '8.5px',
+                                            fontWeight: 800,
+                                            padding: '1px 3px',
+                                            borderRadius: '3px',
+                                            background: 'rgba(124, 58, 237, 0.15)',
+                                            color: '#7c3aed',
+                                            border: '1px solid rgba(124, 58, 237, 0.3)',
+                                            flexShrink: 0,
+                                          }}
+                                          title={`Assigned by GM • Created by ${task.created_by_name || 'Staff'}`}
+                                        >
+                                          GM
+                                        </span>
+                                      )}
                                       <span
                                         style={{
                                           fontSize: '11px',
@@ -2413,6 +2447,23 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
                                       >
                                         #{task.id}
                                       </span>
+                                      {(task.assigned_by_gm || task.description?.includes('GM_DIRECTIVE')) && (
+                                        <span
+                                          style={{
+                                            fontSize: '8.5px',
+                                            fontWeight: 800,
+                                            padding: '1px 3px',
+                                            borderRadius: '3px',
+                                            background: 'rgba(124, 58, 237, 0.15)',
+                                            color: '#7c3aed',
+                                            border: '1px solid rgba(124, 58, 237, 0.3)',
+                                            flexShrink: 0,
+                                          }}
+                                          title={`Assigned by GM • Created by ${task.created_by_name || 'Staff'}`}
+                                        >
+                                          GM
+                                        </span>
+                                      )}
                                       <span
                                         style={{
                                           fontSize: '11px',

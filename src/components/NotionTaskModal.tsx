@@ -5,6 +5,7 @@ import { useLanguage, getTranslatedStatus, getTranslatedPriority } from '../cont
 import { getCleanMediaUrl } from '../utils/mediaUrl';
 import { parseCoAssignedTeam } from '../utils/coAssignUtils';
 import { parseMeetingData, buildGoogleCalendarUrl, downloadIcsFile, formatMeetingDisplayTime } from '../utils/meetingUtils';
+import { parseGmDirective } from '../utils/gmDirectiveUtils';
 import {
   X,
   Calendar,
@@ -127,6 +128,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
   const cleanTaskDescription = React.useMemo(() => {
     return (task?.description || '').replace(/<!--.*?-->/g, '').trim();
   }, [task?.description]);
+  const directive = React.useMemo(() => parseGmDirective(task), [task]);
 
   // Compute all attachments (supports multi-attachment array and legacy single attachment string)
   const taskAttachments: string[] = React.useMemo(() => {
@@ -844,11 +846,15 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                 </span>
               </div>
 
-              {/* Sub-header with Assigned By */}
+              {/* Sub-header with Assigned By & Created By */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--notion-text-dim)' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                   <UserCheck size={13} style={{ color: '#8b5cf6' }} />
-                  Assigned By: <strong style={{ color: 'var(--notion-text)' }}>{task.created_by_name || 'Management'}</strong>
+                  Assigned By: <strong style={{ color: 'var(--notion-text)' }}>{directive.isAssignedByGm ? `🏛️ General Manager (${directive.channelDisplay})` : (task.created_by_name || 'Management')}</strong>
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <UserIcon size={13} style={{ color: '#0284c7' }} />
+                  Created By: <strong style={{ color: 'var(--notion-text)' }}>{task.created_by_name || 'User'}</strong>
                 </span>
                 {task.created_at && (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -1075,6 +1081,89 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                 )}
               </div>
 
+              {/* GM Directive & Approval Hub */}
+              {directive.isAssignedByGm && (
+                <div
+                  style={{
+                    marginBottom: '20px',
+                    padding: '14px 18px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.09) 0%, rgba(99, 102, 241, 0.06) 100%)',
+                    border: '1px solid rgba(124, 58, 237, 0.28)',
+                    boxShadow: '0 4px 14px rgba(124, 58, 237, 0.05)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div
+                        style={{
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '10px',
+                          background: 'linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)',
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '18px',
+                          flexShrink: 0,
+                          boxShadow: '0 3px 10px rgba(124, 58, 237, 0.3)',
+                        }}
+                      >
+                        {directive.channelIcon}
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 800, color: '#6d28d9' }}>
+                            Assigned by General Manager ({directive.channelDisplay})
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '9.5px',
+                              fontWeight: 800,
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              background: 'rgba(124, 58, 237, 0.15)',
+                              color: '#7c3aed',
+                            }}
+                          >
+                            DIRECTIVE
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '11.5px', color: 'var(--notion-text-dim)', marginTop: '2px' }}>
+                          Created by <strong style={{ color: 'var(--notion-text)' }}>{task.created_by_name || 'Staff'}</strong>
+                          {task.created_by_role ? ` (${task.created_by_role})` : ''} on behalf of General Manager.
+                        </div>
+                        {directive.directiveNotes && (
+                          <div style={{ fontSize: '11px', color: 'var(--notion-text-muted)', marginTop: '4px', fontStyle: 'italic', background: 'var(--notion-item-bg)', padding: '3px 8px', borderRadius: '5px', border: '1px solid var(--notion-border-subtle)' }}>
+                            Reference: "{directive.directiveNotes}"
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Status Pill / Approval state */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {task.status === 'CLOSED' ? (
+                        <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.15)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <CheckCircle size={12} />
+                          <span>GM Approved &amp; Closed</span>
+                        </span>
+                      ) : task.status === 'PENDING_GM_APPROVAL' ? (
+                        <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', background: 'rgba(245, 158, 11, 0.15)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Clock size={12} />
+                          <span>Awaiting GM Review &amp; Approval</span>
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', background: 'rgba(99, 102, 241, 0.12)', color: '#4f46e5', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
+                          Directive Active
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Meeting & Google Calendar Hub */}
               {meetingData.isMeeting && (
                 <div
@@ -1280,7 +1369,66 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                   <UserCheck size={14} style={{ color: '#8b5cf6' }} />
                   <span>{t('assignedBy')}</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {directive.isAssignedByGm ? (
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '3px 9px',
+                        borderRadius: '6px',
+                        background: 'rgba(124, 58, 237, 0.1)',
+                        border: '1px solid rgba(124, 58, 237, 0.25)',
+                        color: '#7c3aed',
+                        fontWeight: 700,
+                        fontSize: '12px',
+                      }}
+                    >
+                      <span>{directive.channelIcon}</span>
+                      <span>Assigned by GM ({directive.channelDisplay})</span>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '7px',
+                        padding: '3px 9px 3px 4px',
+                        borderRadius: '6px',
+                        background: 'var(--notion-card)',
+                        border: '1px solid var(--notion-border)',
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+                          color: '#ffffff',
+                          fontSize: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {(task.created_by_name || 'M').charAt(0).toUpperCase()}
+                      </span>
+                      <span style={{ fontWeight: 600, fontSize: '12.5px', color: 'var(--notion-text)' }}>
+                        {task.created_by_name || 'Management'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Created By */}
+                <div style={{ color: 'var(--notion-text-dim)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 500 }}>
+                  <UserIcon size={14} style={{ color: '#0284c7' }} />
+                  <span>Created By</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <div
                     style={{
                       display: 'inline-flex',
@@ -1297,7 +1445,7 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                         width: '22px',
                         height: '22px',
                         borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+                        background: 'linear-gradient(135deg, #0284c7, #38bdf8)',
                         color: '#ffffff',
                         fontSize: '10px',
                         display: 'flex',
@@ -1306,11 +1454,26 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
                         fontWeight: 700,
                       }}
                     >
-                      {(task.created_by_name || 'A').charAt(0).toUpperCase()}
+                      {(task.created_by_name || 'U').charAt(0).toUpperCase()}
                     </span>
                     <span style={{ fontWeight: 600, fontSize: '12.5px', color: 'var(--notion-text)' }}>
-                      {task.created_by_name || 'Management'}
+                      {task.created_by_name || 'User'}
                     </span>
+                    {task.created_by_role && (
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          background: 'var(--notion-item-bg)',
+                          border: '1px solid var(--notion-border-subtle)',
+                          color: 'var(--notion-text-dim)',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {task.created_by_role}
+                      </span>
+                    )}
                   </div>
 
                   {task.created_at && (

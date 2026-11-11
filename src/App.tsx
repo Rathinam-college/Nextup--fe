@@ -566,7 +566,7 @@ const DashboardContent: React.FC = () => {
     return <LoginPage />;
   }
 
-  const canCreateTask = isGM;
+  const canCreateTask = Boolean(currentUser);
   const canCreateStaff = isGM || currentUser.role === 'DEPT_MANAGER';
   const canCreateDepartment = isGM;
 
@@ -930,6 +930,7 @@ const DashboardContent: React.FC = () => {
         currentUserRole={currentUser.role}
         currentUserDeptId={currentUser.department}
         currentUserId={currentUser.id}
+        currentUserName={currentUser.full_name || currentUser.username}
         initialDeptId={createTaskDefaultDeptId}
         initialIsIssue={createTaskIsIssueMode}
         initialIsGmOwnTask={createTaskIsGmOwnTask}

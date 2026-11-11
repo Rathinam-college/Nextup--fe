@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Department, User, Role, Priority } from '../types';
 import { api } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
-import { X, Plus, AlertCircle, Calendar, Clock, Mail, ShieldAlert, CheckCircle2, UserCheck, Wrench, AlertTriangle, Camera, Star, ShieldCheck, Trash2, UserPlus, Users, Video, Link as LinkIcon } from 'lucide-react';
+import { buildGmDirectiveMetadata, GmDirectiveChannel } from '../utils/gmDirectiveUtils';
+import { X, Plus, AlertCircle, Calendar, Clock, Mail, ShieldAlert, CheckCircle2, UserCheck, Wrench, AlertTriangle, Camera, Star, ShieldCheck, Trash2, UserPlus, Users, Video, Link as LinkIcon, PhoneCall } from 'lucide-react';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface CreateTaskModalProps {
   currentUserRole?: Role;
   currentUserDeptId?: number | null;
   currentUserId?: number | null;
+  currentUserName?: string;
   initialDeptId?: number | null;
   initialIsIssue?: boolean;
   initialIsGmOwnTask?: boolean;
@@ -25,6 +27,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   currentUserRole,
   currentUserDeptId,
   currentUserId,
+  currentUserName,
   initialDeptId,
   initialIsIssue = false,
   initialIsGmOwnTask = false,
@@ -38,6 +41,10 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [itemType, setItemType] = useState<'TASK' | 'ISSUE' | 'GM_TASK' | 'MEETING'>(
     initialIsIssue ? 'ISSUE' : (initialIsGmOwnTask ? 'GM_TASK' : 'TASK')
   );
+
+  // GM Directive / Delegated by Channel (Phone, Email, In-Person, Message, Direct)
+  const [directiveChannel, setDirectiveChannel] = useState<GmDirectiveChannel>(isGM ? 'DIRECT' : 'PHONE');
+  const [directiveNotes, setDirectiveNotes] = useState<string>('');
 
   // Meeting & Google Calendar Schedule state
   const [meetingDate, setMeetingDate] = useState<string>('');
@@ -93,6 +100,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       setSuccessNotice(null);
       setAttachmentImage('');
       setAttachedDocName('');
+      setDirectiveChannel(isGM ? 'DIRECT' : 'PHONE');
+      setDirectiveNotes('');
 
       const targetType: 'TASK' | 'ISSUE' | 'GM_TASK' = initialIsIssue
         ? 'ISSUE'
@@ -308,11 +317,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     e.preventDefault();
     setError(null);
 
-    if (!isGM) {
-      setError("Permission denied: Only General Manager and Super Admin are permitted to create tasks.");
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -406,6 +410,12 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         }
       }
 
+      // Embed GM directive metadata tag if assigned by GM
+      if (directiveChannel !== 'NONE' && itemType !== 'GM_TASK') {
+        const directiveMeta = buildGmDirectiveMetadata(directiveChannel, directiveNotes);
+        finalDescription = `${directiveMeta}${finalDescription}`;
+      }
+
       // Create EXACTLY ONE unified task with the primary department and primary assignee
       const primaryTarget = validAssignments[0];
       const isGmOwn = itemType === 'GM_TASK' || (isGM && primaryTarget.assigned_to === String(currentUserId));
@@ -419,6 +429,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         due_date: formData.due_date || null,
         attachment_image: attachmentImage || '',
         is_gm_own_task: isGmOwn,
+        assigned_by_gm: directiveChannel !== 'NONE',
+        gm_directive_channel: directiveChannel,
+        gm_directive_notes: directiveNotes,
       };
 
       const res = await api.createTask(payload);
@@ -777,6 +790,109 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               </div>
             )}
 
+            {/* GM Directive & Task Origin Section */}
+            {itemType !== 'GM_TASK' && (
+              <div
+                style={{
+                  marginBottom: '16px',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  background: 'var(--notion-item-bg)',
+                  border: '1px solid var(--notion-border)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ShieldCheck size={15} style={{ color: '#8b5cf6' }} />
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--notion-text)' }}>
+                      Task Directive / Assigned By
+                    </span>
+                    <span style={{ fontSize: '10px', padding: '1px 7px', borderRadius: '999px', background: 'rgba(139, 92, 246, 0.12)', color: '#8b5cf6', fontWeight: 700 }}>
+                      GM Authority
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)' }}>
+                    {isStaff ? 'How did the GM communicate this task?' : 'Initiation channel'}
+                  </span>
+                </div>
+
+                {/* Directive Channel Buttons */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '6px', marginBottom: '8px' }}>
+                  {[
+                    { key: 'PHONE', label: 'Phone Call', icon: '📞', desc: 'GM gave via call' },
+                    { key: 'EMAIL', label: 'Email Shared', icon: '📧', desc: 'GM sent via mail' },
+                    { key: 'IN_PERSON', label: 'In-Person / Verbal', icon: '🗣️', desc: 'GM shared in person' },
+                    { key: 'MESSAGE', label: 'Message / Chat', icon: '💬', desc: 'GM sent in chat' },
+                    ...(isGM ? [{ key: 'DIRECT', label: 'Direct GM Order', icon: '🏛️', desc: 'Executive order' }] : []),
+                    { key: 'NONE', label: 'Internal / Self', icon: '👤', desc: 'Dept / Self task' },
+                  ].map((item) => {
+                    const isSelected = directiveChannel === item.key;
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => setDirectiveChannel(item.key as any)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 10px',
+                          borderRadius: '8px',
+                          border: isSelected ? '1.5px solid #8b5cf6' : '1px solid var(--notion-border)',
+                          background: isSelected ? 'rgba(139, 92, 246, 0.12)' : 'var(--notion-card)',
+                          color: isSelected ? '#8b5cf6' : 'var(--notion-text)',
+                          cursor: 'pointer',
+                          fontWeight: isSelected ? 700 : 500,
+                          transition: 'all 0.12s ease',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <span style={{ fontSize: '13px' }}>{item.icon}</span>
+                        <div style={{ overflow: 'hidden' }}>
+                          <div style={{ fontSize: '11px', lineHeight: 1.2, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{item.label}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Directive Context Banner & Optional Note */}
+                {directiveChannel !== 'NONE' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '6px 10px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.25)', fontSize: '11.5px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#7c3aed', fontWeight: 600 }}>
+                        <span>🏛️</span>
+                        <span>
+                          <strong>Assigned by:</strong> General Manager ({
+                            directiveChannel === 'PHONE' ? 'Phone Call' :
+                            directiveChannel === 'EMAIL' ? 'Email' :
+                            directiveChannel === 'IN_PERSON' ? 'In-Person / Verbal' :
+                            directiveChannel === 'MESSAGE' ? 'WhatsApp / Message' : 'Direct Order'
+                          }) · <strong>Created by:</strong> {currentUserName || 'You'}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '10.5px', color: '#6d28d9', fontStyle: 'italic' }}>
+                        Queued for GM review &amp; verification
+                      </span>
+                    </div>
+
+                    <input
+                      type="text"
+                      className="notion-input"
+                      placeholder="Optional GM instruction reference (e.g. Discussed in morning call, As per mail sent today)..."
+                      value={directiveNotes}
+                      onChange={(e) => setDirectiveNotes(e.target.value)}
+                      style={{ fontSize: '11.5px', padding: '5px 10px' }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ padding: '4px 8px', fontSize: '11px', color: 'var(--notion-text-dim)' }}>
+                    Standard internal deliverable created within department.
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Title Field */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '12px', color: 'var(--notion-text-dim)', marginBottom: '5px' }}>
@@ -958,7 +1074,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   )}
                 </div>
 
-                {!isRestrictedDept && itemType !== 'GM_TASK' && (
+                {itemType !== 'GM_TASK' && (
                   <button
                     type="button"
                     onClick={handleAddAssignment}
@@ -1025,11 +1141,11 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
                           <label style={{ display: 'block', fontSize: '12px', color: 'var(--notion-text-dim)', marginBottom: '5px' }}>
-                            {t('department')} {index === 0 && isRestrictedDept && <span style={{ color: 'var(--notion-text-dim)', fontSize: '11px' }}>({isTamil ? 'பூட்டப்பட்டது' : 'Locked'})</span>}
+                            {t('department')} {index === 0 && isRestrictedDept && directiveChannel === 'NONE' && <span style={{ color: 'var(--notion-text-dim)', fontSize: '11px' }}>({isTamil ? 'பூட்டப்பட்டது' : 'Locked'})</span>}
                           </label>
                           <select
                             className="notion-select"
-                            disabled={index === 0 && isRestrictedDept}
+                            disabled={index === 0 && isRestrictedDept && directiveChannel === 'NONE'}
                             value={assignment.department}
                             onChange={(e) => handleAssignmentDeptChange(index, e.target.value)}
                             style={{ width: '100%' }}
@@ -1135,7 +1251,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 })}
               </div>
 
-              {!isRestrictedDept && itemType !== 'GM_TASK' && assignments.length === 1 && (
+              {itemType !== 'GM_TASK' && assignments.length === 1 && (
                 <div style={{ marginTop: '8px' }}>
                   <button
                     type="button"

@@ -989,8 +989,24 @@ h1, h2, h3, h4, h5, h6 {
     padding: 14px !important;
   }
 
-  .notion-modal-content {
+  .notion-modal-content:not(.notion-compact-note-modal) {
     padding: 14px !important;
     border-radius: 12px !important;
   }
+
+  .notion-compact-note-modal {
+    padding: 0 !important;
+    max-height: min(85vh, 480px) !important;
+    width: 95vw !important;
+    max-width: 440px !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+  }
+}
+
+.notion-compact-note-modal {
+  padding: 0 !important;
+  max-width: 440px !important;
+  max-height: min(85vh, 480px) !important;
+  overflow: hidden !important;
 }
