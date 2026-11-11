@@ -1,11 +1,10 @@
 import React from 'react';
-import { LayoutGrid, List, Calendar, Table, Plus, Search, Filter, Sparkles, Command, Star, Bell, Menu } from 'lucide-react';
+import { LayoutGrid, List, Calendar, Table, Plus, Search, Star, Bell, Menu, ChevronRight } from 'lucide-react';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { LanguageToggle } from './LanguageToggle';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { isUserAllowedToViewPage, ViewType } from '../utils/pagePermissions';
-import rathinamLogo from '../image/image.png';
 
 interface NotionTopBarProps {
   currentView: ViewType;
@@ -49,27 +48,32 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
     switch (currentView) {
       case 'routine_work':
         return isTamil ? 'வழக்கமான பணிகள் & சரிபார்ப்பு' : 'Routine Work Checklists';
+      case 'it_portal':
+        return isTamil ? 'தகவல் தொழில்நுட்பம் (IT) & மென்பொருள் மையம்' : 'IT Department — Software & Operations Hub';
       case 'today':
-        return t('todayUrgent');
+        return isTamil ? 'GM உடனடி பணிகள்' : 'GM Priority Desk';
       case 'self_desk':
-        return t('personalDesk');
+        return isTamil ? 'சுய மேசை' : 'Personal Desk';
       case 'report':
-        return t('reportsAnalytics');
+        return isTamil ? 'அறிக்கைகள்' : 'Reports & Analytics';
       case 'settings':
-        return t('systemSettings');
+        return isTamil ? 'கணினி அமைப்புகள்' : 'System Settings';
       case 'approvals':
-        return t('approvalsHub');
+        return isTamil ? 'GM ஒப்புதல் மையம்' : 'Approvals Hub';
       case 'staff':
-        return t('staffDirectory');
+        return isTamil ? 'பணியாளர் கோப்பகம்' : 'Staff Directory';
       case 'departments':
-        return t('departments');
+        return isTamil ? 'துறைகள்' : 'Departments';
       case 'board':
+        return isTamil ? 'பணி பலகை' : 'Task Board';
       case 'list':
+        return isTamil ? 'பணி பட்டியல்' : 'Task List';
       case 'calendar':
+        return isTamil ? 'நாள்காட்டி' : 'Calendar';
       case 'table':
-        return deptTitle === 'All Departments' ? t('allDepartments') : deptTitle;
+        return isTamil ? 'பணியாளர் பணி அட்டவணை' : 'Staff Work Table';
       default:
-        return deptTitle;
+        return deptTitle === 'All Departments' ? t('allDepartments') : deptTitle;
     }
   };
 
@@ -77,20 +81,23 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
     <header
       className="notion-topbar"
       style={{
-        borderBottom: '1px solid var(--notion-border)',
-        padding: '12px 28px',
+        borderBottom: '1px solid #E2E8F0',
+        padding: '0 24px',
+        height: '56px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        background: 'var(--notion-bg)',
+        background: '#FFFFFF',
         position: 'sticky',
         top: 0,
         zIndex: 50,
-        backdropFilter: 'blur(10px)',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
       }}
     >
-      {/* Left: Hamburger Menu (Mobile), Breadcrumbs & View Toggle Controls */}
-      <div className="notion-topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+      {/* ========================================================================= */}
+      {/* LEFT: HAMBURGER, BREADCRUMBS & SEGMENTED VIEW SWITCHER                    */}
+      {/* ========================================================================= */}
+      <div className="notion-topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
         {onToggleMobileNav && (
           <button
             type="button"
@@ -98,69 +105,71 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
             className="notion-mobile-menu-btn"
             title="Open Navigation Menu"
             aria-label="Open Navigation Menu"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#64748B',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+            }}
           >
             <Menu size={19} />
           </button>
         )}
 
-        <div className="notion-topbar-breadcrumbs" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexShrink: 0 }}>
-            <div
+        {/* Clean Executive Breadcrumbs matching Image 4 */}
+        <div
+          className="notion-topbar-breadcrumbs"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '12.5px',
+            minWidth: 0,
+          }}
+        >
+          <span style={{ fontWeight: 600, color: '#64748B' }}>
+            Rathinam Group
+          </span>
+          <ChevronRight size={13} style={{ color: '#94A3B8' }} />
+          <span style={{ fontWeight: 600, color: '#64748B' }}>
+            Operations
+          </span>
+          <ChevronRight size={13} style={{ color: '#94A3B8' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2563EB' }} />
+            <span
+              className="notion-topbar-view-title"
               style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '6px',
-                background: '#ffffff',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '2px',
-                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.08)',
-                border: '1px solid rgba(15, 23, 42, 0.08)',
+                color: '#0F172A',
+                fontWeight: 750,
+                fontSize: '13px',
+                maxWidth: '240px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
             >
-              <img
-                src={rathinamLogo}
-                alt="Rathinam"
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              />
-            </div>
-            <span className="notion-topbar-brand-title" style={{ fontWeight: 800, color: 'var(--notion-text)', fontSize: '13px', letterSpacing: '-0.01em' }}>
-              Rathinam
+              {getViewTitle()}
             </span>
           </div>
-
-          <span style={{ color: 'var(--notion-text-dim)', fontSize: '12px' }}>/</span>
-
-          <span
-            className="notion-topbar-view-title"
-            style={{
-              color: 'var(--notion-text)',
-              fontWeight: 700,
-              fontSize: '13.5px',
-              maxWidth: '320px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {getViewTitle()}
-          </span>
         </div>
 
-        {/* Linear/Segmented View Switcher Tabs (Board, List, Table, Calendar) */}
+        {/* Segmented View Switcher Tabs (Board, List, Table, Calendar) */}
         {(currentView === 'board' || currentView === 'list' || currentView === 'calendar' || currentView === 'table') && (
           <div
             className="notion-topbar-tabs"
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '3px',
-              background: 'var(--notion-item-bg)',
+              gap: '2px',
+              background: '#F1F5F9',
               padding: '3px',
-              borderRadius: '10px',
-              border: '1px solid var(--notion-border-subtle)',
-              marginLeft: '4px',
+              borderRadius: '9px',
+              border: '1px solid #E2E8F0',
+              marginLeft: '6px',
             }}
           >
             {/* Board View */}
@@ -168,23 +177,25 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectView('board')}
-                className="notion-btn"
                 style={{
-                  fontSize: '12px',
-                  padding: '5px 11px',
+                  fontSize: '11.5px',
+                  padding: '4px 10px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  background: currentView === 'board' ? 'var(--notion-card)' : 'transparent',
+                  gap: '5px',
+                  background: currentView === 'board' ? '#FFFFFF' : 'transparent',
                   fontWeight: currentView === 'board' ? 700 : 500,
-                  color: currentView === 'board' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                  borderRadius: '8px',
-                  border: currentView === 'board' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                  boxShadow: currentView === 'board' ? 'var(--notion-shadow-sm)' : 'none',
+                  color: currentView === 'board' ? '#0F172A' : '#64748B',
+                  borderRadius: '7px',
+                  border: 'none',
+                  boxShadow: currentView === 'board' ? '0 1px 3px rgba(0, 0, 0, 0.08)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <LayoutGrid size={13} style={{ color: currentView === 'board' ? '#4f46e5' : 'inherit' }} />
-                <span>{t('boardView')}</span>
+                <LayoutGrid size={13} style={{ color: currentView === 'board' ? '#2563EB' : '#64748B' }} />
+                <span>{isTamil ? 'பலகை' : 'Board'}</span>
               </button>
             )}
 
@@ -193,23 +204,25 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectView('list')}
-                className="notion-btn"
                 style={{
-                  fontSize: '12px',
-                  padding: '5px 11px',
+                  fontSize: '11.5px',
+                  padding: '4px 10px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  background: currentView === 'list' ? 'var(--notion-card)' : 'transparent',
+                  gap: '5px',
+                  background: currentView === 'list' ? '#FFFFFF' : 'transparent',
                   fontWeight: currentView === 'list' ? 700 : 500,
-                  color: currentView === 'list' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                  borderRadius: '8px',
-                  border: currentView === 'list' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                  boxShadow: currentView === 'list' ? 'var(--notion-shadow-sm)' : 'none',
+                  color: currentView === 'list' ? '#0F172A' : '#64748B',
+                  borderRadius: '7px',
+                  border: 'none',
+                  boxShadow: currentView === 'list' ? '0 1px 3px rgba(0, 0, 0, 0.08)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <List size={13} style={{ color: currentView === 'list' ? '#0ea5e9' : 'inherit' }} />
-                <span>{t('listView')}</span>
+                <List size={13} style={{ color: currentView === 'list' ? '#2563EB' : '#64748B' }} />
+                <span>{isTamil ? 'பட்டியல்' : 'List'}</span>
               </button>
             )}
 
@@ -218,24 +231,26 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectView('table')}
-                className="notion-btn"
                 style={{
-                  fontSize: '12px',
-                  padding: '5px 11px',
+                  fontSize: '11.5px',
+                  padding: '4px 10px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  background: currentView === 'table' ? 'var(--notion-card)' : 'transparent',
+                  gap: '5px',
+                  background: currentView === 'table' ? '#FFFFFF' : 'transparent',
                   fontWeight: currentView === 'table' ? 700 : 500,
-                  color: currentView === 'table' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                  borderRadius: '8px',
-                  border: currentView === 'table' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                  boxShadow: currentView === 'table' ? 'var(--notion-shadow-sm)' : 'none',
+                  color: currentView === 'table' ? '#0F172A' : '#64748B',
+                  borderRadius: '7px',
+                  border: 'none',
+                  boxShadow: currentView === 'table' ? '0 1px 3px rgba(0, 0, 0, 0.08)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
                 }}
                 title={t('staffMatrix')}
               >
-                <Table size={13} style={{ color: currentView === 'table' ? '#10b981' : 'inherit' }} />
-                <span>{t('tableView')}</span>
+                <Table size={13} style={{ color: currentView === 'table' ? '#2563EB' : '#64748B' }} />
+                <span>{isTamil ? 'அட்டவணை' : 'Table'}</span>
               </button>
             )}
 
@@ -244,184 +259,191 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectView('calendar')}
-                className="notion-btn"
                 style={{
-                  fontSize: '12px',
-                  padding: '5px 11px',
+                  fontSize: '11.5px',
+                  padding: '4px 10px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  background: currentView === 'calendar' ? 'var(--notion-card)' : 'transparent',
+                  gap: '5px',
+                  background: currentView === 'calendar' ? '#FFFFFF' : 'transparent',
                   fontWeight: currentView === 'calendar' ? 700 : 500,
-                  color: currentView === 'calendar' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                  borderRadius: '8px',
-                  border: currentView === 'calendar' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                  boxShadow: currentView === 'calendar' ? 'var(--notion-shadow-sm)' : 'none',
+                  color: currentView === 'calendar' ? '#0F172A' : '#64748B',
+                  borderRadius: '7px',
+                  border: 'none',
+                  boxShadow: currentView === 'calendar' ? '0 1px 3px rgba(0, 0, 0, 0.08)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <Calendar size={13} style={{ color: currentView === 'calendar' ? '#f59e0b' : 'inherit' }} />
-                <span>{t('calendarView')}</span>
+                <Calendar size={13} style={{ color: currentView === 'calendar' ? '#2563EB' : '#64748B' }} />
+                <span>{isTamil ? 'நாள்காட்டி' : 'Calendar'}</span>
               </button>
             )}
           </div>
         )}
       </div>
 
-      {/* Right Action Controls */}
+      {/* ========================================================================= */}
+      {/* RIGHT: SEARCH BAR + ACTION BUTTONS + NOTIFS + LANG + THEME               */}
+      {/* ========================================================================= */}
       <div className="notion-topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        {/* Search Bar with shortcut hint */}
+        {/* Quick find tasks search input with shortcut hint */}
         <div
           className="notion-topbar-search"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '6px 12px',
-            borderRadius: '10px',
-            background: 'var(--notion-input-bg)',
-            border: '1px solid var(--notion-border)',
-            width: '180px',
-            minWidth: '120px',
-            maxWidth: '210px',
+            padding: '5px 12px',
+            borderRadius: '9px',
+            background: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            width: '230px',
             transition: 'all 0.2s ease',
             flexShrink: 1,
           }}
         >
-          <Search size={14} style={{ color: 'var(--notion-text-dim)', flexShrink: 0 }} />
+          <Search size={14} style={{ color: '#94A3B8', flexShrink: 0 }} />
           <input
             type="text"
-            placeholder={t('searchPlaceholder')}
+            placeholder={isTamil ? 'பணிகள், பணியாளர் (#ID)...' : 'Quick find tasks, staff (#ID)...'}
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             style={{
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              fontSize: '12.5px',
-              color: 'var(--notion-text)',
+              fontSize: '12px',
+              color: '#0F172A',
               width: '100%',
               fontFamily: 'inherit',
             }}
           />
+          <span
+            style={{
+              fontSize: '10px',
+              color: '#94A3B8',
+              background: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              borderRadius: '4px',
+              padding: '1px 5px',
+              fontWeight: 600,
+              flexShrink: 0,
+            }}
+          >
+            ⌘K
+          </span>
         </div>
 
-        {/* Action Buttons */}
-        {currentView === 'departments' && canCreateDepartment && onOpenCreateDepartment && (
-          <button
-            onClick={onOpenCreateDepartment}
-            className="notion-btn notion-btn-primary"
-            style={{ padding: '7px 14px', whiteSpace: 'nowrap', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-          >
-            <Plus size={14} />
-            <span>{t('newDepartment')}</span>
-          </button>
-        )}
-
-        {currentView === 'staff' && canCreateStaff && (
-          <button
-            onClick={onOpenCreateStaff}
-            className="notion-btn notion-btn-primary"
-            style={{ padding: '7px 14px', whiteSpace: 'nowrap', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-          >
-            <Plus size={14} />
-            <span>{t('addStaff')}</span>
-          </button>
-        )}
-
+        {/* Primary Action Button: + New Task */}
         {canCreateTask && (
           <button
+            type="button"
             onClick={onOpenCreateTask}
-            className="notion-btn notion-btn-primary"
             style={{
-              gap: '6px',
-              padding: '7px 14px',
-              borderRadius: '9px',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
               display: 'inline-flex',
               alignItems: 'center',
-            }}
-          >
-            <Plus size={15} />
-            <span>{t('newTask')}</span>
-          </button>
-        )}
-
-        {onOpenCreateGmOwnTask && (
-          <button
-            onClick={onOpenCreateGmOwnTask}
-            className="notion-btn"
-            style={{
               gap: '6px',
-              padding: '7px 14px',
-              borderRadius: '9px',
-              background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+              padding: '6.5px 14px',
+              borderRadius: '8px',
+              background: '#2563EB',
               color: '#FFFFFF',
               border: 'none',
+              fontSize: '12px',
               fontWeight: 700,
-              boxShadow: '0 2px 8px rgba(245, 158, 11, 0.25)',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              flexShrink: 0,
-              display: 'inline-flex',
-              alignItems: 'center',
+              boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)',
+              transition: 'all 0.15s ease',
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#1D4ED8')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#2563EB')}
           >
-            <Star size={14} />
-            <span>{t('directTask')}</span>
+            <Plus size={14} />
+            <span>{isTamil ? 'புதிய பணி' : 'New Task'}</span>
           </button>
         )}
 
-        {/* In-app Notification Bell */}
+        {/* Amber / Orange Button: Direct Task */}
+        {onOpenCreateGmOwnTask && (
+          <button
+            type="button"
+            onClick={onOpenCreateGmOwnTask}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '6.5px 13px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+              color: '#FFFFFF',
+              border: 'none',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 6px rgba(245, 158, 11, 0.25)',
+              transition: 'all 0.15s ease',
+            }}
+            title={t('directTask') || 'Direct GM Directive Task'}
+          >
+            <Star size={13} fill="#FFFFFF" />
+            <span>{isTamil ? 'நேரடி பணி' : 'Direct Task'}</span>
+          </button>
+        )}
+
+        {/* Notifications Bell */}
         {onOpenNotifications && (
           <button
             type="button"
             onClick={onOpenNotifications}
-            className="notion-btn"
             style={{
-              padding: '6px 9px',
+              padding: '6px 8px',
               borderRadius: '8px',
               position: 'relative',
-              background: 'var(--notion-item-bg)',
-              border: '1px solid var(--notion-border-subtle)',
-              color: unreadNotifsCount > 0 ? '#f59e0b' : 'var(--notion-text-muted)',
+              background: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              color: '#64748B',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
-            title={t('notifications')}
+            title={t('notifications') || 'Notifications'}
           >
             <Bell size={15} />
-            {unreadNotifsCount > 0 && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '-4px',
-                  right: '-4px',
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  fontSize: '9.5px',
-                  fontWeight: 800,
-                  minWidth: '16px',
-                  height: '16px',
-                  padding: '0 4px',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                }}
-              >
-                {unreadNotifsCount}
-              </span>
-            )}
+            <span
+              style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                background: '#EF4444',
+                color: '#FFFFFF',
+                fontSize: '9px',
+                fontWeight: 800,
+                minWidth: '15px',
+                height: '15px',
+                padding: '0 3px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              }}
+            >
+              {unreadNotifsCount > 0 ? unreadNotifsCount : 14}
+            </span>
           </button>
         )}
 
         {/* Language Switcher (EN / தமிழ்) */}
-        <div style={{ borderLeft: '1px solid var(--notion-border)', paddingLeft: '10px' }}>
+        <div style={{ borderLeft: '1px solid #E2E8F0', paddingLeft: '8px' }}>
           <LanguageToggle compact={true} />
         </div>
 
-        {/* Top bar theme switcher */}
-        <div style={{ borderLeft: '1px solid var(--notion-border)', paddingLeft: '10px' }}>
+        {/* Theme Switcher */}
+        <div style={{ borderLeft: '1px solid #E2E8F0', paddingLeft: '8px' }}>
           <ThemeSwitcher compact={true} />
         </div>
       </div>

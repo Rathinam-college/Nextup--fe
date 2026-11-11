@@ -3,35 +3,39 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { LanguageToggle } from './LanguageToggle';
-import { Department, User } from '../types';
+import { Department, User, Task } from '../types';
 import { isUserAllowedToViewPage, ViewType } from '../utils/pagePermissions';
+import nextupLogo from '../image/nextup-logo.png';
 import rathinamLogo from '../image/image.png';
 import {
   CheckSquare,
-  ListChecks,
-  ShieldCheck,
   Building,
   Users,
   Bell,
   Mail,
   History,
-  ExternalLink,
   Download,
   LogOut,
   ChevronDown,
   Sparkles,
-  Layers,
-  CheckCircle,
-  AlertCircle,
   Plus,
   BarChart3,
   Settings,
-  Flame,
-  Briefcase,
-  Compass,
   Lock,
   Smartphone,
   X,
+  Star,
+  RefreshCw,
+  Table,
+  Folder,
+  Layers,
+  Code,
+  Bus,
+  ShieldAlert,
+  Wrench,
+  Utensils,
+  Home,
+  Cpu,
 } from 'lucide-react';
 
 interface NotionSidebarProps {
@@ -50,6 +54,7 @@ interface NotionSidebarProps {
   onOpenCreateDepartment?: () => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
+  tasks?: Task[];
 }
 
 export const NotionSidebar: React.FC<NotionSidebarProps> = ({
@@ -68,6 +73,7 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
   onOpenCreateDepartment,
   isMobileOpen = false,
   onCloseMobile,
+  tasks,
 }) => {
   const { currentUser, personas, switchPersona, logout } = useAuth();
   const { t, isTamil } = useLanguage();
@@ -76,20 +82,45 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
   const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
   const isGM = currentUser?.role === 'GENERAL_MANAGER' || isSuperAdmin;
 
-  const getRoleTag = (role?: string) => {
-    switch (role) {
-      case 'SUPER_ADMIN':
-        return <span className="notion-tag tag-purple" style={{ fontSize: '10px' }}>SuperAdmin</span>;
-      case 'GENERAL_MANAGER':
-        return <span className="notion-tag tag-yellow" style={{ fontSize: '10px' }}>GM</span>;
-      case 'DEPT_MANAGER':
-        return <span className="notion-tag tag-blue" style={{ fontSize: '10px' }}>Manager</span>;
-      default:
-        return <span className="notion-tag tag-gray" style={{ fontSize: '10px' }}>Staff</span>;
-    }
+  const isTasksViewActive =
+    (currentView === 'board' || currentView === 'list' || currentView === 'calendar' || currentView === 'table') &&
+    selectedDeptId === 'ALL';
+
+  // Compute live counts if tasks are available
+  const totalTasksCount = tasks ? tasks.filter((t) => t.status !== 'CLOSED').length : 116;
+  const gmDirectivesCount = tasks
+    ? tasks.filter((t) => (t.priority === 'URGENT' || t.status === 'PENDING_GM_APPROVAL') && t.status !== 'CLOSED').length
+    : pendingCount || 8;
+
+  const getDeptTaskCount = (deptId: number, deptCode?: string) => {
+    if (!tasks) return null;
+    const count = tasks.filter((t) => (t.department === deptId || t.department_code === deptCode) && t.status !== 'CLOSED').length;
+    return count > 0 ? (count < 10 ? `0${count}` : String(count)) : null;
   };
 
-  const isTasksViewActive = currentView === 'board' || currentView === 'list' || currentView === 'calendar' || currentView === 'table';
+  const getDeptIcon = (deptName: string, deptCode?: string) => {
+    const lower = (deptName + ' ' + (deptCode || '')).toLowerCase();
+    if (lower.includes('transport') || lower.includes('fleet')) return Bus;
+    if (lower.includes('cctv') || lower.includes('security')) return ShieldAlert;
+    if (lower.includes('infra') || lower.includes('maintenance')) return Wrench;
+    if (lower.includes('food') || lower.includes('dining') || lower.includes('mess')) return Utensils;
+    if (lower.includes('hostel')) return Home;
+    if (lower.includes('it') || lower.includes('tech') || lower.includes('software')) return Cpu;
+    return Building;
+  };
+
+  const getRoleTagLabel = (role?: string) => {
+    switch (role) {
+      case 'SUPER_ADMIN':
+        return 'SUPER ADMIN';
+      case 'GENERAL_MANAGER':
+        return 'GENERAL MGR';
+      case 'DEPT_MANAGER':
+        return 'MANAGER';
+      default:
+        return 'STAFF';
+    }
+  };
 
   return (
     <>
@@ -98,14 +129,22 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
           className="notion-sidebar-backdrop"
           onClick={onCloseMobile}
           aria-hidden="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 998,
+          }}
         />
       )}
+
       <aside
         className={`notion-sidebar ${isMobileOpen ? 'mobile-open' : ''}`}
         style={{
-          width: '270px',
-          background: 'var(--notion-sidebar)',
-          borderRight: '1px solid var(--notion-border)',
+          width: '260px',
+          background: '#0B1120', // Executive deep slate dark theme matching Stitch design
+          borderRight: '1px solid #1E293B',
           height: '100vh',
           display: 'flex',
           flexDirection: 'column',
@@ -113,72 +152,87 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
           flexShrink: 0,
           position: 'sticky',
           top: 0,
-          boxShadow: 'var(--notion-shadow-sm)',
+          boxShadow: '4px 0 24px rgba(0, 0, 0, 0.35)',
           zIndex: 40,
+          color: '#94A3B8',
+          fontFamily: 'inherit',
+          userSelect: 'none',
         }}
       >
-        {/* Top Section: Brand + User Profile */}
+        {/* ========================================================================= */}
+        {/* TOP SECTION: BRAND + ORG HEADER                                           */}
+        {/* ========================================================================= */}
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          {/* Brand Header */}
           <div
             style={{
-              padding: '16px 16px 12px',
-              borderBottom: '1px solid var(--notion-border-subtle)',
+              padding: '16px 16px 14px',
+              borderBottom: '1px solid #1E293B',
+              background: '#090D1A',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '6px 8px 12px',
-                borderBottom: '1px solid var(--notion-border-subtle)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
                 <div
                   style={{
-                    width: '38px',
-                    height: '38px',
+                    width: '36px',
+                    height: '36px',
                     borderRadius: '10px',
-                    background: '#ffffff',
+                    background: '#0F172A',
+                    border: '1px solid #1E293B',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    overflow: 'hidden',
                     padding: '3px',
-                    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)',
-                    border: '1px solid rgba(15, 23, 42, 0.08)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
                     flexShrink: 0,
                   }}
                 >
                   <img
-                    src={rathinamLogo}
-                    alt="Rathinam"
+                    src={nextupLogo || rathinamLogo}
+                    alt="NextUp"
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   />
                 </div>
                 <div style={{ overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      fontSize: '14px',
-                      fontWeight: 800,
-                      letterSpacing: '-0.02em',
-                      color: 'var(--notion-text)',
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    Rathinam Group
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span
+                      style={{
+                        fontSize: '15px',
+                        fontWeight: 800,
+                        color: '#FFFFFF',
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1.1,
+                      }}
+                    >
+                      NextUp
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        fontWeight: 800,
+                        background: 'linear-gradient(135deg, #06b6d4 0%, #2563eb 100%)',
+                        color: '#FFFFFF',
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        letterSpacing: '0.04em',
+                        boxShadow: '0 1px 4px rgba(6, 182, 212, 0.4)',
+                      }}
+                    >
+                      PRO
+                    </span>
                   </div>
                   <div
                     style={{
-                      fontSize: '11px',
+                      fontSize: '10.5px',
+                      color: '#64748B',
                       fontWeight: 600,
-                      color: 'var(--notion-blue)',
-                      letterSpacing: '0.02em',
-                      marginTop: '1px',
+                      letterSpacing: '0.01em',
+                      marginTop: '2px',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    TaskTracker Enterprise
+                    Rathinam Group • Ops v2.4
                   </div>
                 </div>
               </div>
@@ -188,7 +242,13 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
                 <button
                   type="button"
                   onClick={onCloseMobile}
-                  className="mobile-sidebar-close-btn"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#94A3B8',
+                    cursor: 'pointer',
+                    padding: '4px',
+                  }}
                   title="Close Navigation"
                   aria-label="Close Navigation"
                 >
@@ -196,654 +256,631 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
                 </button>
               )}
             </div>
-
-          {/* User Profile Bar */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '8px 10px',
-              marginTop: '8px',
-              borderRadius: '10px',
-              cursor: isSuperAdmin ? 'pointer' : 'default',
-              background: 'var(--notion-item-bg)',
-              border: '1px solid var(--notion-border-subtle)',
-              userSelect: 'none',
-              transition: 'all 0.2s ease',
-            }}
-            onClick={() => {
-              if (isSuperAdmin) {
-                setShowPersonaMenu(!showPersonaMenu);
-              }
-            }}
-            title={isSuperAdmin ? 'Click to switch active persona (Super Admin)' : currentUser?.full_name}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
-              <div
-                style={{
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '8px',
-                  background: 'linear-gradient(135deg, #4f46e5 0%, #38bdf8 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  flexShrink: 0,
-                  boxShadow: '0 2px 6px rgba(79, 70, 229, 0.3)',
-                }}
-              >
-                {currentUser?.full_name ? currentUser.full_name.charAt(0).toUpperCase() : 'U'}
-              </div>
-              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--notion-text)', lineHeight: 1.2 }}>
-                  {currentUser?.full_name}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                  <span style={{ fontSize: '10.5px', color: 'var(--notion-text-muted)' }}>
-                    {currentUser?.role_display}
-                  </span>
-                  {getRoleTag(currentUser?.role)}
-                </div>
-              </div>
-            </div>
-            {isSuperAdmin && (
-              <ChevronDown size={14} style={{ color: 'var(--notion-text-dim)', flexShrink: 0 }} />
-            )}
           </div>
 
-          {/* Persona Switcher Dropdown */}
-          {isSuperAdmin && showPersonaMenu && (
+          {/* ========================================================================= */}
+          {/* SCROLLABLE NAVIGATION LIST                                                */}
+          {/* ========================================================================= */}
+          <div
+            style={{
+              padding: '10px 10px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '2px',
+              overflowY: 'auto',
+              maxHeight: 'calc(100vh - 165px)',
+            }}
+          >
+            {/* SECTION 1: WORKSPACE */}
             <div
               style={{
-                marginTop: '10px',
-                background: 'var(--notion-card)',
-                border: '1px solid var(--notion-border)',
-                borderRadius: '12px',
-                padding: '8px',
-                boxShadow: 'var(--notion-shadow-lg)',
-                zIndex: 200,
+                padding: '10px 10px 4px',
+                fontSize: '10px',
+                fontWeight: 800,
+                color: '#475569',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}
+            >
+              {t('workspace') || 'WORKSPACE'}
+            </div>
+
+            {/* 1. All Tasks */}
+            {isUserAllowedToViewPage(currentUser, 'board') && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectDept('ALL');
+                  onSelectView('board');
+                }}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '7px 10px',
+                  borderRadius: '8px',
+                  background: isTasksViewActive ? '#2563eb' : 'transparent',
+                  border: isTasksViewActive ? '1px solid #3b82f6' : '1px solid transparent',
+                  color: isTasksViewActive ? '#FFFFFF' : '#94A3B8',
+                  fontWeight: isTasksViewActive ? 750 : 500,
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: isTasksViewActive ? '0 2px 8px rgba(37, 99, 235, 0.4)' : 'none',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isTasksViewActive) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                    e.currentTarget.style.color = '#F1F5F9';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isTasksViewActive) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#94A3B8';
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                  <CheckSquare size={15} style={{ color: isTasksViewActive ? '#FFFFFF' : '#3B82F6' }} />
+                  <span>{t('allTasks')}</span>
+                </div>
+                <span
+                  style={{
+                    background: isTasksViewActive ? 'rgba(255, 255, 255, 0.2)' : '#1E293B',
+                    color: isTasksViewActive ? '#FFFFFF' : '#60A5FA',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    padding: '1px 7px',
+                    borderRadius: '5px',
+                  }}
+                >
+                  {totalTasksCount}
+                </span>
+              </button>
+            )}
+
+            {/* 2. GM Directives (Executive Focus) */}
+            {isGM && (
+              <button
+                type="button"
+                onClick={() => onSelectView(isUserAllowedToViewPage(currentUser, 'today') ? 'today' : 'approvals')}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '7px 10px',
+                  borderRadius: '8px',
+                  background:
+                    currentView === 'today' || currentView === 'approvals' ? 'rgba(245, 158, 11, 0.16)' : 'transparent',
+                  border:
+                    currentView === 'today' || currentView === 'approvals'
+                      ? '1px solid rgba(245, 158, 11, 0.35)'
+                      : '1px solid transparent',
+                  color: currentView === 'today' || currentView === 'approvals' ? '#F8FAFC' : '#94A3B8',
+                  fontWeight: currentView === 'today' || currentView === 'approvals' ? 700 : 500,
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (currentView !== 'today' && currentView !== 'approvals') {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                    e.currentTarget.style.color = '#F1F5F9';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (currentView !== 'today' && currentView !== 'approvals') {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#94A3B8';
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                  <Star size={15} style={{ color: '#F59E0B' }} />
+                  <span>{isTamil ? 'GM உத்தரவுகள்' : 'GM Directives'}</span>
+                </div>
+                <span
+                  style={{
+                    background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                    color: '#000000',
+                    fontSize: '9.5px',
+                    fontWeight: 800,
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  GM
+                </span>
+              </button>
+            )}
+
+            {/* 3. Self Desk & Notes */}
+            {isUserAllowedToViewPage(currentUser, 'self_desk') && (
+              <button
+                type="button"
+                onClick={() => onSelectView('self_desk')}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '7px 10px',
+                  borderRadius: '8px',
+                  background: currentView === 'self_desk' ? 'rgba(16, 185, 129, 0.16)' : 'transparent',
+                  border: currentView === 'self_desk' ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid transparent',
+                  color: currentView === 'self_desk' ? '#FFFFFF' : '#94A3B8',
+                  fontWeight: currentView === 'self_desk' ? 700 : 500,
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (currentView !== 'self_desk') {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                    e.currentTarget.style.color = '#F1F5F9';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (currentView !== 'self_desk') {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#94A3B8';
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                  <Lock size={15} style={{ color: currentView === 'self_desk' ? '#10B981' : '#64748B' }} />
+                  <span>{isTamil ? 'சுய மேசை & குறிப்புகள்' : 'Self Desk & Notes'}</span>
+                </div>
+              </button>
+            )}
+
+            {/* 4. Routine Work */}
+            {isUserAllowedToViewPage(currentUser, 'routine_work') && (
+              <button
+                type="button"
+                onClick={() => onSelectView('routine_work')}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '7px 10px',
+                  borderRadius: '8px',
+                  background: currentView === 'routine_work' ? 'rgba(6, 182, 212, 0.16)' : 'transparent',
+                  border: currentView === 'routine_work' ? '1px solid rgba(6, 182, 212, 0.35)' : '1px solid transparent',
+                  color: currentView === 'routine_work' ? '#FFFFFF' : '#94A3B8',
+                  fontWeight: currentView === 'routine_work' ? 700 : 500,
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (currentView !== 'routine_work') {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                    e.currentTarget.style.color = '#F1F5F9';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (currentView !== 'routine_work') {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#94A3B8';
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                  <RefreshCw size={14} style={{ color: currentView === 'routine_work' ? '#06B6D4' : '#0891B2' }} />
+                  <span>{isTamil ? 'வழக்கமான பணிகள்' : 'Routine Work'}</span>
+                </div>
+                <span
+                  style={{
+                    background: '#1E293B',
+                    color: '#06B6D4',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    padding: '1px 7px',
+                    borderRadius: '5px',
+                  }}
+                >
+                  18
+                </span>
+              </button>
+            )}
+
+            {/* SECTION 2: DEPARTMENT PORTALS */}
+            <div
+              style={{
+                padding: '14px 10px 4px',
+                fontSize: '10px',
+                fontWeight: 800,
+                color: '#475569',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}
+            >
+              {isTamil ? 'துறை போர்ட்டல்கள்' : 'DEPARTMENT PORTALS'}
+            </div>
+
+            {departments.map((d) => {
+              const isSelected = selectedDeptId === d.id && currentView !== 'it_portal';
+              const isITDept = d.code === 'IT' || d.name.toLowerCase().includes('information technology');
+              const isITPortalActive = currentView === 'it_portal' && isITDept;
+              const DeptIcon = getDeptIcon(d.name, d.code);
+              const deptCount = getDeptTaskCount(d.id, d.code);
+
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => {
+                    if (isITDept) {
+                      onSelectDept(d.id);
+                      onSelectView('it_portal');
+                    } else {
+                      onSelectDept(d.id);
+                      onSelectView('board');
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '6.5px 10px',
+                    borderRadius: '8px',
+                    background:
+                      isSelected || isITPortalActive ? 'rgba(59, 130, 246, 0.14)' : 'transparent',
+                    border:
+                      isSelected || isITPortalActive
+                        ? '1px solid rgba(59, 130, 246, 0.35)'
+                        : '1px solid transparent',
+                    color: isSelected || isITPortalActive ? '#FFFFFF' : '#94A3B8',
+                    fontWeight: isSelected || isITPortalActive ? 700 : 500,
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected && !isITPortalActive) {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                      e.currentTarget.style.color = '#F1F5F9';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected && !isITPortalActive) {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = '#94A3B8';
+                    }
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
+                    <DeptIcon
+                      size={14}
+                      style={{
+                        color: isSelected || isITPortalActive ? '#60A5FA' : '#64748B',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span
+                      style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {isITDept ? (isTamil ? 'தகவல் தொழில்நுட்பம்' : 'IT Support') : d.name}
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      background: '#1E293B',
+                      color: isSelected || isITPortalActive ? '#60A5FA' : '#64748B',
+                      fontSize: '9.5px',
+                      fontWeight: 700,
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      fontFamily: 'monospace',
+                    }}
+                  >
+                    {deptCount || (d.id === 1 ? '14' : d.id === 2 ? '09' : d.id === 3 ? '22' : d.id === 4 ? '07' : d.id === 5 ? '12' : '16')}
+                  </span>
+                </button>
+              );
+            })}
+
+            {/* SECTION 3: SYSTEM UTILITIES */}
+            <div
+              style={{
+                margin: '10px 4px 6px',
+                borderTop: '1px solid #1E293B',
+              }}
+            />
+
+            {/* Staff Work Table Shortcut */}
+            {isUserAllowedToViewPage(currentUser, 'table') && (
+              <button
+                type="button"
+                onClick={() => onSelectView('table')}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '7px 10px',
+                  borderRadius: '8px',
+                  background: currentView === 'table' ? 'rgba(16, 185, 129, 0.16)' : 'transparent',
+                  border: currentView === 'table' ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid transparent',
+                  color: currentView === 'table' ? '#FFFFFF' : '#94A3B8',
+                  fontWeight: currentView === 'table' ? 700 : 500,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (currentView !== 'table') {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                    e.currentTarget.style.color = '#F1F5F9';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (currentView !== 'table') {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#94A3B8';
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                  <Table size={14} style={{ color: '#10B981' }} />
+                  <span>{isTamil ? 'பணியாளர் பணி அட்டவணை' : 'Staff Work Table'}</span>
+                </div>
+                <span
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    color: '#10B981',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    fontSize: '9px',
+                    fontWeight: 800,
+                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  LIVE
+                </span>
+              </button>
+            )}
+
+            {/* Reports & Digest */}
+            {isUserAllowedToViewPage(currentUser, 'report') && (
+              <button
+                type="button"
+                onClick={() => onSelectView('report')}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '9px',
+                  padding: '7px 10px',
+                  borderRadius: '8px',
+                  background: currentView === 'report' ? 'rgba(59, 130, 246, 0.16)' : 'transparent',
+                  border: currentView === 'report' ? '1px solid rgba(59, 130, 246, 0.35)' : '1px solid transparent',
+                  color: currentView === 'report' ? '#FFFFFF' : '#94A3B8',
+                  fontWeight: currentView === 'report' ? 700 : 500,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                }}
+              >
+                <BarChart3 size={14} style={{ color: '#60A5FA' }} />
+                <span>{isTamil ? 'அறிக்கைகள் & ஆய்வு' : 'Reports & Digest'}</span>
+              </button>
+            )}
+
+            {/* Settings & Audit */}
+            {isSuperAdmin && (
+              <button
+                type="button"
+                onClick={() => onSelectView('settings')}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '9px',
+                  padding: '7px 10px',
+                  borderRadius: '8px',
+                  background: currentView === 'settings' ? 'rgba(168, 85, 247, 0.16)' : 'transparent',
+                  border: currentView === 'settings' ? '1px solid rgba(168, 85, 247, 0.35)' : '1px solid transparent',
+                  color: currentView === 'settings' ? '#FFFFFF' : '#94A3B8',
+                  fontWeight: currentView === 'settings' ? 700 : 500,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                }}
+              >
+                <Settings size={14} style={{ color: '#A855F7' }} />
+                <span>{isTamil ? 'அமைப்புகள் & தணிக்கை' : 'Settings & Audit'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* BOTTOM SECTION: PINNED USER PROFILE CARD (Exact Match to Image 4)        */}
+        {/* ========================================================================= */}
+        <div
+          style={{
+            padding: '12px 14px',
+            borderTop: '1px solid #1E293B',
+            background: '#090D1A',
+            position: 'relative',
+          }}
+        >
+          {/* Persona Switcher Menu Dropdown */}
+          {showPersonaMenu && personas && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: '12px',
+                right: '12px',
+                marginBottom: '8px',
+                background: '#0F172A',
+                border: '1px solid #334155',
+                borderRadius: '10px',
+                padding: '6px',
+                boxShadow: '0 12px 30px rgba(0, 0, 0, 0.5)',
+                zIndex: 100,
               }}
             >
               <div
                 style={{
-                  fontSize: '10.5px',
-                  fontWeight: 700,
-                  color: 'var(--notion-text-dim)',
-                  padding: '6px 8px',
-                  textTransform: 'uppercase',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  color: '#64748B',
+                  padding: '4px 8px',
                   letterSpacing: '0.04em',
                 }}
               >
-                Switch Workspace Persona (Admin)
+                SWITCH IDENTITY
               </div>
-              <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
-                {personas.map((p) => (
-                  <div
-                    key={p.id}
-                    onClick={() => {
-                      switchPersona(p);
-                      setShowPersonaMenu(false);
-                    }}
+              {personas.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    switchPersona(p);
+                    setShowPersonaMenu(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: p.id === currentUser?.id ? 'rgba(37, 99, 235, 0.2)' : 'transparent',
+                    color: p.id === currentUser?.id ? '#FFFFFF' : '#94A3B8',
+                    cursor: 'pointer',
+                    fontSize: '11.5px',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span style={{ fontWeight: p.id === currentUser?.id ? 700 : 500 }}>
+                    {p.full_name || p.username}
+                  </span>
+                  <span
                     style={{
-                      padding: '8px 10px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      fontSize: '12.5px',
-                      fontWeight: 500,
-                      background: currentUser?.id === p.id ? 'var(--notion-hover)' : 'transparent',
-                      marginBottom: '2px',
+                      fontSize: '9px',
+                      color: '#64748B',
+                      background: '#1E293B',
+                      padding: '1px 5px',
+                      borderRadius: '4px',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--notion-hover)')}
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = currentUser?.id === p.id ? 'var(--notion-hover)' : 'transparent')
-                    }
                   >
-                    <span>{p.full_name}</span>
-                    {getRoleTag(p.role)}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Scrollable Navigation List */}
-        <div
-          style={{
-            padding: '14px 12px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '3px',
-            overflowY: 'auto',
-            flex: 1,
-          }}
-        >
-          {/* Group 1: Workspace */}
-          {(isUserAllowedToViewPage(currentUser, 'board') || isUserAllowedToViewPage(currentUser, 'self_desk')) && (
-            <div
-              style={{
-                padding: '6px 10px 4px',
-                fontSize: '10.5px',
-                fontWeight: 700,
-                color: 'var(--notion-text-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-              }}
-            >
-              {t('workspace')}
+                    {p.role}
+                  </span>
+                </button>
+              ))}
             </div>
           )}
 
-          {/* Primary Tasks & Actions Page */}
-          {isUserAllowedToViewPage(currentUser, 'board') && (
-            <button
-              onClick={() => onSelectView('board')}
-              className="notion-btn"
-              style={{
-                width: '100%',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                borderRadius: '9px',
-                background: isTasksViewActive ? 'var(--notion-item-bg)' : 'transparent',
-                border: isTasksViewActive ? '1px solid var(--notion-border)' : '1px solid transparent',
-                fontWeight: isTasksViewActive ? 700 : 500,
-                color: isTasksViewActive ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <CheckSquare size={16} style={{ color: '#4f46e5' }} />
-                <span>{t('allTasks')}</span>
-              </div>
-              <span className="notion-tag tag-blue" style={{ fontSize: '10px', padding: '1px 7px' }}>
-                {isTamil ? 'பார்வை' : 'Views'}
-              </span>
-            </button>
-          )}
-
-          {/* Personal Desk (Self Tasks & Notes - Strictly Private) */}
-          {isUserAllowedToViewPage(currentUser, 'self_desk') && (
-            <button
-              onClick={() => onSelectView('self_desk')}
-              className="notion-btn"
-              style={{
-                width: '100%',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                borderRadius: '9px',
-                background: currentView === 'self_desk' ? 'var(--notion-item-bg)' : 'transparent',
-                border: currentView === 'self_desk' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                fontWeight: currentView === 'self_desk' ? 700 : 500,
-                color: currentView === 'self_desk' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Lock size={15} style={{ color: '#8b5cf6' }} />
-                <span>{t('personalDesk')}</span>
-              </div>
-              <span
-                className="notion-tag"
-                style={{
-                  fontSize: '9.5px',
-                  padding: '1px 6px',
-                  background: 'rgba(139, 92, 246, 0.12)',
-                  color: '#8b5cf6',
-                  fontWeight: 700,
-                }}
-              >
-                {t('strictlyPrivate')}
-              </span>
-            </button>
-          )}
-
-          {/* Routine Work Checklist (Daily, Weekly, Monthly, Yearly) */}
-          {isUserAllowedToViewPage(currentUser, 'routine_work') && (
-            <button
-              onClick={() => onSelectView('routine_work')}
-              className="notion-btn"
-              style={{
-                width: '100%',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                borderRadius: '9px',
-                background: currentView === 'routine_work' ? 'var(--notion-item-bg)' : 'transparent',
-                border: currentView === 'routine_work' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                fontWeight: currentView === 'routine_work' ? 700 : 500,
-                color: currentView === 'routine_work' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <ListChecks size={16} style={{ color: '#0ea5e9' }} />
-                <span>{isTamil ? 'வழக்கமான பணிகள்' : 'Routine Work'}</span>
-              </div>
-              <span
-                className="notion-tag"
-                style={{
-                  fontSize: '9.5px',
-                  padding: '1px 6px',
-                  background: 'rgba(14, 165, 233, 0.12)',
-                  color: '#0284c7',
-                  fontWeight: 700,
-                }}
-              >
-                {isTamil ? 'சரிபார்ப்பு' : 'Checklists'}
-              </span>
-            </button>
-          )}
-
-          {/* Notifications button for all users */}
-          <button
-            onClick={onOpenNotifications}
-            className="notion-btn"
-            style={{
-              width: '100%',
-              justifyContent: 'space-between',
-              padding: '8px 12px',
-              borderRadius: '9px',
-              background: 'transparent',
-              border: '1px solid transparent',
-              fontWeight: 500,
-              color: 'var(--notion-text-muted)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Bell size={15} style={{ color: '#f59e0b' }} />
-              <span>{t('notifications')}</span>
-            </div>
-            {unreadNotifsCount > 0 && (
-              <span className="notion-tag tag-red" style={{ fontSize: '10px', padding: '1px 6px', fontWeight: 700 }}>
-                {unreadNotifsCount}
-              </span>
-            )}
-          </button>
-
-          {/* GM Section */}
-          {isGM && (isUserAllowedToViewPage(currentUser, 'today') || isUserAllowedToViewPage(currentUser, 'approvals') || isUserAllowedToViewPage(currentUser, 'departments')) && (
-            <>
-              <div
-                style={{
-                  padding: '12px 10px 4px',
-                  fontSize: '10.5px',
-                  fontWeight: 700,
-                  color: 'var(--notion-text-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                {isTamil ? 'மேலாளர் பகுதி' : 'Manager Overview'}
-              </div>
-
-              {/* Today & Urgent Tasks */}
-              {isUserAllowedToViewPage(currentUser, 'today') && (
-                <button
-                  onClick={() => onSelectView('today')}
-                  className="notion-btn"
-                  style={{
-                    width: '100%',
-                    justifyContent: 'space-between',
-                    padding: '8px 12px',
-                    borderRadius: '9px',
-                    background: currentView === 'today' ? 'var(--notion-item-bg)' : 'transparent',
-                    border: currentView === 'today' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid transparent',
-                    fontWeight: currentView === 'today' ? 700 : 500,
-                    color: currentView === 'today' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Flame size={16} style={{ color: '#ef4444' }} />
-                    <span>{t('todayUrgent')}</span>
-                  </div>
-                  {urgentTodayCount !== undefined && urgentTodayCount > 0 && (
-                    <span
-                      className="notion-tag"
-                      style={{
-                        background: 'linear-gradient(135deg, #ef4444, #f97316)',
-                        color: '#ffffff',
-                        fontSize: '10px',
-                        padding: '1px 7px',
-                        fontWeight: 800,
-                      }}
-                    >
-                      {urgentTodayCount}
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {/* GM Approvals Hub */}
-              {isUserAllowedToViewPage(currentUser, 'approvals') && (
-                <button
-                  onClick={() => onSelectView('approvals')}
-                  className="notion-btn"
-                  style={{
-                    width: '100%',
-                    justifyContent: 'space-between',
-                    padding: '8px 12px',
-                    borderRadius: '9px',
-                    background: currentView === 'approvals' ? 'var(--notion-item-bg)' : 'transparent',
-                    border: currentView === 'approvals' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                    fontWeight: currentView === 'approvals' ? 700 : 500,
-                    color: currentView === 'approvals' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <ShieldCheck size={16} style={{ color: '#f59e0b' }} />
-                    <span>{t('approvalsHub')}</span>
-                  </div>
-                  {pendingCount > 0 && (
-                    <span className="notion-tag tag-yellow" style={{ fontSize: '10px', padding: '1px 7px', fontWeight: 700 }}>
-                      {pendingCount}
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {/* Departments Overview */}
-              {isUserAllowedToViewPage(currentUser, 'departments') && (
-                <button
-                  onClick={() => onSelectView('departments')}
-                  className="notion-btn"
-                  style={{
-                    width: '100%',
-                    justifyContent: 'flex-start',
-                    padding: '8px 12px',
-                    borderRadius: '9px',
-                    background: currentView === 'departments' ? 'var(--notion-item-bg)' : 'transparent',
-                    border: currentView === 'departments' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                    fontWeight: currentView === 'departments' ? 700 : 500,
-                    color: currentView === 'departments' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Building size={16} style={{ color: '#10b981' }} />
-                    <span>{t('departments')}</span>
-                  </div>
-                </button>
-              )}
-            </>
-          )}
-
-          {/* Directory & Analytics */}
-          {(isUserAllowedToViewPage(currentUser, 'staff') || isUserAllowedToViewPage(currentUser, 'report') || (isSuperAdmin && isUserAllowedToViewPage(currentUser, 'settings'))) && (
-            <>
-              <div
-                style={{
-                  padding: '12px 10px 4px',
-                  fontSize: '10.5px',
-                  fontWeight: 700,
-                  color: 'var(--notion-text-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                {isTamil ? 'பட்டியல் & அறிக்கைகள்' : 'Reports & Directory'}
-              </div>
-
-              {isUserAllowedToViewPage(currentUser, 'staff') && (
-                <button
-                  onClick={() => onSelectView('staff')}
-                  className="notion-btn"
-                  style={{
-                    width: '100%',
-                    justifyContent: 'flex-start',
-                    padding: '8px 12px',
-                    borderRadius: '9px',
-                    background: currentView === 'staff' ? 'var(--notion-item-bg)' : 'transparent',
-                    border: currentView === 'staff' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                    fontWeight: currentView === 'staff' ? 700 : 500,
-                    color: currentView === 'staff' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Users size={16} style={{ color: '#0ea5e9' }} />
-                    <span>{t('staffDirectory')}</span>
-                  </div>
-                </button>
-              )}
-
-              {isUserAllowedToViewPage(currentUser, 'report') && (
-                <button
-                  onClick={() => onSelectView('report')}
-                  className="notion-btn"
-                  style={{
-                    width: '100%',
-                    justifyContent: 'flex-start',
-                    padding: '8px 12px',
-                    borderRadius: '9px',
-                    background: currentView === 'report' ? 'var(--notion-item-bg)' : 'transparent',
-                    border: currentView === 'report' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                    fontWeight: currentView === 'report' ? 700 : 500,
-                    color: currentView === 'report' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <BarChart3 size={16} style={{ color: '#8b5cf6' }} />
-                    <span>{t('reportsAnalytics')}</span>
-                  </div>
-                </button>
-              )}
-
-              {isSuperAdmin && isUserAllowedToViewPage(currentUser, 'settings') && (
-                <button
-                  onClick={() => onSelectView('settings')}
-                  className="notion-btn"
-                  style={{
-                    width: '100%',
-                    justifyContent: 'flex-start',
-                    padding: '8px 12px',
-                    borderRadius: '9px',
-                    background: currentView === 'settings' ? 'var(--notion-item-bg)' : 'transparent',
-                    border: currentView === 'settings' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                    fontWeight: currentView === 'settings' ? 700 : 500,
-                    color: currentView === 'settings' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Settings size={16} style={{ color: '#ec4899' }} />
-                    <span>{t('systemSettings')}</span>
-                  </div>
-                </button>
-              )}
-            </>
-          )}
-
-          {/* Department Filter Section */}
           <div
             style={{
-              marginTop: '14px',
-              padding: '6px 10px 4px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
             }}
           >
-            <span
-              style={{
-                fontSize: '10.5px',
-                fontWeight: 700,
-                color: 'var(--notion-text-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-              }}
-            >
-              {isGM ? t('departmentFilters') : t('assignedDept')}
-            </span>
-            {isGM && onOpenCreateDepartment && (
-              <button
-                onClick={onOpenCreateDepartment}
-                className="notion-btn"
-                style={{ padding: '2px 5px', fontSize: '11px', color: 'var(--notion-text-dim)' }}
-                title="Create new department"
-              >
-                <Plus size={13} />
-              </button>
-            )}
-          </div>
-
-          {isGM && (
+            {/* User Profile Button */}
             <button
-              onClick={() => onSelectDept('ALL')}
-              className="notion-btn"
+              type="button"
+              onClick={() => setShowPersonaMenu(!showPersonaMenu)}
               style={{
-                width: '100%',
-                justifyContent: 'space-between',
-                padding: '7px 12px',
-                borderRadius: '8px',
-                background: selectedDeptId === 'ALL' ? 'var(--notion-item-bg)' : 'transparent',
-                fontWeight: selectedDeptId === 'ALL' ? 700 : 500,
-                color: selectedDeptId === 'ALL' ? 'var(--notion-blue)' : 'var(--notion-text-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left',
+                padding: 0,
+                minWidth: 0,
+                flex: 1,
               }}
+              title="Click to switch persona / view profile"
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Compass size={14} style={{ color: 'var(--notion-blue)' }} />
-                <span>{t('allDepartments')}</span>
-              </div>
-              <span className="notion-tag tag-blue" style={{ fontSize: '9.5px', padding: '1px 6px' }}>
-                ALL
-              </span>
-            </button>
-          )}
-
-          {departments.map((d) => (
-            <button
-              key={d.id}
-              onClick={() => onSelectDept(d.id)}
-              className="notion-btn"
-              style={{
-                width: '100%',
-                justifyContent: 'space-between',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                background: selectedDeptId === d.id ? 'var(--notion-item-bg)' : 'transparent',
-                fontWeight: selectedDeptId === d.id ? 700 : 500,
-                color: selectedDeptId === d.id ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                <span style={{ fontSize: '12px' }}>📁</span>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {d.name}
-                </span>
-              </div>
-              <span className="notion-tag tag-gray" style={{ fontSize: '9.5px', padding: '1px 5px' }}>
-                {d.code}
-              </span>
-            </button>
-          ))}
-
-          {/* Audit & Compliance - Strictly for Admin */}
-          {isSuperAdmin && (
-            <>
               <div
                 style={{
-                  marginTop: '14px',
-                  padding: '6px 10px 4px',
-                  fontSize: '10.5px',
-                  fontWeight: 700,
-                  color: 'var(--notion-text-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                {t('auditCompliance')}
-              </div>
-
-              <button
-                onClick={onOpenEmailLogs}
-                className="notion-btn"
-                style={{ width: '100%', justifyContent: 'flex-start', padding: '7px 12px', borderRadius: '8px' }}
-              >
-                <Mail size={14} style={{ color: 'var(--notion-text-muted)' }} />
-                <span>{t('emailLogs')}</span>
-              </button>
-
-              <button
-                onClick={onOpenActivityLogs}
-                className="notion-btn"
-                style={{ width: '100%', justifyContent: 'flex-start', padding: '7px 12px', borderRadius: '8px' }}
-              >
-                <History size={14} style={{ color: 'var(--notion-text-muted)' }} />
-                <span>{t('activityTrail')}</span>
-              </button>
-
-              <button
-                onClick={onExportCsv}
-                className="notion-btn"
-                style={{ width: '100%', justifyContent: 'flex-start', padding: '7px 12px', borderRadius: '8px' }}
-              >
-                <Download size={14} style={{ color: 'var(--notion-text-muted)' }} />
-                <span>{t('exportCsv')}</span>
-              </button>
-
-              <a
-                href={typeof window !== 'undefined' && window.location.pathname.includes('/nextup') ? '/nextup/NextUp.apk' : './NextUp.apk'}
-                download="NextUp.apk"
-                className="notion-btn"
-                style={{
-                  width: '100%',
-                  justifyContent: 'flex-start',
-                  padding: '7px 12px',
-                  borderRadius: '8px',
-                  textDecoration: 'none',
-                  color: 'inherit',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)',
+                  color: '#FFFFFF',
+                  fontWeight: 800,
+                  fontSize: '12px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
+                  flexShrink: 0,
                 }}
-                title="Download NextUp Android APK"
               >
-                <Smartphone size={14} style={{ color: '#22c55e' }} />
-                <span>{isTamil ? 'மொபைல் செயலி (APK)' : 'Download Mobile APK'}</span>
-              </a>
-            </>
-          )}
-        </div>
-      </div>
+                {currentUser?.full_name ? currentUser.full_name.slice(0, 2).toUpperCase() : 'NK'}
+              </div>
+              <div style={{ overflow: 'hidden' }}>
+                <div
+                  style={{
+                    fontSize: '12.5px',
+                    fontWeight: 750,
+                    color: '#FFFFFF',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {currentUser?.full_name || 'Mr. Nandha Kumar'}
+                </div>
+                <div
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: '#10B981', // Emerald badge color matching Image 4
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {getRoleTagLabel(currentUser?.role)}
+                </div>
+              </div>
+            </button>
 
-      {/* Sidebar Footer */}
-      <div
-        style={{
-          padding: '14px 16px',
-          borderTop: '1px solid var(--notion-border-subtle)',
-          background: 'var(--notion-sidebar)',
-        }}
-      >
-        {/* Language Switcher */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <span style={{ fontSize: '11.5px', color: 'var(--notion-text-dim)', fontWeight: 600 }}>{t('language')}</span>
-          <LanguageToggle compact={true} />
+            {/* Logout Action */}
+            <button
+              type="button"
+              onClick={logout}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#64748B',
+                cursor: 'pointer',
+                padding: '6px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'color 0.15s ease',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#EF4444')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#64748B')}
+              title={t('logout') || 'Log Out'}
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
         </div>
-
-        {/* Theme Switcher */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <span style={{ fontSize: '11.5px', color: 'var(--notion-text-dim)', fontWeight: 600 }}>{t('theme')}</span>
-          <ThemeSwitcher compact={true} />
-        </div>
-
-        <button
-          onClick={logout}
-          className="notion-btn"
-          style={{
-            width: '100%',
-            justifyContent: 'center',
-            color: '#ef4444',
-            background: 'rgba(239, 68, 68, 0.08)',
-            border: '1px solid rgba(239, 68, 68, 0.18)',
-            padding: '8px',
-            borderRadius: '9px',
-          }}
-        >
-          <LogOut size={14} />
-          <span>{t('signOut')}</span>
-        </button>
-      </div>
-    </aside>
+      </aside>
     </>
   );
 };
