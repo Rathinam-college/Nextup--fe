@@ -36,6 +36,7 @@ import {
   ArrowUp,
   ArrowDown,
   Download,
+  Printer,
   Sparkles,
   RefreshCw,
   Briefcase,
@@ -46,6 +47,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
+import { printTasksTableReport } from '../utils/printReportUtils';
 
 interface NotionTableViewProps {
   tasks: Task[];
@@ -909,6 +911,30 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
             </button>
           </div>
 
+          {/* Print Table Button */}
+          <button
+            type="button"
+            onClick={() => {
+              const deptTitle = activeDepartment ? `${activeDepartment.name} (${activeDepartment.code})` : 'All Departments';
+              printTasksTableReport(sortedAndFilteredFlatTasks, 'Staff Workload & Tasks Matrix', deptTitle);
+            }}
+            className="notion-btn notion-btn-bordered"
+            style={{
+              fontSize: '12px',
+              padding: '6px 12px',
+              borderRadius: '9px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+            title="Print clean official table of filtered tasks"
+          >
+            <Printer size={14} style={{ color: '#2563eb' }} />
+            <span>Print</span>
+          </button>
+
           {/* Export CSV Button */}
           <button
             type="button"
@@ -925,7 +951,7 @@ export const NotionTableView: React.FC<NotionTableViewProps> = ({
             }}
             title="Export filtered records to CSV"
           >
-            <Download size={14} />
+            <Download size={14} style={{ color: '#16a34a' }} />
             <span>Export CSV</span>
           </button>
 

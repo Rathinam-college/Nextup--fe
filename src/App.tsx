@@ -385,8 +385,18 @@ const DashboardContent: React.FC = () => {
     }
   };
 
-  const handleExportCsv = () => {
-    window.location.href = api.getCsvExportUrl();
+  const [exportingCsv, setExportingCsv] = useState(false);
+
+  const handleExportCsv = async () => {
+    try {
+      setExportingCsv(true);
+      await api.downloadTasksCsv(selectedDeptId);
+    } catch (err: any) {
+      console.error('CSV Export failed:', err);
+      alert(err.message || 'Failed to download tasks report. Please try again.');
+    } finally {
+      setExportingCsv(false);
+    }
   };
 
   const handleSelectTaskById = (taskId: number) => {

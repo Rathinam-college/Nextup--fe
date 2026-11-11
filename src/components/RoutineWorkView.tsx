@@ -37,6 +37,8 @@ import {
   FileSpreadsheet,
   Hash,
 } from 'lucide-react';
+import { printRoutineWorkReport } from '../utils/printReportUtils';
+
 
 interface RoutineWorkViewProps {
   currentUser: User;
@@ -511,11 +513,6 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
     }
   };
 
-  // Print
-  const handlePrint = () => {
-    window.print();
-  };
-
   // Helper to check department matching
   const isItemInDept = useCallback((item: RoutineWorkItem, deptId: number | 'ALL', deptName?: string): boolean => {
     if (deptId === 'ALL') return true;
@@ -912,6 +909,12 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  // Executive Printable Document
+  const handlePrint = () => {
+    const deptTitle = activeDeptFilter === 'ALL' ? 'All Departments' : selectedDeptObj?.name || 'Department';
+    printRoutineWorkReport(filteredItems, filteredReportLogs, deptTitle, pageTab);
   };
 
   const handleOpenEditReportLog = (log: RoutineWorkLog) => {

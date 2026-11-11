@@ -249,6 +249,37 @@ export const api = {
     const currentId = activeUserId || getSavedActiveUserId();
     return getApiUrl(`/api/tasks/export-csv/${currentId ? `?active_user_id=${currentId}` : ''}`);
   },
+  downloadTasksCsv: async (departmentId?: number | string) => {
+    const currentId = activeUserId || getSavedActiveUserId();
+    const query = new URLSearchParams();
+    if (currentId) query.append('active_user_id', currentId.toString());
+    if (departmentId && departmentId !== 'ALL') query.append('department', departmentId.toString());
+    const endpoint = `/api/tasks/export-csv/${query.toString() ? `?${query.toString()}` : ''}`;
+    const headers: Record<string, string> = {};
+    if (currentId) headers['X-Active-User-Id'] = currentId.toString();
+    const res = await fetch(getApiUrl(endpoint), {
+      headers,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      let msg = `Download failed with status ${res.status}`;
+      try {
+        const err = await res.json();
+        if (err.detail) msg = err.detail;
+      } catch (_) {}
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const now = new Date().toISOString().slice(0, 10);
+    link.setAttribute('download', `NextUp_Official_Tasks_Report_${now}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  },
 
   // Super Admin System & Database Backup
   getAdminSystemStats: () => request<SystemStats>('/api/admin/system-stats/'),

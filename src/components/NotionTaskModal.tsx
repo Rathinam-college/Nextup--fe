@@ -6,8 +6,10 @@ import { getCleanMediaUrl } from '../utils/mediaUrl';
 import { parseCoAssignedTeam } from '../utils/coAssignUtils';
 import { parseMeetingData, buildGoogleCalendarUrl, downloadIcsFile, formatMeetingDisplayTime } from '../utils/meetingUtils';
 import { parseGmDirective } from '../utils/gmDirectiveUtils';
+import { printTaskDetails, downloadTaskDetailsHtml } from '../utils/printReportUtils';
 import {
   X,
+  Printer,
   Calendar,
   Calendar as CalendarIcon,
   User as UserIcon,
@@ -733,6 +735,49 @@ export const NotionTaskModal: React.FC<NotionTaskModalProps> = ({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Print Task Work Order */}
+            <button
+              type="button"
+              onClick={() => printTaskDetails(task)}
+              className="notion-btn notion-btn-bordered"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '12px',
+                fontWeight: 600,
+                padding: '6px 12px',
+                borderRadius: '8px',
+                color: 'var(--notion-text)',
+                cursor: 'pointer',
+              }}
+              title="Print official Task Directive Work Order & Clear Details"
+            >
+              <Printer size={13} style={{ color: '#2563eb' }} />
+              <span>{isTamil ? 'அச்சிடு' : 'Print'}</span>
+            </button>
+
+            {/* Download Task Work Order */}
+            <button
+              type="button"
+              onClick={() => downloadTaskDetailsHtml(task)}
+              className="notion-btn notion-btn-bordered"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '12px',
+                fontWeight: 600,
+                padding: '6px 12px',
+                borderRadius: '8px',
+                color: 'var(--notion-text)',
+                cursor: 'pointer',
+              }}
+              title="Download official Task Specifications & Work Order (.html)"
+            >
+              <Download size={13} style={{ color: '#16a34a' }} />
+              <span>{isTamil ? 'பதிவிறக்கு' : 'Download'}</span>
+            </button>
             {isGM && !isEditingTask && (
               <>
                 <button

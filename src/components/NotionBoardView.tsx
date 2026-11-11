@@ -28,9 +28,12 @@ import {
   Eye,
   ShieldCheck,
   Sparkles,
+  Printer,
+  Download,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
+import { printTasksTableReport } from '../utils/printReportUtils';
 
 interface NotionBoardViewProps {
   tasks: Task[];
@@ -539,8 +542,64 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
           )}
         </div>
 
-        {/* Right Tools: Matrix switch & Task Count */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Right Tools: Matrix switch, Export CSV, Print & Task Count */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Download CSV Report */}
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await api.downloadTasksCsv(selectedDeptId === 'ALL' ? undefined : selectedDeptId);
+              } catch (err: any) {
+                alert(err.message || 'Export failed');
+              }
+            }}
+            style={{
+              fontSize: '12px',
+              padding: '5px 11px',
+              background: 'var(--notion-item-bg)',
+              border: '1px solid var(--notion-border-subtle)',
+              color: 'var(--notion-text)',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+            title="Download complete tasks report as CSV"
+          >
+            <Download size={13} style={{ color: '#16a34a' }} />
+            <span>{isTamil ? 'பதிவிறக்கு' : 'Export CSV'}</span>
+          </button>
+
+          {/* Print Tasks Report */}
+          <button
+            type="button"
+            onClick={() => {
+              const activeDeptObj = departments?.find((d) => String(d.id) === String(selectedDeptId));
+              const deptTitle = selectedDeptId === 'ALL' ? 'All Departments' : activeDeptObj?.name || 'Department';
+              printTasksTableReport(displayTasks, 'Tasks Digest Report', deptTitle);
+            }}
+            style={{
+              fontSize: '12px',
+              padding: '5px 11px',
+              background: 'var(--notion-item-bg)',
+              border: '1px solid var(--notion-border-subtle)',
+              color: 'var(--notion-text)',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+            title="Print clean official tasks summary"
+          >
+            <Printer size={13} style={{ color: '#2563eb' }} />
+            <span>{isTamil ? 'அச்சிடு' : 'Print'}</span>
+          </button>
+
           {onSelectView && (
             <button
               type="button"

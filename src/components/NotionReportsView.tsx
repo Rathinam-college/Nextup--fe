@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Task, Department, DashboardStats, Role, User } from '../types';
 import { api } from '../services/api';
+import { printTasksTableReport } from '../utils/printReportUtils';
 import {
   BarChart3,
   TrendingUp,
   Download,
+  Printer,
   ShieldCheck,
   CheckCircle2,
   Clock,
@@ -450,6 +452,18 @@ export const NotionReportsView: React.FC<NotionReportsViewProps> = ({
             >
               <Download size={14} />
               <span>Export Staff Hours CSV</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                printTasksTableReport(deptTasks, `${selectedDepartment.name} Task Report`, selectedDepartment.name);
+              }}
+              className="notion-btn notion-btn-bordered"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '13px' }}
+              title="Print Department Task Matrix"
+            >
+              <Printer size={14} />
+              <span>Print Tasks</span>
             </button>
           </div>
         </div>
@@ -1141,24 +1155,50 @@ export const NotionReportsView: React.FC<NotionReportsViewProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={onExportCsv}
-          className="notion-btn notion-btn-primary"
-          style={{
-            padding: '10px 18px',
-            fontSize: '13px',
-            fontWeight: 700,
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-            boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <Download size={15} />
-          <span>Export Official CSV Report</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={() => {
+              printTasksTableReport(tasks, 'Executive Task Matrix & Performance Digest', 'All Departments');
+            }}
+            className="notion-btn notion-btn-bordered"
+            style={{
+              padding: '10px 16px',
+              fontSize: '13px',
+              fontWeight: 600,
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'var(--notion-item-bg)',
+              color: 'var(--notion-text)',
+              cursor: 'pointer',
+            }}
+            title="Print official analytics and tasks report"
+          >
+            <Printer size={15} style={{ color: '#2563eb' }} />
+            <span>Print Report</span>
+          </button>
+
+          <button
+            onClick={onExportCsv}
+            className="notion-btn notion-btn-primary"
+            style={{
+              padding: '10px 18px',
+              fontSize: '13px',
+              fontWeight: 700,
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <Download size={15} />
+            <span>Export Official CSV Report</span>
+          </button>
+        </div>
       </div>
 
       {/* Top Metric Cards */}
