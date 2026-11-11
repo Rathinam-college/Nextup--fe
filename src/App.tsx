@@ -604,6 +604,7 @@ const DashboardContent: React.FC = () => {
     <div className="notion-app-layout" style={{ display: 'flex', minHeight: '100vh', background: 'var(--notion-bg)' }}>
       {/* Notion Sidebar Navigation */}
       <NotionSidebar
+        tasks={tasks}
         currentView={currentView}
         onSelectView={handleSelectView}
         selectedDeptId={selectedDeptId}
