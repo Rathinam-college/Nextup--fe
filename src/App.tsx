@@ -632,7 +632,6 @@ const DashboardContent: React.FC = () => {
         }}
         isMobileOpen={isMobileNavOpen}
         onCloseMobile={() => setIsMobileNavOpen(false)}
-        tasks={tasks}
       />
 
       {/* Main Notion Content Workspace */}

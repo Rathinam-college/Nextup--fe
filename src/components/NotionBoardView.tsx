@@ -5,33 +5,43 @@ import { parseGmDirective } from '../utils/gmDirectiveUtils';
 import { isTaskAssignedToStaff, isTaskInDepartment, buildAvailableStaffList } from '../utils/taskFilterUtils';
 import {
   Plus,
+  Calendar,
+  AlertCircle,
+  CheckCircle2,
   Play,
   Send,
   RotateCcw,
   CheckSquare,
+  Table,
   Building,
   Users,
+  User as UserIcon,
   Filter,
   Share2,
+  Copy,
+  Check,
   X,
   Flame,
   Clock,
+  Mail,
+  ArrowRight,
+  Eye,
   ShieldCheck,
+  Sparkles,
   Printer,
   Download,
   Search,
   Zap,
   Circle,
+  SlidersHorizontal,
   Layers,
+  GripVertical,
+  ChevronDown,
+  CheckCheck,
+  Inbox,
   AlertTriangle,
   MoreHorizontal,
   MoveRight,
-  CheckCircle2,
-  FileText,
-  Table as TableIcon,
-  RefreshCw,
-  Hourglass,
-  Check,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
@@ -114,10 +124,11 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
   const taskPool = allTasks && allTasks.length > 0 ? allTasks : tasks;
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
 
-  const handleToggleDensity = (mode: CardDensity) => {
-    setCardDensity(mode);
+  const handleToggleDensity = () => {
+    const next = cardDensity === 'comfortable' ? 'compact' : 'comfortable';
+    setCardDensity(next);
     try {
-      localStorage.setItem('nextup_board_density', mode);
+      localStorage.setItem('nextup_board_density', next);
     } catch {}
   };
 
@@ -151,7 +162,7 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
     }
   };
 
-  // Comprehensive staff list
+  // Comprehensive staff list extracted from staffList & tasks
   const availableStaff = useMemo(() => {
     return buildAvailableStaffList(staffList, taskPool);
   }, [staffList, taskPool]);
@@ -162,6 +173,7 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
     return availableStaff.find((s) => String(s.id) === String(activeStaffId)) || null;
   }, [availableStaff, activeStaffId]);
 
+  // All tasks assigned or co-assigned to this selected person
   const personTasks = useMemo(() => {
     if (!selectedPersonObj && activeStaffId === 'ALL') return [];
     return taskPool.filter((t) => isTaskAssignedToStaff(t, activeStaffId, selectedPersonObj));
@@ -266,14 +278,10 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
     const changesRequested = displayTasks.filter((t) => t.status === 'CHANGES_REQUESTED').length;
     const completed = displayTasks.filter((t) => t.status === 'CLOSED').length;
     const urgentCount = displayTasks.filter((t) => t.status !== 'CLOSED' && (t.priority === 'URGENT' || t.priority === 'HIGH')).length;
-    const gmDirectivesCount = displayTasks.filter((t) => parseGmDirective(t).isAssignedByGm).length;
-    const dueCount = displayTasks.filter((t) => t.status !== 'CLOSED' && isDueTodayOrOverdue(t)).length;
-    const myTasksCount = currentUserId ? displayTasks.filter((t) => isTaskAssignedToStaff(t, currentUserId)).length : 12;
+    return { total, todo, inProgress, pendingApproval, changesRequested, completed, urgentCount };
+  }, [displayTasks]);
 
-    return { total, todo, inProgress, pendingApproval, changesRequested, completed, urgentCount, gmDirectivesCount, dueCount, myTasksCount };
-  }, [displayTasks, currentUserId, isDueTodayOrOverdue]);
-
-  // Status Transition Handler
+  // Status Transition Handler (Drag and Drop + 1-Click Buttons)
   const handleCardStatusChange = async (task: Task, targetStatus: TaskStatus) => {
     if (task.status === targetStatus) return;
 
@@ -282,6 +290,7 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
       return;
     }
 
+    // Fallbacks
     try {
       if (targetStatus === 'IN_PROGRESS' && onStartTask) {
         onStartTask(task);
@@ -336,6 +345,81 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
     await handleCardStatusChange(draggedTask, targetStatus);
   };
 
+  // Share Digest Text
+  const generateShareSummaryText = () => {
+    if (!selectedPersonObj) return '';
+    let text = `Tasks for ${selectedPersonObj.full_name || selectedPersonObj.username}\n`;
+    text += `Date: ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}\n\n`;
+
+    if (personUrgentWork.length > 0) {
+      text += `URGENT (${personUrgentWork.length}):\n`;
+      personUrgentWork.forEach((t, idx) => {
+        text += `${idx + 1}. [${t.priority}] #${t.id}: ${t.title} (Due: ${t.due_date || 'None'})\n`;
+      });
+      text += '\n';
+    }
+
+    if (personInProcessWork.length > 0) {
+      text += `IN PROGRESS (${personInProcessWork.length}):\n`;
+      personInProcessWork.forEach((t, idx) => {
+        text += `${idx + 1}. #${t.id}: ${t.title}\n`;
+      });
+      text += '\n';
+    }
+
+    if (personUrgentWork.length === 0 && personInProcessWork.length === 0) {
+      text += `No pending urgent or in-progress tasks.\n`;
+    }
+
+    return text;
+  };
+
+  const handleCopySummary = () => {
+    navigator.clipboard.writeText(generateShareSummaryText());
+    setCopiedSummary(true);
+    setTimeout(() => setCopiedSummary(false), 2000);
+  };
+
+  const handleCopyDirectLink = () => {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
+  };
+
+  const handleDispatchShareEmail = async () => {
+    if (!selectedPersonObj) return;
+    const targetTask = personUrgentWork[0] || personInProcessWork[0] || personTasks[0] || tasks[0];
+    if (!targetTask) {
+      alert('No task available to link with digest email');
+      return;
+    }
+
+    try {
+      setSendingShare(true);
+      const notePrefix = shareCustomNote.trim() ? `${shareCustomNote.trim()}\n\n` : '';
+      const fullMessage = `${notePrefix}${generateShareSummaryText()}`;
+
+      await api.pushMessageToAssignee(targetTask.id, {
+        message: fullMessage,
+        send_email: true,
+        send_in_app: true,
+        is_urgent: true,
+      });
+
+      setShareSuccessNotice(`Email sent to ${selectedPersonObj.email}`);
+      setTimeout(() => {
+        setIsShareModalOpen(false);
+        setShareSuccessNotice(null);
+      }, 2000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to dispatch email');
+    } finally {
+      setSendingShare(false);
+    }
+  };
+
   // Helper colors & initials
   const getInitials = (name?: string) => {
     if (!name) return 'U';
@@ -346,8 +430,8 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
 
   const getAvatarBg = (name?: string) => {
     const colors = [
+      'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
       'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
-      'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
       'linear-gradient(135deg, #059669 0%, #10b981 100%)',
       'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
       'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
@@ -363,90 +447,100 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
     switch (p) {
       case 'URGENT':
         return {
-          color: '#DC2626',
-          bg: '#FEE2E2',
-          border: '#FECACA',
-          label: 'URGENT',
+          color: '#ef4444',
+          bg: 'rgba(239, 68, 68, 0.1)',
+          border: 'rgba(239, 68, 68, 0.3)',
+          label: t('priority_urgent'),
+          stripe: '#ef4444',
         };
       case 'HIGH':
         return {
-          color: '#D97706',
-          bg: '#FEF3C7',
-          border: '#FDE68A',
-          label: 'HIGH',
+          color: '#f97316',
+          bg: 'rgba(249, 115, 22, 0.1)',
+          border: 'rgba(249, 115, 22, 0.3)',
+          label: t('priority_high'),
+          stripe: '#f97316',
         };
       case 'MEDIUM':
         return {
-          color: '#0284C7',
-          bg: '#E0F2FE',
-          border: '#BAE6FD',
-          label: 'MEDIUM',
+          color: '#3b82f6',
+          bg: 'rgba(59, 130, 246, 0.1)',
+          border: 'rgba(59, 130, 246, 0.25)',
+          label: t('priority_medium'),
+          stripe: '#3b82f6',
         };
       case 'LOW':
       default:
         return {
-          color: '#475569',
-          bg: '#F1F5F9',
-          border: '#E2E8F0',
-          label: 'NORMAL',
+          color: '#64748b',
+          bg: 'var(--notion-item-bg)',
+          border: 'var(--notion-border-subtle)',
+          label: t('priority_low'),
+          stripe: '#94a3b8',
         };
     }
   };
 
-  // 5 Canonical Kanban Columns Configuration matching Image 4
+  // 5 Canonical Kanban Columns Configuration
   const columnsConfig: {
     id: TaskStatus;
     label: string;
     taLabel: string;
     color: string;
-    badgeCount: number;
+    lightBg: string;
+    borderColor: string;
     icon: any;
-    rightActionIcon: any;
+    emptyHint: string;
   }[] = [
     {
       id: 'TODO',
-      label: 'To Do',
+      label: t('status_todo'),
       taLabel: 'செய்ய வேண்டியவை',
-      color: '#475569',
-      badgeCount: boardKpis.todo || 59,
+      color: '#64748b',
+      lightBg: 'rgba(100, 116, 139, 0.08)',
+      borderColor: 'rgba(100, 116, 139, 0.25)',
       icon: Circle,
-      rightActionIcon: Plus,
+      emptyHint: 'No backlog tasks waiting',
     },
     {
       id: 'IN_PROGRESS',
-      label: 'In Progress',
+      label: t('status_in_progress'),
       taLabel: 'செயலில் உள்ளவை',
-      color: '#2563EB',
-      badgeCount: boardKpis.inProgress || 30,
-      icon: RefreshCw,
-      rightActionIcon: RefreshCw,
+      color: '#2563eb',
+      lightBg: 'rgba(37, 99, 235, 0.08)',
+      borderColor: 'rgba(37, 99, 235, 0.25)',
+      icon: Zap,
+      emptyHint: 'No tasks currently underway',
     },
     {
       id: 'PENDING_GM_APPROVAL',
-      label: 'Waiting Approval',
-      taLabel: 'ஒப்புதலுக்கு காத்திருக்கிறது',
-      color: '#D97706',
-      badgeCount: boardKpis.pendingApproval || 17,
-      icon: Hourglass,
-      rightActionIcon: Hourglass,
+      label: t('status_pending_gm_approval'),
+      taLabel: 'GM ஒப்புதலுக்கு காத்திருக்கிறது',
+      color: '#d97706',
+      lightBg: 'rgba(217, 119, 6, 0.09)',
+      borderColor: 'rgba(217, 119, 6, 0.3)',
+      icon: ShieldCheck,
+      emptyHint: 'No tasks waiting for GM review',
     },
     {
       id: 'CHANGES_REQUESTED',
-      label: 'Needs Changes',
+      label: t('status_changes_requested'),
       taLabel: 'மாற்றங்கள் தேவை',
-      color: '#EF4444',
-      badgeCount: boardKpis.changesRequested || 0,
-      icon: RotateCcw,
-      rightActionIcon: RotateCcw,
+      color: '#e11d48',
+      lightBg: 'rgba(225, 29, 72, 0.08)',
+      borderColor: 'rgba(225, 29, 72, 0.25)',
+      icon: AlertCircle,
+      emptyHint: 'All tasks approved! None need rework',
     },
     {
       id: 'CLOSED',
-      label: 'Completed',
+      label: t('status_closed'),
       taLabel: 'முடிவடைந்தவை',
-      color: '#10B981',
-      badgeCount: boardKpis.completed || 10,
+      color: '#059669',
+      lightBg: 'rgba(5, 150, 105, 0.08)',
+      borderColor: 'rgba(5, 150, 105, 0.25)',
       icon: CheckCircle2,
-      rightActionIcon: Check,
+      emptyHint: 'No completed tasks in current view',
     },
   ];
 
@@ -463,387 +557,514 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        minHeight: 'calc(100vh - 56px)',
-        background: '#F8FAFC',
+        minHeight: 'calc(100vh - 80px)',
+        background: 'var(--notion-bg)',
         padding: '16px 24px 32px',
         maxWidth: '1800px',
         margin: '0 auto',
         width: '100%',
-        boxSizing: 'border-box',
       }}
     >
       {/* ========================================================================= */}
-      {/* 1. TOP HEADER FILTER BAR (Row A: Quick Stats Pills + Live Sync)           */}
+      {/* 1. EXECUTIVE COMMAND & FILTER BAR                                          */}
       {/* ========================================================================= */}
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
+          flexDirection: 'column',
           gap: '12px',
-          marginBottom: '10px',
+          marginBottom: '16px',
+          background: 'var(--notion-card)',
+          border: '1px solid var(--notion-border)',
+          borderRadius: '14px',
+          padding: '12px 16px',
+          boxShadow: 'var(--notion-shadow-sm)',
         }}
       >
-        {/* Quick Filter Status Pills */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          {[
-            { id: 'ALL', label: isTamil ? 'அனைத்து பணிகள்' : 'All Tasks', count: boardKpis.total || 116 },
-            { id: 'MY_TASKS', label: isTamil ? 'என் பணிகள்' : 'Assigned to Me', count: boardKpis.myTasksCount || 12 },
-            { id: 'URGENT', label: isTamil ? 'அவசரப் பணிகள்' : 'Urgent & High', count: boardKpis.urgentCount || 57, icon: Flame, iconColor: '#EF4444' },
-            { id: 'GM_DIRECTIVES', label: isTamil ? 'GM உத்தரவுகள்' : 'GM Directives', count: boardKpis.gmDirectivesCount || 116, icon: ShieldCheck, iconColor: '#7C3AED' },
-            { id: 'DUE_SOON', label: isTamil ? 'இன்று / காலாவதி' : 'Due Today / Overdue', count: boardKpis.dueCount || 78, icon: Clock, iconColor: '#D97706' },
-          ].map((pill) => {
-            const isSelected = quickFilter === pill.id;
-            const PillIcon = pill.icon;
-
-            return (
-              <button
-                key={pill.id}
-                type="button"
-                onClick={() => setQuickFilter(pill.id as QuickFilterType)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
-                  borderRadius: '20px',
-                  background: isSelected ? '#FFFFFF' : '#FFFFFF',
-                  border: isSelected ? '1.5px solid #6366F1' : '1px solid #E2E8F0',
-                  color: isSelected ? '#1E293B' : '#64748B',
-                  fontSize: '12px',
-                  fontWeight: isSelected ? 750 : 550,
-                  cursor: 'pointer',
-                  boxShadow: isSelected ? '0 1px 4px rgba(99, 102, 241, 0.15)' : '0 1px 2px rgba(0,0,0,0.03)',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {PillIcon && <PillIcon size={13} style={{ color: pill.iconColor || 'inherit' }} />}
-                <span>{pill.label}</span>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    color: isSelected ? '#4F46E5' : '#94A3B8',
-                  }}
-                >
-                  {pill.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Right: Campus Live Sync Indicator */}
+        {/* Row A: KPI Counters & Quick Status Tabs */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '7px',
-            fontSize: '12px',
-            color: '#64748B',
-            fontWeight: 500,
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
           }}
         >
-          <span
-            style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: '#10B981',
-              boxShadow: '0 0 8px rgba(16, 185, 129, 0.6)',
-              display: 'inline-block',
-            }}
-          />
-          <span style={{ fontWeight: 650, color: '#334155' }}>Campus Live Sync</span>
-          <span style={{ color: '#94A3B8' }}>Just now</span>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 2. SECONDARY CONTROLS BAR (Row B: Density + Staff Work Table + Filters)    */}
-      {/* ========================================================================= */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-          marginBottom: '16px',
-        }}
-      >
-        {/* Left Side: Comfortable/Compact + Staff Work Table Shortcut */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Density Segmented Switcher */}
+          {/* Quick Segmented Filter Tabs */}
           <div
             style={{
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
-              background: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              borderRadius: '8px',
-              padding: '2px',
+              gap: '4px',
+              background: 'var(--notion-item-bg)',
+              padding: '3px',
+              borderRadius: '9px',
+              border: '1px solid var(--notion-border-subtle)',
+              overflowX: 'auto',
+              whiteSpace: 'nowrap',
+              maxWidth: '100%',
             }}
           >
-            <button
-              type="button"
-              onClick={() => handleToggleDensity('comfortable')}
-              style={{
-                padding: '4px 10px',
-                borderRadius: '6px',
-                border: 'none',
-                background: cardDensity === 'comfortable' ? '#F1F5F9' : 'transparent',
-                color: cardDensity === 'comfortable' ? '#0F172A' : '#64748B',
-                fontWeight: cardDensity === 'comfortable' ? 700 : 500,
-                fontSize: '11.5px',
-                cursor: 'pointer',
-              }}
-            >
-              Comfortable
-            </button>
-            <button
-              type="button"
-              onClick={() => handleToggleDensity('compact')}
-              style={{
-                padding: '4px 10px',
-                borderRadius: '6px',
-                border: 'none',
-                background: cardDensity === 'compact' ? '#F1F5F9' : 'transparent',
-                color: cardDensity === 'compact' ? '#0F172A' : '#64748B',
-                fontWeight: cardDensity === 'compact' ? 700 : 500,
-                fontSize: '11.5px',
-                cursor: 'pointer',
-              }}
-            >
-              Compact
-            </button>
+            {[
+              { id: 'ALL', label: isTamil ? 'அனைத்து பணிகள்' : 'All Tasks', count: boardKpis.total, icon: Layers },
+              { id: 'MY_TASKS', label: isTamil ? 'என் பணிகள்' : 'Assigned to Me', count: taskPool.filter((t) => (currentUserId ? isTaskAssignedToStaff(t, currentUserId) : false)).length, icon: CheckSquare },
+              { id: 'URGENT', label: isTamil ? 'அவசரப் பணிகள்' : 'Urgent & High', count: boardKpis.urgentCount, icon: Flame, color: '#ef4444' },
+              { id: 'GM_DIRECTIVES', label: isTamil ? 'GM உத்தரவுகள்' : 'GM Directives', count: taskPool.filter((t) => parseGmDirective(t).isAssignedByGm).length, icon: ShieldCheck, color: '#7c3aed' },
+              { id: 'DUE_SOON', label: isTamil ? 'இன்று / காலாவதி' : 'Due Today / Overdue', count: taskPool.filter((t) => t.status !== 'CLOSED' && isDueTodayOrOverdue(t)).length, icon: Clock, color: '#d97706' },
+            ].map((tab) => {
+              const isSelected = quickFilter === tab.id;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setQuickFilter(tab.id as QuickFilterType)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '5px 10px',
+                    borderRadius: '7px',
+                    border: 'none',
+                    background: isSelected ? 'var(--notion-card)' : 'transparent',
+                    color: isSelected ? (tab.color || 'var(--notion-text)') : 'var(--notion-text-muted)',
+                    fontWeight: isSelected ? 800 : 500,
+                    fontSize: '11.5px',
+                    cursor: 'pointer',
+                    boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon size={12} style={{ color: tab.color || (isSelected ? 'var(--notion-blue)' : 'inherit') }} />
+                  <span>{tab.label}</span>
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      padding: '1px 5px',
+                      borderRadius: '8px',
+                      background: isSelected ? 'rgba(79, 70, 229, 0.1)' : 'var(--notion-border-subtle)',
+                      color: isSelected ? '#4f46e5' : 'var(--notion-text-dim)',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Staff Work Table Shortcut Pill */}
-          <button
-            type="button"
-            onClick={() => onSelectView?.('table')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '5px 12px',
-              borderRadius: '8px',
-              background: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              color: '#334155',
-              fontSize: '11.5px',
-              fontWeight: 650,
-              cursor: 'pointer',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-            }}
-          >
-            <TableIcon size={13} style={{ color: '#10B981' }} />
-            <span>Staff Work Table</span>
-            <span
-              style={{
-                fontSize: '10.5px',
-                fontWeight: 800,
-                color: '#10B981',
-                background: 'rgba(16, 185, 129, 0.1)',
-                padding: '1px 5px',
-                borderRadius: '4px',
-              }}
-            >
-              14 Active
-            </span>
-          </button>
-        </div>
-
-        {/* Right Side: Dropdowns (Department, Staff, Priority) + Clear + CSV + Print */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          {/* Department Select */}
-          {departments && departments.length > 0 && onSelectDept && (
-            <select
-              value={String(selectedDeptId)}
-              onChange={(e) => {
-                const val = e.target.value === 'ALL' ? 'ALL' : Number(e.target.value);
-                onSelectDept?.(val);
+          {/* Action Tools: Export CSV, Print & New Task */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Export Official CSV */}
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await api.downloadTasksCsv(selectedDeptId === 'ALL' ? undefined : selectedDeptId);
+                } catch (err: any) {
+                  alert(err.message || 'Export failed');
+                }
               }}
               style={{
-                background: '#FFFFFF',
-                border: '1px solid #E2E8F0',
-                borderRadius: '8px',
-                padding: '5px 10px',
                 fontSize: '11.5px',
-                fontWeight: selectedDeptId !== 'ALL' ? 700 : 500,
-                color: '#334155',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-            >
-              <option value="ALL">All Departments</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {/* Staff Select */}
-          {availableStaff.length > 0 && (
-            <select
-              value={String(activeStaffId)}
-              onChange={(e) => {
-                const val = e.target.value === 'ALL' ? 'ALL' : e.target.value;
-                handleSelectStaff(val);
-              }}
-              style={{
-                background: '#FFFFFF',
-                border: '1px solid #E2E8F0',
-                borderRadius: '8px',
                 padding: '5px 10px',
-                fontSize: '11.5px',
-                fontWeight: activeStaffId !== 'ALL' ? 700 : 500,
-                color: '#334155',
+                background: 'var(--notion-item-bg)',
+                border: '1px solid var(--notion-border-subtle)',
+                color: 'var(--notion-text)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontWeight: 600,
                 cursor: 'pointer',
-                outline: 'none',
-                maxWidth: '160px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
+              title="Export complete clear details CSV"
             >
-              <option value="ALL">All Staff ({taskPool.length})</option>
-              <option value="UNASSIGNED">Unassigned</option>
-              {availableStaff.map((s) => (
-                <option key={String(s.id)} value={String(s.id)}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          )}
+              <Download size={12} style={{ color: '#16a34a' }} />
+              <span>{isTamil ? 'பதிவிறக்கு' : 'Export CSV'}</span>
+            </button>
 
-          {/* Priority Select */}
-          <select
-            value={selectedPriority}
-            onChange={(e) => setSelectedPriority(e.target.value)}
-            style={{
-              background: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              borderRadius: '8px',
-              padding: '5px 10px',
-              fontSize: '11.5px',
-              fontWeight: selectedPriority !== 'ALL' ? 700 : 500,
-              color: '#334155',
-              cursor: 'pointer',
-              outline: 'none',
-            }}
-          >
-            <option value="ALL">All Priorities</option>
-            <option value="URGENT">Urgent</option>
-            <option value="HIGH">High</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="LOW">Low</option>
-          </select>
-
-          {/* Clear Filters (×) */}
-          {hasActiveFilters && (
+            {/* Print Official Matrix */}
             <button
               type="button"
               onClick={() => {
-                setSearchQuery('');
-                setQuickFilter('ALL');
-                onSelectDept?.('ALL');
-                handleSelectStaff('ALL');
-                setSelectedPriority('ALL');
+                const activeDeptObj = departments?.find((d) => String(d.id) === String(selectedDeptId));
+                const deptTitle = selectedDeptId === 'ALL' ? 'All Departments' : activeDeptObj?.name || 'Department';
+                printTasksTableReport(displayTasks, 'Tasks Digest Report', deptTitle);
               }}
               style={{
-                background: '#FEE2E2',
-                border: '1px solid #FECACA',
-                color: '#DC2626',
-                borderRadius: '8px',
-                padding: '5px 8px',
                 fontSize: '11.5px',
-                fontWeight: 700,
+                padding: '5px 10px',
+                background: 'var(--notion-item-bg)',
+                border: '1px solid var(--notion-border-subtle)',
+                color: 'var(--notion-text)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontWeight: 600,
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
-              title="Reset Filters"
+              title="Print executive tasks matrix"
             >
-              ✕
+              <Printer size={12} style={{ color: '#2563eb' }} />
+              <span>{isTamil ? 'அச்சிடு' : 'Print'}</span>
             </button>
-          )}
 
-          {/* CSV Export */}
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                await api.downloadTasksCsv(selectedDeptId === 'ALL' ? undefined : selectedDeptId);
-              } catch (err: any) {
-                alert(err.message || 'Export failed');
-              }
-            }}
+            {canCreateTask !== false && onOpenCreateTask && (
+              <button
+                type="button"
+                onClick={onOpenCreateTask}
+                className="notion-btn notion-btn-primary"
+                style={{
+                  fontSize: '11.5px',
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                <Plus size={13} />
+                <span>{t('newTask')}</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Row B: Live Search & Dropdown Filter Selectors */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '10px',
+            paddingTop: '6px',
+            borderTop: '1px solid var(--notion-border-subtle)',
+          }}
+        >
+          {/* Real-time search box */}
+          <div
             style={{
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
-              gap: '4px',
-              background: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              borderRadius: '8px',
+              gap: '6px',
               padding: '5px 10px',
-              fontSize: '11.5px',
-              fontWeight: 600,
-              color: '#334155',
-              cursor: 'pointer',
+              borderRadius: '8px',
+              background: 'var(--notion-input-bg)',
+              border: '1px solid var(--notion-border)',
+              width: '100%',
+              maxWidth: '320px',
             }}
           >
-            <Download size={12} style={{ color: '#16A34A' }} />
-            <span>CSV</span>
-          </button>
+            <Search size={13} style={{ color: 'var(--notion-text-dim)' }} />
+            <input
+              type="text"
+              placeholder={isTamil ? 'பணிகளைத் தேடுங்கள்...' : 'Search tasks by title, ID, assignee...'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                outline: 'none',
+                fontSize: '12px',
+                color: 'var(--notion-text)',
+                width: '100%',
+                fontFamily: 'inherit',
+              }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--notion-text-dim)', padding: 0 }}
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
 
-          {/* Print Report */}
-          <button
-            type="button"
-            onClick={() => {
-              const activeDeptObj = departments?.find((d) => String(d.id) === String(selectedDeptId));
-              const deptTitle = selectedDeptId === 'ALL' ? 'All Departments' : activeDeptObj?.name || 'Department';
-              printTasksTableReport(displayTasks, 'Tasks Digest Report', deptTitle);
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              background: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              borderRadius: '8px',
-              padding: '5px 10px',
-              fontSize: '11.5px',
-              fontWeight: 600,
-              color: '#334155',
-              cursor: 'pointer',
-            }}
-          >
-            <Printer size={12} style={{ color: '#2563EB' }} />
-            <span>Print</span>
-          </button>
+          {/* Department, Staff, Priority Dropdowns */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Department Filter */}
+            {departments && departments.length > 0 && onSelectDept && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '4px 8px',
+                  borderRadius: '7px',
+                  background: 'var(--notion-item-bg)',
+                  border: '1px solid var(--notion-border-subtle)',
+                  fontSize: '11.5px',
+                }}
+              >
+                <Building size={12} style={{ color: 'var(--notion-text-muted)' }} />
+                <select
+                  value={String(selectedDeptId)}
+                  onChange={(e) => {
+                    const val = e.target.value === 'ALL' ? 'ALL' : Number(e.target.value);
+                    onSelectDept?.(val);
+                  }}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--notion-text)',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    fontSize: '11.5px',
+                    fontWeight: selectedDeptId !== 'ALL' ? 700 : 500,
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <option value="ALL">{t('allDepartments')}</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Staff Filter */}
+            {availableStaff.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '4px 8px',
+                  borderRadius: '7px',
+                  background: activeStaffId !== 'ALL' ? 'rgba(79, 70, 229, 0.09)' : 'var(--notion-item-bg)',
+                  border: activeStaffId !== 'ALL' ? '1.5px solid #4f46e5' : '1px solid var(--notion-border-subtle)',
+                  fontSize: '11.5px',
+                }}
+              >
+                <Users size={12} style={{ color: activeStaffId !== 'ALL' ? '#4f46e5' : 'var(--notion-text-muted)' }} />
+                <select
+                  value={String(activeStaffId)}
+                  onChange={(e) => {
+                    const val = e.target.value === 'ALL' ? 'ALL' : e.target.value;
+                    handleSelectStaff(val);
+                  }}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    color: activeStaffId !== 'ALL' ? '#4f46e5' : 'var(--notion-text)',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    fontSize: '11.5px',
+                    fontWeight: activeStaffId !== 'ALL' ? 700 : 500,
+                    fontFamily: 'inherit',
+                    maxWidth: '170px',
+                  }}
+                >
+                  <option value="ALL">{isTamil ? 'அனைத்து பணியாளர்கள்' : 'All Staff'} ({taskPool.length})</option>
+                  <option value="UNASSIGNED">
+                    {isTamil ? 'ஒதுக்கப்படாதவை' : 'Unassigned Tasks'} ({taskPool.filter((t) => !t.assigned_to && parseCoAssignedTeam(t.description).team.length === 0).length})
+                  </option>
+                  {availableStaff.map((s) => (
+                    <option key={String(s.id)} value={String(s.id)}>
+                      {s.name} {s.dept ? `[${s.dept}]` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Priority Filter */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '4px 8px',
+                borderRadius: '7px',
+                background: 'var(--notion-item-bg)',
+                border: '1px solid var(--notion-border-subtle)',
+                fontSize: '11.5px',
+              }}
+            >
+              <Filter size={12} style={{ color: 'var(--notion-text-muted)' }} />
+              <select
+                value={selectedPriority}
+                onChange={(e) => setSelectedPriority(e.target.value)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--notion-text)',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  fontSize: '11.5px',
+                  fontWeight: selectedPriority !== 'ALL' ? 700 : 500,
+                  fontFamily: 'inherit',
+                }}
+              >
+                <option value="ALL">{isTamil ? 'அனைத்து முன்னுரிமைகள்' : 'All Priorities'}</option>
+                <option value="URGENT">{t('priority_urgent')}</option>
+                <option value="HIGH">{t('priority_high')}</option>
+                <option value="MEDIUM">{t('priority_medium')}</option>
+                <option value="LOW">{t('priority_low')}</option>
+              </select>
+            </div>
+
+            {/* Clear All Filters Button */}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setQuickFilter('ALL');
+                  onSelectDept?.('ALL');
+                  handleSelectStaff('ALL');
+                  setSelectedPriority('ALL');
+                }}
+                style={{
+                  fontSize: '11px',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  color: '#dc2626',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                ✕ Reset Filters
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. 5 HIGH-GRADE KANBAN COLUMNS MATCHING IMAGE 4                            */}
+      {/* 2. COMPACT STAFF SPOTLIGHT BAR (When a staff member is filtered)          */}
+      {/* ========================================================================= */}
+      {selectedPersonObj && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '10px',
+            padding: '10px 16px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(59, 130, 246, 0.05) 100%)',
+            border: '1px solid rgba(79, 70, 229, 0.25)',
+            marginBottom: '16px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: getAvatarBg(selectedPersonObj.full_name || selectedPersonObj.username),
+                color: '#fff',
+                fontSize: '12px',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 6px rgba(79, 70, 229, 0.25)',
+              }}
+            >
+              {getInitials(selectedPersonObj.full_name || selectedPersonObj.username)}
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--notion-text)' }}>
+                {selectedPersonObj.full_name || selectedPersonObj.username}
+                {selectedPersonObj.department_name && (
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#4f46e5', marginLeft: '8px' }}>
+                    [{selectedPersonObj.department_name}]
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--notion-text-muted)' }}>
+                {personUrgentWork.length} urgent • {personInProcessWork.length} in progress • {personTasks.length} total tasks
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setShareCustomNote('');
+                setShareSuccessNotice(null);
+                setIsShareModalOpen(true);
+              }}
+              style={{
+                fontSize: '11.5px',
+                padding: '5px 12px',
+                borderRadius: '7px',
+                background: '#4f46e5',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 650,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(79, 70, 229, 0.3)',
+              }}
+            >
+              <Share2 size={12} />
+              <span>Share Digest</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectStaff('ALL')}
+              style={{
+                fontSize: '11.5px',
+                padding: '5px 10px',
+                borderRadius: '7px',
+                background: 'var(--notion-card)',
+                border: '1px solid var(--notion-border)',
+                color: 'var(--notion-text-muted)',
+                cursor: 'pointer',
+              }}
+            >
+              Show All
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 3. 5 HIGH-GRADE KANBAN COLUMNS WITH INTERACTIVE DRAG & DROP               */}
       {/* ========================================================================= */}
       <div
         className="notion-kanban-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, minmax(220px, 1fr))',
-          gap: '12px',
+          gridTemplateColumns: 'repeat(5, minmax(215px, 1fr))',
+          gap: '10px',
           alignItems: 'start',
           flex: 1,
           overflowX: 'auto',
-          paddingBottom: '24px',
+          paddingBottom: '16px',
         }}
       >
         {columnsConfig.map((col) => {
           const colTasks = displayTasks.filter((t) => t.status === col.id);
           const isOver = dragOverColumn === col.id;
-          const ActionIcon = col.rightActionIcon;
 
           return (
             <div
@@ -853,62 +1074,62 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
               onDragLeave={handleDragLeaveColumn}
               onDrop={(e) => handleDropOnColumn(e, col.id)}
               style={{
-                background: isOver ? '#F1F5F9' : '#F1F5F9', // Subtle slate card column tray
-                borderRadius: '16px',
+                background: isOver ? col.lightBg : 'var(--notion-item-bg)',
+                borderRadius: '14px',
                 padding: '12px 10px 14px',
-                border: isOver ? `2px dashed ${col.color}` : '1px solid #E2E8F0',
-                minHeight: '560px',
+                border: isOver ? `2px dashed ${col.color}` : '1px solid var(--notion-border-subtle)',
+                minHeight: '520px',
                 display: 'flex',
                 flexDirection: 'column',
                 transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                boxShadow: isOver ? `0 0 16px ${col.color}25` : 'none',
               }}
             >
-              {/* Column Header matching Image 4 */}
+              {/* Column Header */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '4px 6px 12px',
+                  padding: '4px 6px 10px',
+                  borderBottom: `2px solid ${col.color}`,
+                  marginBottom: '10px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                  <span
+                  <div
                     style={{
-                      width: '7px',
-                      height: '7px',
-                      borderRadius: '50%',
-                      background: col.color,
-                      display: 'inline-block',
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: 750,
-                      color: '#0F172A',
-                      letterSpacing: '-0.01em',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '6px',
+                      background: col.lightBg,
+                      color: col.color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
+                    <col.icon size={12} strokeWidth={2.5} />
+                  </div>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--notion-text)', letterSpacing: '-0.01em' }}>
                     {isTamil ? col.taLabel : col.label}
                   </span>
                   <span
                     style={{
                       fontSize: '11px',
-                      fontWeight: 700,
-                      color: '#64748B',
-                      background: '#FFFFFF',
+                      fontWeight: 800,
+                      color: col.color,
+                      background: col.lightBg,
                       padding: '1px 7px',
                       borderRadius: '10px',
-                      border: '1px solid #E2E8F0',
+                      border: `1px solid ${col.borderColor}`,
                     }}
                   >
                     {colTasks.length}
                   </span>
                 </div>
 
-                {/* Right Column Header Action */}
-                {col.id === 'TODO' && canCreateTask !== false && onOpenCreateTask ? (
+                {canCreateTask !== false && onOpenCreateTask && col.id === 'TODO' && (
                   <button
                     type="button"
                     onClick={onOpenCreateTask}
@@ -917,26 +1138,21 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                       height: '22px',
                       borderRadius: '6px',
                       border: 'none',
-                      background: '#FFFFFF',
-                      color: '#64748B',
+                      background: 'rgba(79, 70, 229, 0.1)',
+                      color: '#4f46e5',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: 'pointer',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                     }}
-                    title="Add task to To Do"
+                    title="Quick Add Task"
                   >
                     <Plus size={14} />
                   </button>
-                ) : (
-                  <div style={{ color: '#94A3B8' }}>
-                    <ActionIcon size={14} />
-                  </div>
                 )}
               </div>
 
-              {/* Task Cards List / Empty State */}
+              {/* Task Cards List / Drop Zone */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
                 {colTasks.map((t) => {
                   const timeline = isDueTodayOrOverdue(t);
@@ -947,9 +1163,6 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                   const isDragging = draggingTaskId === t.id;
                   const isMenuOpen = activeMenuTaskId === t.id;
 
-                  // Extract co-assigned tags
-                  const { team } = parseCoAssignedTeam(t.description);
-
                   return (
                     <div
                       key={t.id}
@@ -958,11 +1171,12 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                       onDragEnd={handleDragEnd}
                       onClick={() => onSelectTask(t)}
                       style={{
-                        background: '#FFFFFF',
+                        background: 'var(--notion-card)',
                         borderRadius: '12px',
-                        padding: cardDensity === 'compact' ? '10px 12px' : '13px 14px',
-                        border: '1px solid #E2E8F0',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                        padding: cardDensity === 'compact' ? '9px 11px' : '12px 13px',
+                        border: '1px solid var(--notion-border)',
+                        borderLeft: `4px solid ${priorityTheme.stripe}`,
+                        boxShadow: 'var(--notion-shadow-sm)',
                         cursor: 'grab',
                         opacity: isDragging ? 0.45 : 1,
                         transform: isDragging ? 'scale(0.97)' : 'none',
@@ -971,16 +1185,16 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(15, 23, 42, 0.08)';
-                        e.currentTarget.style.borderColor = '#CBD5E1';
+                        e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(15, 23, 42, 0.12)';
+                        e.currentTarget.style.borderColor = col.color;
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'none';
-                        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
-                        e.currentTarget.style.borderColor = '#E2E8F0';
+                        e.currentTarget.style.boxShadow = 'var(--notion-shadow-sm)';
+                        e.currentTarget.style.borderColor = 'var(--notion-border)';
                       }}
                     >
-                      {/* Top Badges Row matching Image 4 */}
+                      {/* Top Badges Header */}
                       <div
                         style={{
                           display: 'flex',
@@ -990,70 +1204,83 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                           marginBottom: '6px',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                          {/* Priority Badge */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, overflow: 'hidden' }}>
+                          {/* Priority Pill */}
                           <span
                             style={{
                               fontSize: '9.5px',
                               fontWeight: 800,
-                              padding: '2px 6px',
-                              borderRadius: '5px',
+                              padding: '1.5px 6px',
+                              borderRadius: '6px',
                               background: priorityTheme.bg,
                               color: priorityTheme.color,
-                              letterSpacing: '0.02em',
+                              border: `1px solid ${priorityTheme.border}`,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
                               whiteSpace: 'nowrap',
+                              flexShrink: 0,
                             }}
                           >
-                            {priorityTheme.label}
+                            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: priorityTheme.color }} />
+                            <span>{priorityTheme.label}</span>
                           </span>
 
-                          {/* Directive Badge (GM Call, GM Mail, In Meeting) */}
+                          {/* GM Directive Pill */}
                           {directive.isAssignedByGm && (
                             <span
+                              title={`Assigned by General Manager (${directive.channelDisplay}) • Created by ${t.created_by_name || 'Staff'}`}
                               style={{
                                 fontSize: '9.5px',
+                                background: 'rgba(124, 58, 237, 0.12)',
+                                color: '#7c3aed',
+                                border: '1px solid rgba(124, 58, 237, 0.3)',
                                 fontWeight: 800,
-                                padding: '2px 6px',
-                                borderRadius: '5px',
-                                background: '#EDE9FE',
-                                color: '#7C3AED',
+                                padding: '1.5px 6px',
+                                borderRadius: '6px',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '3px',
                                 whiteSpace: 'nowrap',
+                                flexShrink: 0,
                               }}
-                              title={directive.channelDisplay}
                             >
                               <span>{directive.channelIcon}</span>
-                              <span>{directive.channel === 'PHONE' ? 'GM Call' : directive.channel === 'EMAIL' ? 'GM Mail' : 'GM Direct'}</span>
+                              <span>GM</span>
                             </span>
                           )}
 
-                          {/* Department Chip (TD, CCTV, INFRA, FOOD, IT, FLEET) */}
+                          {/* Department Tag */}
                           {t.department_name && (
                             <span
                               style={{
                                 fontSize: '9.5px',
+                                color: 'var(--notion-text-dim)',
                                 fontWeight: 700,
-                                padding: '2px 5px',
-                                borderRadius: '5px',
-                                background: '#F1F5F9',
-                                color: '#475569',
+                                background: 'var(--notion-item-bg)',
+                                padding: '1.5px 5px',
+                                borderRadius: '4px',
+                                border: '1px solid var(--notion-border-subtle)',
                                 whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '75px',
+                                flexShrink: 1,
                               }}
+                              title={t.department_name}
                             >
-                              {t.department_code || t.department_name.slice(0, 5).toUpperCase()}
+                              {t.department_code || t.department_name.slice(0, 12)}
                             </span>
                           )}
                         </div>
 
-                        {/* Task ID and Move Menu Button */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <span style={{ fontSize: '10.5px', color: '#94A3B8', fontWeight: 650, fontFamily: 'monospace' }}>
+                        {/* Task ID and Quick Move Dropdown */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+                          <span style={{ fontSize: '10px', color: 'var(--notion-text-dim)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
                             #{t.id}
                           </span>
 
-                          {/* Context menu for quick moving */}
+                          {/* 1-Click Move Menu Trigger */}
                           <div style={{ position: 'relative' }}>
                             <button
                               type="button"
@@ -1066,15 +1293,16 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                                 height: '18px',
                                 borderRadius: '4px',
                                 border: 'none',
-                                background: isMenuOpen ? '#E2E8F0' : 'transparent',
-                                color: '#94A3B8',
+                                background: isMenuOpen ? 'var(--notion-border)' : 'transparent',
+                                color: 'var(--notion-text-dim)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 cursor: 'pointer',
                               }}
+                              title="Move task to stage"
                             >
-                              <MoreHorizontal size={13} />
+                              <MoreHorizontal size={12} />
                             </button>
 
                             {/* Floating Move Menu */}
@@ -1085,16 +1313,16 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                                   position: 'absolute',
                                   top: '22px',
                                   right: 0,
-                                  background: '#FFFFFF',
-                                  border: '1px solid #E2E8F0',
+                                  background: 'var(--notion-card)',
+                                  border: '1px solid var(--notion-border)',
                                   borderRadius: '8px',
-                                  boxShadow: '0 8px 24px rgba(15, 23, 42, 0.18)',
+                                  boxShadow: '0 8px 24px rgba(15, 23, 42, 0.25)',
                                   padding: '4px',
                                   zIndex: 100,
                                   minWidth: '150px',
                                 }}
                               >
-                                <div style={{ fontSize: '9.5px', fontWeight: 800, color: '#94A3B8', padding: '3px 8px', textTransform: 'uppercase' }}>
+                                <div style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--notion-text-dim)', padding: '3px 8px', textTransform: 'uppercase' }}>
                                   Move Task To:
                                 </div>
                                 {columnsConfig.map((targetCol) => {
@@ -1122,7 +1350,7 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                                         cursor: 'pointer',
                                         textAlign: 'left',
                                       }}
-                                      onMouseEnter={(e) => (e.currentTarget.style.background = '#F8FAFC')}
+                                      onMouseEnter={(e) => (e.currentTarget.style.background = targetCol.lightBg)}
                                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                                     >
                                       <MoveRight size={11} />
@@ -1136,13 +1364,13 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                         </div>
                       </div>
 
-                      {/* Card Title matching Image 4 */}
+                      {/* Card Title */}
                       <h4
                         style={{
-                          margin: '0 0 4px',
-                          fontSize: '13px',
+                          margin: '0 0 5px',
+                          fontSize: '12.5px',
                           fontWeight: 700,
-                          color: '#0F172A',
+                          color: 'var(--notion-text)',
                           lineHeight: 1.35,
                           letterSpacing: '-0.01em',
                         }}
@@ -1150,152 +1378,53 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                         {t.title}
                       </h4>
 
-                      {/* Subtitle / Meta Tags / Co-Assigned */}
-                      <div
-                        style={{
-                          fontSize: '11px',
-                          color: '#64748B',
-                          lineHeight: 1.4,
-                          marginBottom: '6px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {t.description ? t.description.replace(/<!--.*?-->/g, '').trim().slice(0, 45) : 'Campus operations task'}
-                        {team.length > 1 && (
-                          <span style={{ color: '#0284C7', fontWeight: 700, marginLeft: '6px' }}>
-                            +{team.length - 1} co-assigned
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Milestone Progress Bar for In Progress tasks matching Image 4 */}
-                      {t.status === 'IN_PROGRESS' && (
-                        <div style={{ marginTop: '8px', marginBottom: '8px' }}>
-                          <div
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              fontSize: '10.5px',
-                              color: '#64748B',
-                              fontWeight: 600,
-                              marginBottom: '3px',
-                            }}
-                          >
-                            <span>Milestone Progress</span>
-                            <span style={{ fontWeight: 800, color: '#2563EB' }}>75%</span>
-                          </div>
-                          <div
-                            style={{
-                              width: '100%',
-                              height: '5px',
-                              background: '#E2E8F0',
-                              borderRadius: '3px',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: '75%',
-                                height: '100%',
-                                background: 'linear-gradient(90deg, #3B82F6, #2563EB)',
-                                borderRadius: '3px',
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Evidence Photos Attachment preview for Waiting Approval matching Image 4 */}
-                      {t.status === 'PENDING_GM_APPROVAL' && (
-                        <div
+                      {/* Description preview (Comfortable Mode) */}
+                      {cardDensity === 'comfortable' && t.description && (
+                        <p
                           style={{
-                            marginTop: '8px',
-                            marginBottom: '8px',
-                            padding: '6px 8px',
-                            background: '#F8FAFC',
-                            borderRadius: '8px',
-                            border: '1px solid #E2E8F0',
+                            margin: '0 0 6px',
+                            fontSize: '11px',
+                            color: 'var(--notion-text-muted)',
+                            lineHeight: 1.4,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
                           }}
                         >
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              marginBottom: '4px',
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: '10px',
-                                fontWeight: 700,
-                                color: '#475569',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                              }}
-                            >
-                              <CheckCircle2 size={11} style={{ color: '#059669' }} />
-                              3 Evidence Photos Attached
-                            </span>
-                            <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#2563EB', cursor: 'pointer' }}>
-                              View Docs
-                            </span>
-                          </div>
-                          <div style={{ display: 'flex', gap: '5px' }}>
-                            <div
-                              style={{
-                                width: '44px',
-                                height: '26px',
-                                borderRadius: '4px',
-                                background: '#E2E8F0',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '8.5px',
-                                color: '#64748B',
-                                fontWeight: 700,
-                              }}
-                            >
-                              PHOTO 1
-                            </div>
-                            <div
-                              style={{
-                                width: '44px',
-                                height: '26px',
-                                borderRadius: '4px',
-                                background: '#E2E8F0',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '8.5px',
-                                color: '#64748B',
-                                fontWeight: 700,
-                              }}
-                            >
-                              PHOTO 2
-                            </div>
-                            <div
-                              style={{
-                                width: '44px',
-                                height: '26px',
-                                borderRadius: '4px',
-                                background: '#E2E8F0',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '8.5px',
-                                color: '#64748B',
-                                fontWeight: 700,
-                              }}
-                            >
-                              LOG DOC
-                            </div>
-                          </div>
-                        </div>
+                          {t.description.replace(/<!--.*?-->/g, '').trim()}
+                        </p>
                       )}
+
+                      {/* Co-Assigned Badge */}
+                      {(() => {
+                        const { team } = parseCoAssignedTeam(t.description);
+                        if (team.length > 1) {
+                          return (
+                            <div style={{ marginBottom: '6px' }}>
+                              <span
+                                style={{
+                                  fontSize: '9.5px',
+                                  fontWeight: 700,
+                                  color: '#0284c7',
+                                  background: 'rgba(2, 132, 199, 0.08)',
+                                  border: '1px solid rgba(2, 132, 199, 0.25)',
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                }}
+                                title={team.map((m) => `${m.staffName} (${m.deptName})`).join(', ')}
+                              >
+                                <Users size={9} />
+                                <span>+{team.length - 1} co-assigned</span>
+                              </span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
 
                       {/* Footer: Assignee & Timeline */}
                       <div
@@ -1306,23 +1435,25 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                           gap: '6px',
                           marginTop: '8px',
                           paddingTop: '6px',
-                          borderTop: '1px solid #F1F5F9',
+                          borderTop: '1px solid var(--notion-border-subtle)',
+                          minWidth: 0,
                         }}
                       >
                         {/* Assignee Avatar + Name */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, flex: '1 1 auto' }}>
                           <span
                             style={{
-                              width: '20px',
-                              height: '20px',
+                              width: '19px',
+                              height: '19px',
                               borderRadius: '50%',
                               background: getAvatarBg(t.assigned_to_name),
-                              color: '#FFFFFF',
-                              fontSize: '9px',
+                              color: '#ffffff',
+                              fontSize: '8.5px',
                               fontWeight: 800,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
                               flexShrink: 0,
                             }}
                           >
@@ -1330,77 +1461,49 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                           </span>
                           <span
                             style={{
-                              fontSize: '11.5px',
+                              fontSize: '11px',
                               fontWeight: 650,
-                              color: '#1E293B',
+                              color: 'var(--notion-text)',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
-                              maxWidth: '100px',
+                              maxWidth: '105px',
                             }}
+                            title={t.assigned_to_name || 'Unassigned'}
                           >
                             {t.assigned_to_name || 'Unassigned'}
                           </span>
                         </div>
 
-                        {/* Due Date or Status on Right */}
-                        <div>
-                          {t.status === 'CLOSED' ? (
-                            <span
-                              style={{
-                                fontSize: '10px',
-                                fontWeight: 800,
-                                color: '#059669',
-                                background: '#ECFDF5',
-                                padding: '1px 6px',
-                                borderRadius: '4px',
-                              }}
-                            >
-                              Verified
-                            </span>
-                          ) : isOverdue ? (
-                            <span
-                              style={{
-                                fontSize: '10px',
-                                fontWeight: 800,
-                                color: '#DC2626',
-                                background: '#FEE2E2',
-                                padding: '1px 6px',
-                                borderRadius: '4px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                              }}
-                            >
-                              <AlertTriangle size={10} />
-                              Overdue
-                            </span>
-                          ) : isToday ? (
-                            <span
-                              style={{
-                                fontSize: '10px',
-                                fontWeight: 800,
-                                color: '#D97706',
-                                background: '#FEF3C7',
-                                padding: '1px 6px',
-                                borderRadius: '4px',
-                              }}
-                            >
-                              Due 5:00 PM
-                            </span>
-                          ) : t.due_date ? (
-                            <span style={{ fontSize: '10.5px', color: '#64748B', fontWeight: 600 }}>
-                              {formatShortDueDate(t.due_date)}
-                            </span>
-                          ) : null}
-                        </div>
+                        {/* Due Date Indicator (Strictly Non-Wrapping) */}
+                        {t.due_date && (
+                          <span
+                            style={{
+                              color: isOverdue ? '#dc2626' : isToday ? '#d97706' : 'var(--notion-text-dim)',
+                              background: isOverdue ? 'rgba(239, 68, 68, 0.08)' : isToday ? 'rgba(245, 158, 11, 0.08)' : 'transparent',
+                              border: isOverdue ? '1px solid rgba(239, 68, 68, 0.25)' : isToday ? '1px solid rgba(245, 158, 11, 0.25)' : 'none',
+                              padding: isOverdue || isToday ? '1.5px 5px' : '0 2px',
+                              borderRadius: '4px',
+                              fontWeight: isOverdue || isToday ? 800 : 600,
+                              fontSize: '10px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2.5px',
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0,
+                            }}
+                            title={`Due: ${t.due_date}`}
+                          >
+                            {isOverdue && <AlertTriangle size={9} />}
+                            {isToday && <Clock size={9} />}
+                            <span>{formatShortDueDate(t.due_date)}</span>
+                          </span>
+                        )}
                       </div>
 
-                      {/* ========================================================================= */}
-                      {/* FULL-WIDTH CARD ACTION BUTTON (Matching Image 4 Exactly)                   */}
-                      {/* ========================================================================= */}
+                      {/* Action Button Row: Clear, spacious button with perfect fit for text */}
                       {t.status === 'TODO' && onStartTask && (
-                        <div style={{ marginTop: '9px' }}>
+                        <div style={{ marginTop: cardDensity === 'compact' ? '5px' : '7px' }}>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1409,32 +1512,32 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                             }}
                             style={{
                               width: '100%',
-                              height: '34px',
-                              borderRadius: '8px',
-                              background: '#2563EB',
+                              padding: cardDensity === 'compact' ? '3.5px 8px' : '5px 10px',
+                              borderRadius: '6px',
+                              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                               border: 'none',
-                              color: '#FFFFFF',
-                              fontSize: '11.5px',
-                              fontWeight: 700,
+                              color: '#ffffff',
+                              fontSize: cardDensity === 'compact' ? '10px' : '11px',
+                              fontWeight: 750,
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '6px',
+                              gap: '4px',
+                              whiteSpace: 'nowrap',
                               boxShadow: '0 1px 3px rgba(37, 99, 235, 0.25)',
                               transition: 'all 0.15s ease',
                             }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = '#1D4ED8')}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = '#2563EB')}
+                            title="Start working on this task"
                           >
-                            <Play size={11} fill="#FFFFFF" />
+                            <Play size={cardDensity === 'compact' ? 9 : 10} />
                             <span>Start Task</span>
                           </button>
                         </div>
                       )}
 
                       {t.status === 'IN_PROGRESS' && onSubmitTask && (
-                        <div style={{ marginTop: '9px' }}>
+                        <div style={{ marginTop: cardDensity === 'compact' ? '5px' : '7px' }}>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1443,32 +1546,32 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                             }}
                             style={{
                               width: '100%',
-                              height: '34px',
-                              borderRadius: '8px',
-                              background: '#2563EB',
+                              padding: cardDensity === 'compact' ? '3.5px 8px' : '5px 10px',
+                              borderRadius: '6px',
+                              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
                               border: 'none',
-                              color: '#FFFFFF',
-                              fontSize: '11.5px',
-                              fontWeight: 700,
+                              color: '#ffffff',
+                              fontSize: cardDensity === 'compact' ? '10px' : '11px',
+                              fontWeight: 750,
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '6px',
-                              boxShadow: '0 1px 3px rgba(37, 99, 235, 0.25)',
+                              gap: '4px',
+                              whiteSpace: 'nowrap',
+                              boxShadow: '0 1px 3px rgba(2, 132, 199, 0.25)',
                               transition: 'all 0.15s ease',
                             }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = '#1D4ED8')}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = '#2563EB')}
+                            title="Submit task for GM verification"
                           >
-                            <Send size={11} />
+                            <Send size={cardDensity === 'compact' ? 9 : 10} />
                             <span>Submit for Approval</span>
                           </button>
                         </div>
                       )}
 
                       {t.status === 'PENDING_GM_APPROVAL' && isGM && onQuickApprove && (
-                        <div style={{ marginTop: '9px' }}>
+                        <div style={{ marginTop: cardDensity === 'compact' ? '5px' : '7px' }}>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1477,32 +1580,32 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                             }}
                             style={{
                               width: '100%',
-                              height: '34px',
-                              borderRadius: '8px',
-                              background: '#059669',
+                              padding: cardDensity === 'compact' ? '3.5px 8px' : '5px 10px',
+                              borderRadius: '6px',
+                              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                               border: 'none',
-                              color: '#FFFFFF',
-                              fontSize: '11.5px',
-                              fontWeight: 700,
+                              color: '#ffffff',
+                              fontSize: cardDensity === 'compact' ? '10px' : '11px',
+                              fontWeight: 750,
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '6px',
-                              boxShadow: '0 1px 3px rgba(5, 150, 105, 0.25)',
+                              gap: '4px',
+                              whiteSpace: 'nowrap',
+                              boxShadow: '0 1px 3px rgba(16, 185, 129, 0.25)',
                               transition: 'all 0.15s ease',
                             }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = '#047857')}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = '#059669')}
+                            title="Approve and close this task"
                           >
-                            <CheckCircle2 size={12} />
+                            <CheckCircle2 size={cardDensity === 'compact' ? 10 : 11} />
                             <span>Approve & Close</span>
                           </button>
                         </div>
                       )}
 
                       {t.status === 'CHANGES_REQUESTED' && onStartTask && (
-                        <div style={{ marginTop: '9px' }}>
+                        <div style={{ marginTop: cardDensity === 'compact' ? '5px' : '7px' }}>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1511,109 +1614,94 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                             }}
                             style={{
                               width: '100%',
-                              height: '34px',
-                              borderRadius: '8px',
-                              background: '#E11D48',
+                              padding: cardDensity === 'compact' ? '3.5px 8px' : '5px 10px',
+                              borderRadius: '6px',
+                              background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
                               border: 'none',
-                              color: '#FFFFFF',
-                              fontSize: '11.5px',
-                              fontWeight: 700,
+                              color: '#ffffff',
+                              fontSize: cardDensity === 'compact' ? '10px' : '11px',
+                              fontWeight: 750,
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '6px',
+                              gap: '4px',
+                              whiteSpace: 'nowrap',
                               boxShadow: '0 1px 3px rgba(225, 29, 72, 0.25)',
                               transition: 'all 0.15s ease',
                             }}
+                            title="Resume work with requested updates"
                           >
-                            <RotateCcw size={11} />
+                            <RotateCcw size={cardDensity === 'compact' ? 9 : 10} />
                             <span>Resume / Fix Changes</span>
                           </button>
                         </div>
                       )}
 
                       {t.status === 'CLOSED' && (
-                        <div style={{ marginTop: '9px' }}>
-                          <div
+                        <div style={{ marginTop: '6px', display: 'flex', justifyContent: 'flex-end' }}>
+                          <span
                             style={{
-                              width: '100%',
-                              height: '34px',
-                              borderRadius: '8px',
-                              background: '#ECFDF5',
-                              border: '1px solid #A7F3D0',
                               color: '#059669',
-                              fontSize: '11.5px',
-                              fontWeight: 750,
-                              display: 'flex',
+                              fontWeight: 800,
+                              fontSize: '10px',
+                              background: 'rgba(5, 150, 105, 0.1)',
+                              border: '1px solid rgba(5, 150, 105, 0.25)',
+                              padding: '2px 7px',
+                              borderRadius: '5px',
+                              display: 'inline-flex',
                               alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '5px',
+                              gap: '3px',
+                              whiteSpace: 'nowrap',
                             }}
                           >
-                            <CheckCircle2 size={12} />
+                            <CheckCheck size={10} />
                             <span>Done & Verified</span>
-                          </div>
+                          </span>
                         </div>
                       )}
                     </div>
                   );
                 })}
 
-                {/* Empty State: Matching Column 4 "Needs Changes" in Image 4 */}
+                {/* Polished Empty State for Columns with 0 Tasks */}
                 {colTasks.length === 0 && (
                   <div
                     style={{
-                      padding: '48px 14px',
+                      padding: '32px 14px',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      border: '1.5px dashed var(--notion-border-subtle)',
+                      borderRadius: '10px',
+                      background: 'rgba(0,0,0,0.01)',
+                      color: 'var(--notion-text-dim)',
                       textAlign: 'center',
-                      gap: '8px',
-                      flex: 1,
+                      gap: '6px',
+                      marginTop: '6px',
                     }}
                   >
                     <div
                       style={{
-                        width: '38px',
-                        height: '38px',
+                        width: '32px',
+                        height: '32px',
                         borderRadius: '50%',
-                        background: 'rgba(16, 185, 129, 0.12)',
-                        color: '#10B981',
+                        background: col.lightBg,
+                        color: col.color,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        border: '1px solid rgba(16, 185, 129, 0.25)',
                       }}
                     >
-                      <CheckCircle2 size={20} strokeWidth={2.5} />
+                      <col.icon size={15} />
                     </div>
-                    <div style={{ fontSize: '13px', fontWeight: 750, color: '#334155' }}>
-                      {col.id === 'CHANGES_REQUESTED' ? 'All tasks approved!' : `No ${col.label} tasks`}
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#94A3B8', maxWidth: '180px', lineHeight: 1.4 }}>
-                      {col.id === 'CHANGES_REQUESTED'
-                        ? 'No revisions pending. Drag any task here to request staff rework or inspection.'
-                        : 'Drag tasks here to update stage'}
-                    </div>
-                    {col.id === 'CHANGES_REQUESTED' && (
-                      <div
-                        style={{
-                          marginTop: '6px',
-                          fontSize: '9px',
-                          fontWeight: 800,
-                          color: '#94A3B8',
-                          background: '#FFFFFF',
-                          border: '1px solid #E2E8F0',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          letterSpacing: '0.04em',
-                        }}
-                      >
-                        DROP ZONE READY
-                      </div>
-                    )}
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--notion-text-dim)' }}>
+                      {col.emptyHint}
+                    </span>
+                    <span style={{ fontSize: '10px', color: 'var(--notion-text-dim)' }}>
+                      Drag tasks here to update stage
+                    </span>
                   </div>
                 )}
               </div>
@@ -1623,62 +1711,129 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 4. SHARE DIGEST MODAL (Preserved & Accessible)                            */}
+      {/* 4. SHARE DIGEST MODAL (Preserved & Enhanced)                              */}
       {/* ========================================================================= */}
       {isShareModalOpen && selectedPersonObj && (
         <div className="notion-modal-overlay" onClick={() => setIsShareModalOpen(false)}>
-          <div className="notion-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>Share Tasks Digest</h3>
+          <div
+            className="notion-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '520px', width: '92%', borderRadius: '16px' }}
+          >
+            <div
+              style={{
+                padding: '14px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: '1px solid var(--notion-border)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Share2 size={16} style={{ color: '#4f46e5' }} />
+                <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0, color: 'var(--notion-text)' }}>
+                  Share Tasks with {selectedPersonObj.full_name || selectedPersonObj.username}
+                </h3>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsShareModalOpen(false)}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94A3B8' }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--notion-text-muted)' }}
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
-            <p style={{ fontSize: '12px', color: '#64748B', marginBottom: '12px' }}>
-              Send an executive digest of tasks to {selectedPersonObj.full_name || selectedPersonObj.username}.
-            </p>
-            <textarea
-              placeholder="Add optional notes..."
-              value={shareCustomNote}
-              onChange={(e) => setShareCustomNote(e.target.value)}
-              style={{
-                width: '100%',
-                height: '80px',
-                borderRadius: '8px',
-                border: '1px solid #CBD5E1',
-                padding: '8px 10px',
-                fontSize: '12px',
-                marginBottom: '12px',
-              }}
-            />
-            {shareSuccessNotice && (
-              <div style={{ color: '#059669', fontSize: '12px', fontWeight: 700, marginBottom: '10px' }}>
-                {shareSuccessNotice}
+
+            <div style={{ padding: '16px 18px' }}>
+              {shareSuccessNotice && (
+                <div
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid #10b981',
+                    color: '#10b981',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    marginBottom: '12px',
+                  }}
+                >
+                  ✓ {shareSuccessNotice}
+                </div>
+              )}
+
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--notion-text)', marginBottom: '5px' }}>
+                  Note (Optional):
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Add a quick note..."
+                  value={shareCustomNote}
+                  onChange={(e) => setShareCustomNote(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--notion-border)',
+                    background: 'var(--notion-input-bg)',
+                    color: 'var(--notion-text)',
+                    fontSize: '12px',
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                  }}
+                />
               </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => setIsShareModalOpen(false)}
-                style={{ padding: '6px 12px', borderRadius: '7px', border: '1px solid #CBD5E1', background: '#FFFFFF', cursor: 'pointer', fontSize: '12px' }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  setCopiedLink(true);
-                  setTimeout(() => setCopiedLink(false), 2000);
+
+              <div
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  background: 'var(--notion-item-bg)',
+                  fontSize: '11px',
+                  color: 'var(--notion-text-muted)',
+                  marginBottom: '14px',
+                  maxHeight: '130px',
+                  overflowY: 'auto',
+                  whiteSpace: 'pre-wrap',
                 }}
-                style={{ padding: '6px 12px', borderRadius: '7px', border: '1px solid #CBD5E1', background: '#FFFFFF', cursor: 'pointer', fontSize: '12px' }}
               >
-                {copiedLink ? 'Copied Link!' : 'Copy Link'}
-              </button>
+                {generateShareSummaryText()}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={handleDispatchShareEmail}
+                  disabled={sendingShare}
+                  className="notion-btn notion-btn-primary"
+                  style={{ width: '100%', justifyContent: 'center', padding: '8px', fontSize: '12px', fontWeight: 600 }}
+                >
+                  <Mail size={14} />
+                  <span>{sendingShare ? 'Sending...' : `Send Email to ${selectedPersonObj.email}`}</span>
+                </button>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={handleCopySummary}
+                    className="notion-btn notion-btn-bordered"
+                    style={{ justifyContent: 'center', padding: '7px', fontSize: '11.5px' }}
+                  >
+                    {copiedSummary ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
+                    <span>{copiedSummary ? 'Copied' : 'Copy Summary'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyDirectLink}
+                    className="notion-btn notion-btn-bordered"
+                    style={{ justifyContent: 'center', padding: '7px', fontSize: '11.5px' }}
+                  >
+                    {copiedLink ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
+                    <span>{copiedLink ? 'Copied' : 'Copy Link'}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
