@@ -280,8 +280,11 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
             borderRadius: '10px',
             background: 'var(--notion-input-bg)',
             border: '1px solid var(--notion-border)',
-            width: '210px',
+            width: '180px',
+            minWidth: '120px',
+            maxWidth: '210px',
             transition: 'all 0.2s ease',
+            flexShrink: 1,
           }}
         >
           <Search size={14} style={{ color: 'var(--notion-text-dim)', flexShrink: 0 }} />
@@ -304,14 +307,22 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
 
         {/* Action Buttons */}
         {currentView === 'departments' && canCreateDepartment && onOpenCreateDepartment && (
-          <button onClick={onOpenCreateDepartment} className="notion-btn notion-btn-primary" style={{ padding: '7px 14px' }}>
+          <button
+            onClick={onOpenCreateDepartment}
+            className="notion-btn notion-btn-primary"
+            style={{ padding: '7px 14px', whiteSpace: 'nowrap', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
             <Plus size={14} />
             <span>{t('newDepartment')}</span>
           </button>
         )}
 
         {currentView === 'staff' && canCreateStaff && (
-          <button onClick={onOpenCreateStaff} className="notion-btn notion-btn-primary" style={{ padding: '7px 14px' }}>
+          <button
+            onClick={onOpenCreateStaff}
+            className="notion-btn notion-btn-primary"
+            style={{ padding: '7px 14px', whiteSpace: 'nowrap', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
             <Plus size={14} />
             <span>{t('addStaff')}</span>
           </button>
@@ -325,6 +336,10 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
               gap: '6px',
               padding: '7px 14px',
               borderRadius: '9px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
             }}
           >
             <Plus size={15} />
@@ -346,6 +361,10 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
               fontWeight: 700,
               boxShadow: '0 2px 8px rgba(245, 158, 11, 0.25)',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
             }}
           >
             <Star size={14} />

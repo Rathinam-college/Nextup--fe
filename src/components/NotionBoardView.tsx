@@ -601,6 +601,9 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
               padding: '3px',
               borderRadius: '9px',
               border: '1px solid var(--notion-border-subtle)',
+              overflowX: 'auto',
+              whiteSpace: 'nowrap',
+              maxWidth: '100%',
             }}
           >
             {[
@@ -631,6 +634,8 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                     cursor: 'pointer',
                     boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                     transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
                   }}
                 >
                   <Icon size={12} style={{ color: tab.color || (isSelected ? 'var(--notion-blue)' : 'inherit') }} />
@@ -669,6 +674,8 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                 color: 'var(--notion-text)',
                 background: 'var(--notion-item-bg)',
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
               title="Toggle between comfortable and compact cards"
             >
@@ -693,6 +700,8 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                   gap: '5px',
                   fontWeight: 650,
                   cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
                 title={t('staffMatrix')}
               >
@@ -723,6 +732,8 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                 gap: '5px',
                 fontWeight: 600,
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
               title="Export complete clear details CSV"
             >
@@ -750,6 +761,8 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                 gap: '5px',
                 fontWeight: 600,
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
               title="Print executive tasks matrix"
             >
@@ -770,6 +783,8 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                   alignItems: 'center',
                   gap: '4px',
                   fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
               >
                 <Plus size={13} />
@@ -1090,8 +1105,8 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
         className="notion-kanban-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, minmax(250px, 1fr))',
-          gap: '14px',
+          gridTemplateColumns: 'repeat(5, minmax(215px, 1fr))',
+          gap: '10px',
           alignItems: 'start',
           flex: 1,
           overflowX: 'auto',
@@ -1240,7 +1255,7 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                           marginBottom: '6px',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, overflow: 'hidden' }}>
                           {/* Priority Pill */}
                           <span
                             style={{
@@ -1254,6 +1269,8 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '3px',
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0,
                             }}
                           >
                             <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: priorityTheme.color }} />
@@ -1275,6 +1292,8 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '3px',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
                               }}
                             >
                               <span>{directive.channelIcon}</span>
@@ -1293,6 +1312,11 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                                 padding: '1.5px 5px',
                                 borderRadius: '4px',
                                 border: '1px solid var(--notion-border-subtle)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '75px',
+                                flexShrink: 1,
                               }}
                               title={t.department_name}
                             >
@@ -1302,7 +1326,7 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                         </div>
 
                         {/* Task ID and Quick Move Dropdown */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
                           <span style={{ fontSize: '10px', color: 'var(--notion-text-dim)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
                             #{t.id}
                           </span>
@@ -1453,27 +1477,29 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                         return null;
                       })()}
 
-                      {/* Footer: Assignee, Timeline & 1-Click Action */}
+                      {/* Footer: Assignee & Timeline */}
                       <div
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          marginTop: '6px',
+                          gap: '6px',
+                          marginTop: '8px',
                           paddingTop: '6px',
                           borderTop: '1px solid var(--notion-border-subtle)',
+                          minWidth: 0,
                         }}
                       >
                         {/* Assignee Avatar + Name */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, flex: '1 1 auto' }}>
                           <span
                             style={{
-                              width: '20px',
-                              height: '20px',
+                              width: '19px',
+                              height: '19px',
                               borderRadius: '50%',
                               background: getAvatarBg(t.assigned_to_name),
                               color: '#ffffff',
-                              fontSize: '9px',
+                              fontSize: '8.5px',
                               fontWeight: 800,
                               display: 'flex',
                               alignItems: 'center',
@@ -1489,173 +1515,202 @@ export const NotionBoardView: React.FC<NotionBoardViewProps> = ({
                               fontSize: '11px',
                               fontWeight: 650,
                               color: 'var(--notion-text)',
-                              maxWidth: '100px',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
+                              maxWidth: '105px',
                             }}
+                            title={t.assigned_to_name || 'Unassigned'}
                           >
                             {t.assigned_to_name || 'Unassigned'}
                           </span>
                         </div>
 
-                        {/* Right: Due Date & 1-Click Action */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          {/* Due Date Indicator */}
-                          {t.due_date && (
-                            <span
-                              style={{
-                                color: isOverdue ? '#dc2626' : isToday ? '#d97706' : 'var(--notion-text-dim)',
-                                background: isOverdue ? 'rgba(239, 68, 68, 0.08)' : isToday ? 'rgba(245, 158, 11, 0.08)' : 'transparent',
-                                padding: isOverdue || isToday ? '1px 5px' : 0,
-                                borderRadius: '4px',
-                                fontWeight: isOverdue || isToday ? 800 : 500,
-                                fontSize: '10px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '2px',
-                              }}
-                              title={`Due: ${t.due_date}`}
-                            >
-                              {isOverdue && <AlertTriangle size={9} />}
-                              {isToday && <Clock size={9} />}
-                              <span>{formatShortDueDate(t.due_date)}</span>
-                            </span>
-                          )}
-
-                          {/* 1-Click Status Action Buttons */}
-                          {t.status === 'TODO' && onStartTask && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onStartTask(t);
-                              }}
-                              style={{
-                                padding: '2px 8px',
-                                borderRadius: '5px',
-                                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                                border: 'none',
-                                color: '#ffffff',
-                                fontSize: '10px',
-                                fontWeight: 800,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                boxShadow: '0 1px 4px rgba(37, 99, 235, 0.3)',
-                              }}
-                              title="Start working on this task"
-                            >
-                              <Play size={9} />
-                              <span>Start</span>
-                            </button>
-                          )}
-
-                          {t.status === 'IN_PROGRESS' && onSubmitTask && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onSubmitTask(t);
-                              }}
-                              style={{
-                                padding: '2px 8px',
-                                borderRadius: '5px',
-                                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                                border: 'none',
-                                color: '#ffffff',
-                                fontSize: '10px',
-                                fontWeight: 800,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                boxShadow: '0 1px 4px rgba(2, 132, 199, 0.3)',
-                              }}
-                              title="Submit task for GM verification"
-                            >
-                              <Send size={9} />
-                              <span>Submit</span>
-                            </button>
-                          )}
-
-                          {t.status === 'PENDING_GM_APPROVAL' && isGM && onQuickApprove && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onQuickApprove(t);
-                              }}
-                              style={{
-                                padding: '2px 8px',
-                                borderRadius: '5px',
-                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                border: 'none',
-                                color: '#ffffff',
-                                fontSize: '10px',
-                                fontWeight: 800,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                boxShadow: '0 1px 4px rgba(16, 185, 129, 0.3)',
-                              }}
-                              title="Approve and close this task"
-                            >
-                              <CheckCircle2 size={10} />
-                              <span>Approve</span>
-                            </button>
-                          )}
-
-                          {t.status === 'CHANGES_REQUESTED' && onStartTask && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onStartTask(t);
-                              }}
-                              style={{
-                                padding: '2px 8px',
-                                borderRadius: '5px',
-                                background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
-                                border: 'none',
-                                color: '#ffffff',
-                                fontSize: '10px',
-                                fontWeight: 800,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                boxShadow: '0 1px 4px rgba(225, 29, 72, 0.3)',
-                              }}
-                              title="Resume work with requested updates"
-                            >
-                              <RotateCcw size={9} />
-                              <span>Resume</span>
-                            </button>
-                          )}
-
-                          {t.status === 'CLOSED' && (
-                            <span
-                              style={{
-                                color: '#059669',
-                                fontWeight: 800,
-                                fontSize: '10px',
-                                background: 'rgba(5, 150, 105, 0.1)',
-                                padding: '1px 5px',
-                                borderRadius: '4px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '2px',
-                              }}
-                            >
-                              <CheckCheck size={10} />
-                              <span>Done</span>
-                            </span>
-                          )}
-                        </div>
+                        {/* Due Date Indicator (Strictly Non-Wrapping) */}
+                        {t.due_date && (
+                          <span
+                            style={{
+                              color: isOverdue ? '#dc2626' : isToday ? '#d97706' : 'var(--notion-text-dim)',
+                              background: isOverdue ? 'rgba(239, 68, 68, 0.08)' : isToday ? 'rgba(245, 158, 11, 0.08)' : 'transparent',
+                              border: isOverdue ? '1px solid rgba(239, 68, 68, 0.25)' : isToday ? '1px solid rgba(245, 158, 11, 0.25)' : 'none',
+                              padding: isOverdue || isToday ? '1.5px 5px' : '0 2px',
+                              borderRadius: '4px',
+                              fontWeight: isOverdue || isToday ? 800 : 600,
+                              fontSize: '10px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2.5px',
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0,
+                            }}
+                            title={`Due: ${t.due_date}`}
+                          >
+                            {isOverdue && <AlertTriangle size={9} />}
+                            {isToday && <Clock size={9} />}
+                            <span>{formatShortDueDate(t.due_date)}</span>
+                          </span>
+                        )}
                       </div>
+
+                      {/* Action Button Row: Clear, spacious button with perfect fit for text */}
+                      {t.status === 'TODO' && onStartTask && (
+                        <div style={{ marginTop: cardDensity === 'compact' ? '5px' : '7px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onStartTask(t);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: cardDensity === 'compact' ? '3.5px 8px' : '5px 10px',
+                              borderRadius: '6px',
+                              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                              border: 'none',
+                              color: '#ffffff',
+                              fontSize: cardDensity === 'compact' ? '10px' : '11px',
+                              fontWeight: 750,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              whiteSpace: 'nowrap',
+                              boxShadow: '0 1px 3px rgba(37, 99, 235, 0.25)',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="Start working on this task"
+                          >
+                            <Play size={cardDensity === 'compact' ? 9 : 10} />
+                            <span>Start Task</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {t.status === 'IN_PROGRESS' && onSubmitTask && (
+                        <div style={{ marginTop: cardDensity === 'compact' ? '5px' : '7px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSubmitTask(t);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: cardDensity === 'compact' ? '3.5px 8px' : '5px 10px',
+                              borderRadius: '6px',
+                              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                              border: 'none',
+                              color: '#ffffff',
+                              fontSize: cardDensity === 'compact' ? '10px' : '11px',
+                              fontWeight: 750,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              whiteSpace: 'nowrap',
+                              boxShadow: '0 1px 3px rgba(2, 132, 199, 0.25)',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="Submit task for GM verification"
+                          >
+                            <Send size={cardDensity === 'compact' ? 9 : 10} />
+                            <span>Submit for Approval</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {t.status === 'PENDING_GM_APPROVAL' && isGM && onQuickApprove && (
+                        <div style={{ marginTop: cardDensity === 'compact' ? '5px' : '7px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onQuickApprove(t);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: cardDensity === 'compact' ? '3.5px 8px' : '5px 10px',
+                              borderRadius: '6px',
+                              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                              border: 'none',
+                              color: '#ffffff',
+                              fontSize: cardDensity === 'compact' ? '10px' : '11px',
+                              fontWeight: 750,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              whiteSpace: 'nowrap',
+                              boxShadow: '0 1px 3px rgba(16, 185, 129, 0.25)',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="Approve and close this task"
+                          >
+                            <CheckCircle2 size={cardDensity === 'compact' ? 10 : 11} />
+                            <span>Approve & Close</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {t.status === 'CHANGES_REQUESTED' && onStartTask && (
+                        <div style={{ marginTop: cardDensity === 'compact' ? '5px' : '7px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onStartTask(t);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: cardDensity === 'compact' ? '3.5px 8px' : '5px 10px',
+                              borderRadius: '6px',
+                              background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
+                              border: 'none',
+                              color: '#ffffff',
+                              fontSize: cardDensity === 'compact' ? '10px' : '11px',
+                              fontWeight: 750,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              whiteSpace: 'nowrap',
+                              boxShadow: '0 1px 3px rgba(225, 29, 72, 0.25)',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="Resume work with requested updates"
+                          >
+                            <RotateCcw size={cardDensity === 'compact' ? 9 : 10} />
+                            <span>Resume / Fix Changes</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {t.status === 'CLOSED' && (
+                        <div style={{ marginTop: '6px', display: 'flex', justifyContent: 'flex-end' }}>
+                          <span
+                            style={{
+                              color: '#059669',
+                              fontWeight: 800,
+                              fontSize: '10px',
+                              background: 'rgba(5, 150, 105, 0.1)',
+                              border: '1px solid rgba(5, 150, 105, 0.25)',
+                              padding: '2px 7px',
+                              borderRadius: '5px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <CheckCheck size={10} />
+                            <span>Done & Verified</span>
+                          </span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
