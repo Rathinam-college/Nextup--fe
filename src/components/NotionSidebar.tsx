@@ -473,6 +473,41 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
             </button>
           )}
 
+          {/* All Departments (Workspace Directory) */}
+          {isUserAllowedToViewPage(currentUser, 'departments') && (
+            <button
+              onClick={() => onSelectView('departments')}
+              className="notion-btn"
+              style={{
+                width: '100%',
+                justifyContent: 'space-between',
+                padding: '8px 12px',
+                borderRadius: '9px',
+                background: currentView === 'departments' ? 'var(--notion-item-bg)' : 'transparent',
+                border: currentView === 'departments' ? '1px solid var(--notion-border)' : '1px solid transparent',
+                fontWeight: currentView === 'departments' ? 700 : 500,
+                color: currentView === 'departments' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Building size={16} style={{ color: '#10b981' }} />
+                <span>{isTamil ? 'அனைத்து துறைகள்' : 'All Departments'}</span>
+              </div>
+              <span
+                className="notion-tag"
+                style={{
+                  fontSize: '9.5px',
+                  padding: '1px 6px',
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  color: '#059669',
+                  fontWeight: 700,
+                }}
+              >
+                {departments.length}
+              </span>
+            </button>
+          )}
+
           {/* Notifications button for all users */}
           <button
             onClick={onOpenNotifications}
@@ -577,29 +612,6 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
                       {pendingCount}
                     </span>
                   )}
-                </button>
-              )}
-
-              {/* Departments Overview */}
-              {isUserAllowedToViewPage(currentUser, 'departments') && (
-                <button
-                  onClick={() => onSelectView('departments')}
-                  className="notion-btn"
-                  style={{
-                    width: '100%',
-                    justifyContent: 'flex-start',
-                    padding: '8px 12px',
-                    borderRadius: '9px',
-                    background: currentView === 'departments' ? 'var(--notion-item-bg)' : 'transparent',
-                    border: currentView === 'departments' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                    fontWeight: currentView === 'departments' ? 700 : 500,
-                    color: currentView === 'departments' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Building size={16} style={{ color: '#10b981' }} />
-                    <span>{t('departments')}</span>
-                  </div>
                 </button>
               )}
             </>

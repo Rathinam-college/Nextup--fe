@@ -829,8 +829,14 @@ const DashboardContent: React.FC = () => {
                   stats={dashboardStats}
                   onSelectDept={(id) => {
                     setSelectedDeptId(id);
-                    handleSelectView('board');
+                    const deptObj = visibleDepartments.find(d => d.id === id);
+                    if (deptObj && (deptObj.code === 'IT' || deptObj.name.toLowerCase().includes('information technology'))) {
+                      handleSelectView('it_portal');
+                    } else {
+                      handleSelectView('board');
+                    }
                   }}
+                  onSelectView={handleSelectView}
                   onOpenCreateDepartment={() => {
                     setEditingDepartment(null);
                     setIsCreateDeptOpen(true);
@@ -934,6 +940,7 @@ const DashboardContent: React.FC = () => {
                   currentUser={currentUser}
                   departments={visibleDepartments}
                   staffList={staffList}
+                  onBackToDepartments={() => handleSelectView('departments')}
                 />
               )}
             </>

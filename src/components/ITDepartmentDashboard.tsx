@@ -39,6 +39,7 @@ import {
   User as UserIcon,
   HelpCircle,
   RefreshCw,
+  ArrowLeft,
 } from 'lucide-react';
 
 export type ITSectionTab =
@@ -406,12 +407,14 @@ interface ITDepartmentDashboardProps {
   currentUser?: User;
   departments?: Department[];
   staffList?: User[];
+  onBackToDepartments?: () => void;
 }
 
 export const ITDepartmentDashboard: React.FC<ITDepartmentDashboardProps> = ({
   currentUser,
   departments,
   staffList,
+  onBackToDepartments,
 }) => {
   const { t, isTamil } = useLanguage();
 
@@ -905,6 +908,34 @@ export const ITDepartmentDashboard: React.FC<ITDepartmentDashboardProps> = ({
         color: 'var(--notion-text)',
       }}
     >
+      {/* Back to All Departments Shortcut */}
+      {onBackToDepartments && (
+        <div style={{ marginBottom: '14px' }}>
+          <button
+            type="button"
+            onClick={onBackToDepartments}
+            className="notion-btn notion-btn-bordered"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
+              fontSize: '12px',
+              fontWeight: 700,
+              borderRadius: '8px',
+              color: 'var(--notion-text)',
+              background: 'var(--notion-item-bg)',
+              border: '1px solid var(--notion-border)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <ArrowLeft size={14} style={{ color: '#06b6d4' }} />
+            <span>{isTamil ? '← அனைத்து துறைகளுக்கும் திரும்பு' : '← Back to All Departments'}</span>
+          </button>
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* 1. TOP EXECUTIVE COMMAND BAR                                              */}
       {/* ========================================================================= */}
@@ -1140,12 +1171,12 @@ export const ITDepartmentDashboard: React.FC<ITDepartmentDashboardProps> = ({
         }}
       >
         {[
-          { id: 'overview', label: isTamil ? 'கண்ணோட்டம்' : 'Overview', icon: BarChart2, count: null, color: '#2563eb' },
-          { id: 'registry', label: isTamil ? 'மென்பொருள் பதிவேடு' : 'Software Registry', icon: Database, count: softwareList.length, color: '#0284c7' },
-          { id: 'dev_tracker', label: isTamil ? 'மேம்பாட்டு கண்காணிப்பாளர்' : 'Development Tracker', icon: Code, count: devTasks.length, color: '#d97706' },
-          { id: 'live_apps', label: isTamil ? 'நேரடி செயலிகள்' : 'Live Applications', icon: Globe, count: liveApps.length, color: '#059669' },
-          { id: 'upcoming', label: isTamil ? 'வரவிருக்கும் திட்டங்கள்' : 'Upcoming Projects', icon: TrendingUp, count: upcomingProjects.length, color: '#7c3aed' },
-          { id: 'reports', label: isTamil ? 'அறிக்கைகள் & பகுப்பாய்வு' : 'Reports & Analytics', icon: FileText, count: null, color: '#e11d48' },
+          { id: 'overview', label: isTamil ? 'கண்ணோட்டம்' : 'Overview', purpose: 'All software statistics', icon: BarChart2, count: null, color: '#2563eb' },
+          { id: 'registry', label: isTamil ? 'மென்பொருள் பதிவேடு' : 'Software Registry', purpose: 'All applications and details', icon: Database, count: softwareList.length, color: '#0284c7' },
+          { id: 'dev_tracker', label: isTamil ? 'மேம்பாட்டு கண்காணிப்பாளர்' : 'Development Tracker', purpose: 'Tasks, hours and progress', icon: Code, count: devTasks.length, color: '#d97706' },
+          { id: 'live_apps', label: isTamil ? 'நேரடி செயலிகள்' : 'Live Applications', purpose: 'Deployment URL and server status', icon: Globe, count: liveApps.length, color: '#059669' },
+          { id: 'upcoming', label: isTamil ? 'வரவிருக்கும் திட்டங்கள்' : 'Upcoming Projects', purpose: 'Planned applications and priorities', icon: TrendingUp, count: upcomingProjects.length, color: '#7c3aed' },
+          { id: 'reports', label: isTamil ? 'அறிக்கைகள் & பகுப்பாய்வு' : 'Reports & Analytics', purpose: 'Monthly and management reports', icon: FileText, count: null, color: '#e11d48' },
         ].map((tab) => {
           const isSelected = activeTab === tab.id;
           const Icon = tab.icon;
@@ -1155,6 +1186,7 @@ export const ITDepartmentDashboard: React.FC<ITDepartmentDashboardProps> = ({
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as ITSectionTab)}
+              title={`${tab.label} — ${tab.purpose}`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
