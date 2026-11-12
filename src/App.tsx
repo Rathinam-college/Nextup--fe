@@ -825,12 +825,12 @@ const DashboardContent: React.FC = () => {
 
               {currentView === 'departments' && (
                 <NotionDepartmentsView
-                  departments={visibleDepartments}
+                  departments={departments.length > 0 ? departments : visibleDepartments}
                   stats={dashboardStats}
                   onSelectDept={(id) => {
                     setSelectedDeptId(id);
-                    const deptObj = visibleDepartments.find(d => d.id === id);
-                    if (deptObj && (deptObj.code === 'IT' || deptObj.name.toLowerCase().includes('information technology'))) {
+                    const deptObj = departments.find(d => d.id === id) || visibleDepartments.find(d => d.id === id);
+                    if (deptObj && (deptObj.code === 'IT' || deptObj.name.toLowerCase().includes('information technology') || deptObj.code.toLowerCase().includes('it'))) {
                       handleSelectView('it_portal');
                     } else {
                       handleSelectView('board');

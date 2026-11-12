@@ -1154,7 +1154,99 @@ export const ITDepartmentDashboard: React.FC<ITDepartmentDashboardProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. THE 6 REQUESTED SECTION TABS                                           */}
+      {/* 2. THE 6 CORE IT SECTIONS & PURPOSES SHOWCASE                             */}
+      {/* ========================================================================= */}
+      <div
+        style={{
+          background: 'var(--notion-card)',
+          borderRadius: '14px',
+          padding: '16px 20px',
+          border: '1px solid var(--notion-border)',
+          boxShadow: 'var(--notion-shadow-sm)',
+          marginBottom: '20px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '15px' }}>⚡</span>
+            <div>
+              <h2 style={{ fontSize: '14px', fontWeight: 800, margin: 0, color: 'var(--notion-text)', letterSpacing: '-0.01em' }}>
+                {isTamil ? 'IT துறை - 6 முக்கிய பிரிவுகள் & நோக்கங்கள்' : 'IT Department — 6 Core Sections & Purposes'}
+              </h2>
+              <p style={{ margin: '2px 0 0', fontSize: '11.5px', color: 'var(--notion-text-dim)' }}>
+                {isTamil ? 'அனைத்து மென்பொருள் புள்ளிவிவரங்கள், மேம்பாடு மற்றும் நேரடி செயலிகள்' : 'Comprehensive software statistics, development tracking & live systems'}
+              </p>
+            </div>
+          </div>
+          <span style={{ fontSize: '11px', color: 'var(--notion-text-dim)', fontWeight: 600 }}>
+            {isTamil ? 'பிரிவுக்கு மாற கிளிக் செய்யவும்' : 'Click any section to switch view'}
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '10px',
+          }}
+        >
+          {[
+            { id: 'overview', name: 'Overview', purpose: 'All software statistics', icon: BarChart2, color: '#2563eb', bg: 'rgba(37, 99, 235, 0.08)' },
+            { id: 'registry', name: 'Software Registry', purpose: 'All applications and details', icon: Database, color: '#0284c7', bg: 'rgba(2, 132, 199, 0.08)' },
+            { id: 'dev_tracker', name: 'Development Tracker', purpose: 'Tasks, hours and progress', icon: Code, color: '#d97706', bg: 'rgba(217, 119, 6, 0.08)' },
+            { id: 'live_apps', name: 'Live Applications', purpose: 'Deployment URL and server status', icon: Globe, color: '#059669', bg: 'rgba(5, 150, 105, 0.08)' },
+            { id: 'upcoming', name: 'Upcoming Projects', purpose: 'Planned applications and priorities', icon: TrendingUp, color: '#7c3aed', bg: 'rgba(124, 58, 237, 0.08)' },
+            { id: 'reports', name: 'Reports & Analytics', purpose: 'Monthly and management reports', icon: FileText, color: '#e11d48', bg: 'rgba(225, 29, 72, 0.08)' },
+          ].map((sec) => {
+            const Icon = sec.icon;
+            const isCurrent = activeTab === sec.id;
+            return (
+              <button
+                key={sec.id}
+                type="button"
+                onClick={() => setActiveTab(sec.id as ITSectionTab)}
+                style={{
+                  background: isCurrent ? sec.bg : 'var(--notion-item-bg)',
+                  border: isCurrent ? `1.5px solid ${sec.color}` : '1px solid var(--notion-border-subtle)',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: isCurrent ? sec.color : 'var(--notion-text)' }}>
+                    {sec.name}
+                  </span>
+                  <div
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '6px',
+                      background: sec.bg,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Icon size={13} style={{ color: sec.color, flexShrink: 0 }} />
+                  </div>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--notion-text-dim)', lineHeight: 1.35 }}>
+                  {sec.purpose}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3. THE 6 REQUESTED SECTION TABS                                           */}
       {/* ========================================================================= */}
       <div
         style={{

@@ -204,7 +204,11 @@ export const NotionDepartmentsView: React.FC<NotionDepartmentsViewProps> = ({
           const membersCount = deptStat ? deptStat.members_count : dept.members_count;
           const completionPct = totalTasks > 0 ? Math.round((closedTasks / totalTasks) * 100) : 0;
 
-          const isITDept = dept.code === 'IT' || dept.name.toLowerCase().includes('information technology');
+          const isITDept =
+            dept.code?.toUpperCase() === 'IT' ||
+            dept.name?.toLowerCase().includes('information technology') ||
+            dept.name?.toLowerCase().includes('it support') ||
+            dept.code?.toLowerCase() === 'its';
           const upcomingList = UPCOMING_INITIATIVES[dept.code] || UPCOMING_INITIATIVES[dept.code.toUpperCase()] || [
             'Quarterly infrastructure inspection and preventative maintenance',
             'Staff training and departmental compliance audit',
