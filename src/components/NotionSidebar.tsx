@@ -438,41 +438,6 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
             </button>
           )}
 
-          {/* IT Software Hub (IT Department Dashboard) */}
-          {isUserAllowedToViewPage(currentUser, 'it_portal') && (
-            <button
-              onClick={() => onSelectView('it_portal')}
-              className="notion-btn"
-              style={{
-                width: '100%',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                borderRadius: '9px',
-                background: currentView === 'it_portal' ? 'var(--notion-item-bg)' : 'transparent',
-                border: currentView === 'it_portal' ? '1px solid var(--notion-border)' : '1px solid transparent',
-                fontWeight: currentView === 'it_portal' ? 700 : 500,
-                color: currentView === 'it_portal' ? 'var(--notion-text)' : 'var(--notion-text-muted)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Code size={16} style={{ color: '#06b6d4' }} />
-                <span>{isTamil ? 'IT மென்பொருள் மையம்' : 'IT Software Hub'}</span>
-              </div>
-              <span
-                className="notion-tag"
-                style={{
-                  fontSize: '9.5px',
-                  padding: '1px 6px',
-                  background: 'rgba(6, 182, 212, 0.12)',
-                  color: '#0891b2',
-                  fontWeight: 700,
-                }}
-              >
-                IT Dept
-              </span>
-            </button>
-          )}
-
           {/* All Departments (Workspace Directory) */}
           {isUserAllowedToViewPage(currentUser, 'departments') && (
             <button
@@ -761,12 +726,7 @@ export const NotionSidebar: React.FC<NotionSidebarProps> = ({
           {departments.map((d) => (
             <button
               key={d.id}
-              onClick={() => {
-                onSelectDept(d.id);
-                if (d.code === 'IT' || d.name.toLowerCase().includes('information technology')) {
-                  onSelectView('it_portal');
-                }
-              }}
+              onClick={() => onSelectDept(d.id)}
               className="notion-btn"
               style={{
                 width: '100%',

@@ -74,14 +74,6 @@ export const ALL_APP_PAGES: AppPageDef[] = [
     iconName: 'ListChecks',
   },
   {
-    key: 'it_portal',
-    label: 'IT Department & Software Hub',
-    category: 'Workspace',
-    description: 'Software registry, dev tracker, live server status, upcoming projects & IT analytics',
-    route: '/nextup/it-portal',
-    iconName: 'Code',
-  },
-  {
     key: 'today',
     label: 'Today & Urgent Desk',
     category: 'Executive Desk',
@@ -136,10 +128,10 @@ export const getDefaultAllowedPagesForRole = (role?: Role): ViewType[] => {
     return ALL_APP_PAGES.map((p) => p.key);
   }
   if (role === 'DEPT_MANAGER') {
-    return ['board', 'table', 'list', 'calendar', 'self_desk', 'routine_work', 'it_portal', 'departments', 'staff', 'report'];
+    return ['board', 'table', 'list', 'calendar', 'self_desk', 'routine_work', 'departments', 'staff', 'report'];
   }
   // Standard Staff
-  return ['board', 'table', 'list', 'calendar', 'self_desk', 'routine_work', 'it_portal', 'departments', 'staff'];
+  return ['board', 'table', 'list', 'calendar', 'self_desk', 'routine_work', 'departments', 'staff'];
 };
 
 export const isUserAllowedToViewPage = (user: User | null | undefined, view: ViewType): boolean => {

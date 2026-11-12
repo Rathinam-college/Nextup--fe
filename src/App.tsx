@@ -26,7 +26,6 @@ import { NotionSettingsView } from './components/NotionSettingsView';
 import { NotionGMTodayView } from './components/NotionGMTodayView';
 import { SelfDeskView } from './components/SelfDeskView';
 import { RoutineWorkView } from './components/RoutineWorkView';
-import { ITDepartmentDashboard } from './components/ITDepartmentDashboard';
 import { RefreshCw, Bell, Sparkles, Lock, ShieldAlert } from 'lucide-react';
 import { isUserAllowedToViewPage, ALL_APP_PAGES } from './utils/pagePermissions';
 import { isTaskAssignedToStaff, isTaskInDepartment } from './utils/taskFilterUtils';
@@ -40,12 +39,11 @@ import {
   triggerTestWorkReminder,
 } from './services/notifications';
 
-export type ViewType = 'board' | 'list' | 'calendar' | 'table' | 'approvals' | 'staff' | 'departments' | 'report' | 'settings' | 'today' | 'self_desk' | 'routine_work' | 'it_portal';
+export type ViewType = 'board' | 'list' | 'calendar' | 'table' | 'approvals' | 'staff' | 'departments' | 'report' | 'settings' | 'today' | 'self_desk' | 'routine_work';
 
 export const getViewFromPath = (path: string): ViewType => {
   const parts = path.toLowerCase().split('/').filter(Boolean).filter(p => p !== 'nextup');
   const cleanPath = parts[0] || '';
-  if (cleanPath === 'it' || cleanPath === 'it-portal' || cleanPath === 'it-dept' || cleanPath === 'software-hub') return 'it_portal';
   if (cleanPath === 'routine' || cleanPath === 'routine-work' || cleanPath === 'routines' || cleanPath === 'checklist' || cleanPath === 'checklists' || cleanPath === 'routine-report' || cleanPath === 'routine-work-report') return 'routine_work';
   if (cleanPath === 'self' || cleanPath === 'self-desk' || cleanPath === 'personal' || cleanPath === 'notes' || cleanPath === 'my-tasks') return 'self_desk';
   if (cleanPath === 'today' || cleanPath === 'urgent' || cleanPath === 'gmtoday') return 'today';
@@ -64,7 +62,6 @@ export const getViewFromPath = (path: string): ViewType => {
 export const getPathFromView = (view: ViewType): string => {
   const isNextup = window.location.pathname.startsWith('/nextup');
   const prefix = isNextup ? '/nextup' : '';
-  if (view === 'it_portal') return `${prefix}/it-portal`;
   if (view === 'routine_work') return `${prefix}/routine-work`;
   if (view === 'self_desk') return `${prefix}/self-desk`;
   if (view === 'board') return `${prefix}/board`;
@@ -547,7 +544,6 @@ const DashboardContent: React.FC = () => {
   }, [tasks]);
 
   const getDeptTitle = () => {
-    if (currentView === 'it_portal') return 'Information Technology (IT) — Software & Operations Hub';
     if (currentView === 'today') return 'GM Priority Desk — Today & Urgent to Close Tasks';
     if (currentView === 'approvals') return 'GM Approvals Hub';
     if (currentView === 'staff') return 'Staff Directory';
@@ -829,14 +825,8 @@ const DashboardContent: React.FC = () => {
                   stats={dashboardStats}
                   onSelectDept={(id) => {
                     setSelectedDeptId(id);
-                    const deptObj = departments.find(d => d.id === id) || visibleDepartments.find(d => d.id === id);
-                    if (deptObj && (deptObj.code === 'IT' || deptObj.name.toLowerCase().includes('information technology') || deptObj.code.toLowerCase().includes('it'))) {
-                      handleSelectView('it_portal');
-                    } else {
-                      handleSelectView('board');
-                    }
+                    handleSelectView('board');
                   }}
-                  onSelectView={handleSelectView}
                   onOpenCreateDepartment={() => {
                     setEditingDepartment(null);
                     setIsCreateDeptOpen(true);
@@ -932,15 +922,6 @@ const DashboardContent: React.FC = () => {
                   selectedDeptId={selectedDeptId}
                   onSelectDept={setSelectedDeptId}
                   onOpenCreateTask={canCreateTask ? () => setIsCreateTaskOpen(true) : undefined}
-                />
-              )}
-
-              {currentView === 'it_portal' && currentUser && (
-                <ITDepartmentDashboard
-                  currentUser={currentUser}
-                  departments={visibleDepartments}
-                  staffList={staffList}
-                  onBackToDepartments={() => handleSelectView('departments')}
                 />
               )}
             </>

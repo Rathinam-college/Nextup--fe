@@ -29,7 +29,6 @@ interface NotionDepartmentsViewProps {
   departments: Department[];
   stats: DashboardStats | null;
   onSelectDept: (id: number) => void;
-  onSelectView?: (view: any) => void;
   onOpenCreateDepartment?: () => void;
   onEditDepartment?: (dept: Department) => void;
   onDeleteDepartment?: (dept: Department) => void;
@@ -37,16 +36,6 @@ interface NotionDepartmentsViewProps {
   canManageDepartment?: boolean;
   canCreateDepartment?: boolean;
 }
-
-// 6 IT Section Modules as requested
-const IT_SECTION_MODULES = [
-  { name: 'Overview', purpose: 'All software statistics', icon: BarChart2, color: '#2563eb' },
-  { name: 'Software Registry', purpose: 'All applications and details', icon: Database, color: '#0284c7' },
-  { name: 'Development Tracker', purpose: 'Tasks, hours and progress', icon: Code, color: '#d97706' },
-  { name: 'Live Applications', purpose: 'Deployment URL and server status', icon: Globe, color: '#059669' },
-  { name: 'Upcoming Projects', purpose: 'Planned applications and priorities', icon: TrendingUp, color: '#7c3aed' },
-  { name: 'Reports & Analytics', purpose: 'Monthly and management reports', icon: FileText, color: '#e11d48' },
-];
 
 // Department Upcoming Initiatives & Priorities
 const UPCOMING_INITIATIVES: Record<string, string[]> = {
@@ -87,7 +76,6 @@ export const NotionDepartmentsView: React.FC<NotionDepartmentsViewProps> = ({
   departments,
   stats,
   onSelectDept,
-  onSelectView,
   onOpenCreateDepartment,
   onEditDepartment,
   onDeleteDepartment,
@@ -204,11 +192,6 @@ export const NotionDepartmentsView: React.FC<NotionDepartmentsViewProps> = ({
           const membersCount = deptStat ? deptStat.members_count : dept.members_count;
           const completionPct = totalTasks > 0 ? Math.round((closedTasks / totalTasks) * 100) : 0;
 
-          const isITDept =
-            dept.code?.toUpperCase() === 'IT' ||
-            dept.name?.toLowerCase().includes('information technology') ||
-            dept.name?.toLowerCase().includes('it support') ||
-            dept.code?.toLowerCase() === 'its';
           const upcomingList = UPCOMING_INITIATIVES[dept.code] || UPCOMING_INITIATIVES[dept.code.toUpperCase()] || [
             'Quarterly infrastructure inspection and preventative maintenance',
             'Staff training and departmental compliance audit',
@@ -227,18 +210,18 @@ export const NotionDepartmentsView: React.FC<NotionDepartmentsViewProps> = ({
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 position: 'relative',
                 background: 'var(--notion-card)',
-                border: isITDept ? '1.5px solid #06b6d4' : '1px solid var(--notion-border)',
-                boxShadow: isITDept ? '0 4px 16px rgba(6, 182, 212, 0.12)' : 'var(--notion-shadow-sm)',
+                border: '1px solid var(--notion-border)',
+                boxShadow: 'var(--notion-shadow-sm)',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = isITDept ? '0 8px 24px rgba(6, 182, 212, 0.2)' : 'var(--notion-shadow)';
-                e.currentTarget.style.borderColor = isITDept ? '#0891b2' : 'rgba(99, 102, 241, 0.35)';
+                e.currentTarget.style.boxShadow = 'var(--notion-shadow)';
+                e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.35)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'none';
-                e.currentTarget.style.boxShadow = isITDept ? '0 4px 16px rgba(6, 182, 212, 0.12)' : 'var(--notion-shadow-sm)';
-                e.currentTarget.style.borderColor = isITDept ? '#06b6d4' : 'var(--notion-border)';
+                e.currentTarget.style.boxShadow = 'var(--notion-shadow-sm)';
+                e.currentTarget.style.borderColor = 'var(--notion-border)';
               }}
             >
               <div>
@@ -250,8 +233,8 @@ export const NotionDepartmentsView: React.FC<NotionDepartmentsViewProps> = ({
                         width: '38px',
                         height: '38px',
                         borderRadius: '10px',
-                        background: isITDept ? 'rgba(6, 182, 212, 0.12)' : 'var(--notion-item-bg)',
-                        color: isITDept ? '#0891b2' : 'var(--notion-text)',
+                        background: 'var(--notion-item-bg)',
+                        color: 'var(--notion-text)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -259,29 +242,12 @@ export const NotionDepartmentsView: React.FC<NotionDepartmentsViewProps> = ({
                         flexShrink: 0,
                       }}
                     >
-                      {isITDept ? <Code size={20} /> : '📁'}
+                      📁
                     </div>
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--notion-text)', letterSpacing: '-0.02em' }}>
-                          {dept.name}
-                        </h3>
-                        {isITDept && (
-                          <span
-                            style={{
-                              fontSize: '9px',
-                              fontWeight: 800,
-                              background: '#06b6d4',
-                              color: '#ffffff',
-                              padding: '1px 5px',
-                              borderRadius: '4px',
-                              letterSpacing: '0.04em',
-                            }}
-                          >
-                            HUB
-                          </span>
-                        )}
-                      </div>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--notion-text)', letterSpacing: '-0.02em' }}>
+                        {dept.name}
+                      </h3>
                       <span className="notion-tag tag-purple" style={{ marginTop: '3px', display: 'inline-block', fontSize: '10.5px', fontFamily: 'JetBrains Mono', fontWeight: 700 }}>
                         CODE: {dept.code}
                       </span>
@@ -383,145 +349,42 @@ export const NotionDepartmentsView: React.FC<NotionDepartmentsViewProps> = ({
                   </div>
                 </div>
 
-                {/* ========================================================================= */}
-                {/* SPECIAL IT DEPARTMENT 6-MODULE MATRIX & UPCOMING PROJECTS                */}
-                {/* ========================================================================= */}
-                {isITDept ? (
-                  <div
-                    style={{
-                      background: 'rgba(6, 182, 212, 0.06)',
-                      borderRadius: '10px',
-                      padding: '12px',
-                      border: '1px solid rgba(6, 182, 212, 0.25)',
-                      marginBottom: '14px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 800,
-                        color: '#0891b2',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.04em',
-                        marginBottom: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Code size={13} />
-                        <span>IT Department — 6 Core Sections:</span>
-                      </div>
-                      <span style={{ fontSize: '10px', background: 'rgba(6, 182, 212, 0.15)', padding: '1px 6px', borderRadius: '4px' }}>
-                        PORTAL READY
-                      </span>
-                    </div>
-
-                    {/* 6 Sections Table / Pills with requested Purpose */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', marginBottom: '10px' }}>
-                      {IT_SECTION_MODULES.map((sec) => {
-                        const Icon = sec.icon;
-                        return (
-                          <div
-                            key={sec.name}
-                            onClick={() => onSelectView?.('it_portal')}
-                            style={{
-                              background: 'var(--notion-card)',
-                              padding: '6px 8px',
-                              borderRadius: '7px',
-                              border: '1px solid var(--notion-border-subtle)',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              gap: '6px',
-                              transition: 'all 0.15s ease',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.borderColor = sec.color)}
-                            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--notion-border-subtle)')}
-                            title={`${sec.name}: ${sec.purpose}`}
-                          >
-                            <Icon size={13} style={{ color: sec.color, marginTop: '2px', flexShrink: 0 }} />
-                            <div style={{ overflow: 'hidden' }}>
-                              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--notion-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {sec.name}
-                              </div>
-                              <div style={{ fontSize: '9px', color: 'var(--notion-text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {sec.purpose}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Upcoming IT Projects */}
-                    <div>
-                      <div style={{ fontSize: '10.5px', fontWeight: 750, color: '#0891b2', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <TrendingUp size={12} />
-                        <span>Upcoming Software & Systems:</span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        {upcomingList.slice(0, 3).map((item, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              fontSize: '10.5px',
-                              color: 'var(--notion-text)',
-                              background: 'var(--notion-card)',
-                              padding: '3px 8px',
-                              borderRadius: '5px',
-                              border: '1px solid var(--notion-border-subtle)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                            }}
-                          >
-                            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#06b6d4', flexShrink: 0 }} />
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                {/* Department Upcoming Projects / Initiatives */}
+                <div
+                  style={{
+                    background: 'var(--notion-item-bg)',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    border: '1px solid var(--notion-border-subtle)',
+                    marginBottom: '14px',
+                  }}
+                >
+                  <div style={{ fontSize: '11px', fontWeight: 750, color: 'var(--notion-text)', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <TrendingUp size={12} style={{ color: '#f59e0b' }} />
+                    <span>Upcoming Operations & Priorities:</span>
                   </div>
-                ) : (
-                  /* Standard Department Upcoming Projects */
-                  <div
-                    style={{
-                      background: 'var(--notion-item-bg)',
-                      borderRadius: '8px',
-                      padding: '10px',
-                      border: '1px solid var(--notion-border-subtle)',
-                      marginBottom: '14px',
-                    }}
-                  >
-                    <div style={{ fontSize: '11px', fontWeight: 750, color: 'var(--notion-text)', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <TrendingUp size={12} style={{ color: '#f59e0b' }} />
-                      <span>Upcoming Operations & Priorities:</span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                      {upcomingList.slice(0, 2).map((item, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            fontSize: '11px',
-                            color: 'var(--notion-text-muted)',
-                            background: 'var(--notion-card)',
-                            padding: '3px 7px',
-                            borderRadius: '5px',
-                            border: '1px solid var(--notion-border-subtle)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                          }}
-                        >
-                          <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item}</span>
-                        </div>
-                      ))}
-                    </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    {upcomingList.slice(0, 3).map((item, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          fontSize: '11px',
+                          color: 'var(--notion-text-muted)',
+                          background: 'var(--notion-card)',
+                          padding: '3px 7px',
+                          borderRadius: '5px',
+                          border: '1px solid var(--notion-border-subtle)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item}</span>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Bottom Card Controls */}
@@ -581,41 +444,16 @@ export const NotionDepartmentsView: React.FC<NotionDepartmentsViewProps> = ({
                     </button>
                   )}
 
-                  {/* Primary Department Action */}
-                  {isITDept ? (
-                    <button
-                      type="button"
-                      onClick={() => onSelectView ? onSelectView('it_portal') : onSelectDept(dept.id)}
-                      className="notion-btn notion-btn-primary"
-                      style={{
-                        fontSize: '11.5px',
-                        padding: '5px 12px',
-                        background: 'linear-gradient(135deg, #0891b2 0%, #2563eb 100%)',
-                        color: '#ffffff',
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        fontWeight: 700,
-                        boxShadow: '0 2px 6px rgba(8, 145, 178, 0.25)',
-                      }}
-                      title="Open IT Software Hub & 6-Section Portal"
-                    >
-                      <Code size={12} />
-                      <span>IT Software Hub</span>
-                      <ArrowRight size={12} />
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => onSelectDept(dept.id)}
-                      className="notion-btn notion-btn-bordered"
-                      style={{ fontSize: '11.5px', padding: '5px 10px', color: '#2383e2', borderColor: 'rgba(35, 131, 226, 0.4)' }}
-                    >
-                      <span>View Board</span>
-                      <ArrowRight size={12} />
-                    </button>
-                  )}
+                  {/* Primary Department Action: View Department Tasks Board */}
+                  <button
+                    type="button"
+                    onClick={() => onSelectDept(dept.id)}
+                    className="notion-btn notion-btn-bordered"
+                    style={{ fontSize: '11.5px', padding: '5px 10px', color: '#2383e2', borderColor: 'rgba(35, 131, 226, 0.4)' }}
+                  >
+                    <span>View Board</span>
+                    <ArrowRight size={12} />
+                  </button>
                 </div>
               </div>
             </div>

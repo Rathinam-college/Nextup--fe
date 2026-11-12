@@ -49,8 +49,6 @@ export const NotionTopBar: React.FC<NotionTopBarProps> = ({
     switch (currentView) {
       case 'routine_work':
         return isTamil ? 'வழக்கமான பணிகள் & சரிபார்ப்பு' : 'Routine Work Checklists';
-      case 'it_portal':
-        return isTamil ? 'தகவல் தொழில்நுட்பம் (IT) & மென்பொருள் மையம்' : 'IT Department — Software & Operations Hub';
       case 'today':
         return t('todayUrgent');
       case 'self_desk':
