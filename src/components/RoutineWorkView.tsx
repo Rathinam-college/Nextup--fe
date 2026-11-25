@@ -89,14 +89,27 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
 }) => {
   const { isTamil } = useLanguage();
 
+  // Role & Department Visibility:
+  // ONLY Admin and GM can see all departments, switch departments, and view cross-department checklists.
+  const isGM = currentUser?.role === 'GENERAL_MANAGER' || currentUser?.role === 'SUPER_ADMIN';
+  const isDeptManager = currentUser?.role === 'DEPT_MANAGER';
+  const isStaff = currentUser?.role === 'STAFF';
+
   // Active frequency tab: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY' | 'ALL'
   const [activeFrequency, setActiveFrequency] = useState<string>('DAILY');
 
   // Department Filter with internal / external synchronization
-  const [internalDeptFilter, setInternalDeptFilter] = useState<number | 'ALL'>(selectedDeptIdProp || 'ALL');
-  const activeDeptFilter = selectedDeptIdProp !== undefined ? selectedDeptIdProp : internalDeptFilter;
+  const defaultDeptFilter = isGM
+    ? (selectedDeptIdProp || 'ALL')
+    : (currentUser?.department ? Number(currentUser.department) : 'ALL');
+
+  const [internalDeptFilter, setInternalDeptFilter] = useState<number | 'ALL'>(defaultDeptFilter);
+  const activeDeptFilter = isGM
+    ? (selectedDeptIdProp !== undefined ? selectedDeptIdProp : internalDeptFilter)
+    : (currentUser?.department ? Number(currentUser.department) : 'ALL');
 
   const handleSelectDept = (deptId: number | 'ALL') => {
+    if (!isGM) return;
     setInternalDeptFilter(deptId);
     if (onSelectDeptProp) {
       onSelectDeptProp(deptId);
@@ -104,10 +117,10 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
   };
 
   useEffect(() => {
-    if (selectedDeptIdProp !== undefined) {
+    if (isGM && selectedDeptIdProp !== undefined) {
       setInternalDeptFilter(selectedDeptIdProp);
     }
-  }, [selectedDeptIdProp]);
+  }, [selectedDeptIdProp, isGM]);
 
   // Filters
   const [staffFilter, setStaffFilter] = useState<number | 'ALL'>('ALL');
@@ -368,20 +381,24 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
     setFormTitle('');
     setFormDesc('');
     setFormFrequency(freq);
-    const chosenDept = activeDeptFilter !== 'ALL'
-      ? Number(activeDeptFilter)
-      : (currentUser.department || (departments[0]?.id ?? ''));
+    const chosenDept = isGM
+      ? (activeDeptFilter !== 'ALL' ? Number(activeDeptFilter) : (departments[0]?.id ?? ''))
+      : (currentUser.department ? Number(currentUser.department) : (departments[0]?.id ?? ''));
     setFormDept(chosenDept);
 
-    // Only assign currentUser if currentUser belongs to chosenDept, else pick first staff of that department or leave empty
-    const deptStaff = staffList?.filter((s) => chosenDept && Number(s.department) === Number(chosenDept));
-    const isUserInDept = currentUser.department && Number(currentUser.department) === Number(chosenDept);
-    if (isUserInDept) {
+    if (isStaff) {
       setFormAssignee(currentUser.id);
-    } else if (deptStaff && deptStaff.length > 0) {
-      setFormAssignee(deptStaff[0].id);
     } else {
-      setFormAssignee('');
+      // Only assign currentUser if currentUser belongs to chosenDept, else pick first staff of that department or leave empty
+      const deptStaff = staffList?.filter((s) => chosenDept && Number(s.department) === Number(chosenDept));
+      const isUserInDept = currentUser.department && Number(currentUser.department) === Number(chosenDept);
+      if (isUserInDept) {
+        setFormAssignee(currentUser.id);
+      } else if (deptStaff && deptStaff.length > 0) {
+        setFormAssignee(deptStaff[0].id);
+      } else {
+        setFormAssignee('');
+      }
     }
 
     setFormPriority('MEDIUM');
@@ -531,6 +548,10 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
 
   // Unified list of all departments from departments prop and items
   const allDepartmentOptions = useMemo(() => {
+    if (!isGM && currentUser?.department) {
+      const userDept = departments?.find((d) => Number(d.id) === Number(currentUser.department));
+      if (userDept) return [{ id: userDept.id, name: userDept.name, code: userDept.code }];
+    }
     const map = new Map<string, { id: number; name: string; code?: string }>();
     if (departments && departments.length > 0) {
       departments.forEach((d) => {
@@ -547,7 +568,7 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
       }
     });
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [departments, items]);
+  }, [departments, items, isGM, currentUser?.department]);
 
   const selectedDeptObj = useMemo(() => {
     if (activeDeptFilter === 'ALL') return null;
@@ -602,6 +623,10 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
   // Toolbar staff list, scoped to active department filter
   const toolbarStaffList = useMemo(() => {
     if (!staffList || staffList.length === 0) return [];
+    if (isStaff) return [];
+    if (!isGM && currentUser?.department) {
+      return staffList.filter((s) => Number(s.department) === Number(currentUser.department));
+    }
     if (activeDeptFilter === 'ALL') return staffList;
     return staffList.filter((s) => {
       if (s.department != null && Number(s.department) === Number(activeDeptFilter)) return true;
@@ -609,7 +634,7 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
       const hasItem = items.some((i) => isItemInDept(i, activeDeptFilter, selectedDeptObj?.name) && Number(i.assigned_to) === Number(s.id));
       return hasItem;
     });
-  }, [staffList, activeDeptFilter, selectedDeptObj, items, isItemInDept]);
+  }, [staffList, activeDeptFilter, selectedDeptObj, items, isItemInDept, isGM, isStaff, currentUser?.department]);
 
   // Computed Scoped Items
   const filteredItems = useMemo(() => {
@@ -619,15 +644,26 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
         return false;
       }
 
-      // Department Filter: STRICT! Only show checklist items for this department
-      if (activeDeptFilter !== 'ALL') {
+      // STRICT ISOLATION:
+      // Staff members strictly and ONLY see checklist items assigned to them
+      if (isStaff) {
+        if (Number(item.assigned_to) !== Number(currentUser?.id)) {
+          return false;
+        }
+      } else if (!isGM && currentUser?.department) {
+        // Dept Manager: only their department
+        if (!isItemInDept(item, Number(currentUser.department))) {
+          return false;
+        }
+      } else if (activeDeptFilter !== 'ALL') {
+        // GM with dept filter
         if (!isItemInDept(item, activeDeptFilter, selectedDeptObj?.name)) {
           return false;
         }
       }
 
-      // Staff Filter
-      if (staffFilter !== 'ALL') {
+      // Staff Filter (for GM or Dept Manager)
+      if (!isStaff && staffFilter !== 'ALL') {
         if (Number(item.assigned_to) !== Number(staffFilter)) return false;
       }
 
@@ -655,13 +691,18 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
 
       return true;
     });
-  }, [items, logs, activeFrequency, activeDeptFilter, selectedDeptObj, staffFilter, onlyMyTasks, statusFilter, searchQuery, currentUser.id, isItemInDept]);
+  }, [items, logs, activeFrequency, activeDeptFilter, selectedDeptObj, staffFilter, onlyMyTasks, statusFilter, searchQuery, currentUser, isGM, isStaff, isItemInDept]);
 
-  // Frequency-wise completion stats (Scoped dynamically to active department)
+  // Frequency-wise completion stats (Scoped dynamically to role & active department)
   const stats = useMemo(() => {
-    const scoped = activeDeptFilter === 'ALL'
-      ? items
-      : items.filter((i) => isItemInDept(i, activeDeptFilter, selectedDeptObj?.name));
+    let scoped = items;
+    if (isStaff) {
+      scoped = items.filter((i) => Number(i.assigned_to) === Number(currentUser?.id));
+    } else if (!isGM && currentUser?.department) {
+      scoped = items.filter((i) => isItemInDept(i, Number(currentUser.department)));
+    } else if (activeDeptFilter !== 'ALL') {
+      scoped = items.filter((i) => isItemInDept(i, activeDeptFilter, selectedDeptObj?.name));
+    }
 
     const calc = (freq: RoutineFrequency) => {
       const list = scoped.filter((i) => i.frequency === freq);
@@ -692,7 +733,7 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
         completed: scoped.filter((i) => isItemCompletedCurrentCycle(i).completed).length,
       },
     };
-  }, [items, logs, activeDeptFilter, selectedDeptObj, isItemInDept]);
+  }, [items, logs, activeDeptFilter, selectedDeptObj, isItemInDept, isGM, isStaff, currentUser?.id, currentUser?.department]);
 
   const hasActiveFilters = activeDeptFilter !== 'ALL' || staffFilter !== 'ALL' || onlyMyTasks || statusFilter !== 'ALL' || Boolean(searchQuery.trim());
 
@@ -742,6 +783,22 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
   // Filtered logs for report view
   const filteredReportLogs = useMemo(() => {
     return logs.filter((log) => {
+      const item = items.find((i) => String(i.id) === String(log.item_id || (log as any).item));
+
+      // Strict Role Isolation:
+      if (isStaff) {
+        const assignedTo = item?.assigned_to;
+        const completedBy = log.completed_by_id || log.completed_by;
+        if (Number(assignedTo) !== Number(currentUser?.id) && Number(completedBy) !== Number(currentUser?.id)) {
+          return false;
+        }
+      } else if (!isGM && currentUser?.department) {
+        const deptId = log.department_id || item?.department_id || item?.department;
+        if (Number(deptId) !== Number(currentUser.department)) {
+          return false;
+        }
+      }
+
       // Date filter
       if (log.completed_at) {
         const logDateStr = log.completed_at.slice(0, 10);
@@ -808,7 +865,7 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
 
       return true;
     });
-  }, [logs, items, reportDateRange, reportStartDate, reportEndDate, reportDeptFilter, reportFrequencyFilter, reportStaffFilter, reportSearch]);
+  }, [logs, items, reportDateRange, reportStartDate, reportEndDate, reportDeptFilter, reportFrequencyFilter, reportStaffFilter, reportSearch, currentUser, isGM, isStaff]);
 
   // Report KPIs
   const reportKpis = useMemo(() => {
@@ -1115,8 +1172,9 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
       {pageTab === 'CHECKLIST' ? (
         <>
       {/* ========================================================================= */}
-      {/* DEPARTMENT SELECTOR BAR (Click any department to view only its checklists)*/}
+      {/* DEPARTMENT SELECTOR BAR (Admin / GM Only)                                 */}
       {/* ========================================================================= */}
+      {isGM && (
       <div
         style={{
           background: 'var(--notion-card)',
@@ -1295,9 +1353,10 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
           })}
         </div>
       </div>
+      )}
 
-      {/* Active Department Spotlight Banner */}
-      {selectedDeptObj && (
+      {/* Active Department Spotlight Banner (Admin / GM Only) */}
+      {isGM && selectedDeptObj && (
         <div
           style={{
             display: 'flex',
@@ -1605,81 +1664,85 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
         >
           {/* Left: Department & Staff */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {/* Assigned to Me */}
-            <button
-              type="button"
-              onClick={() => setOnlyMyTasks(!onlyMyTasks)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '5px 12px',
-                borderRadius: '8px',
-                fontSize: '11.5px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                background: onlyMyTasks ? 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)' : 'var(--notion-card)',
-                color: onlyMyTasks ? '#ffffff' : 'var(--notion-text)',
-                border: onlyMyTasks ? '1px solid transparent' : '1px solid var(--notion-border)',
-                boxShadow: onlyMyTasks ? '0 2px 6px rgba(79, 70, 229, 0.28)' : 'var(--notion-shadow-sm)',
-              }}
-            >
-              <CheckCircle2 size={13} />
-              <span>Assigned to Me</span>
-            </button>
-
-            {/* Department Dropdown */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '4px 8px',
-                borderRadius: '8px',
-                background: activeDeptFilter !== 'ALL' ? 'rgba(124, 58, 237, 0.09)' : 'var(--notion-card)',
-                border: activeDeptFilter !== 'ALL' ? '1.5px solid #8b5cf6' : '1px solid var(--notion-border)',
-              }}
-            >
-              <Building size={12} style={{ color: activeDeptFilter !== 'ALL' ? '#7c3aed' : 'var(--notion-text-muted)' }} />
-              <span style={{ fontSize: '11px', fontWeight: 700, color: activeDeptFilter !== 'ALL' ? '#7c3aed' : 'var(--notion-text-muted)' }}>Dept:</span>
-              <select
-                value={String(activeDeptFilter)}
-                onChange={(e) => handleSelectDept(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+            {/* Assigned to Me (Hidden for Staff since staff only see their own tasks) */}
+            {!isStaff && (
+              <button
+                type="button"
+                onClick={() => setOnlyMyTasks(!onlyMyTasks)}
                 style={{
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 12px',
+                  borderRadius: '8px',
                   fontSize: '11.5px',
-                  fontWeight: activeDeptFilter !== 'ALL' ? 700 : 500,
-                  color: activeDeptFilter !== 'ALL' ? '#7c3aed' : 'var(--notion-text)',
+                  fontWeight: 700,
                   cursor: 'pointer',
-                  maxWidth: '160px',
+                  background: onlyMyTasks ? 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)' : 'var(--notion-card)',
+                  color: onlyMyTasks ? '#ffffff' : 'var(--notion-text)',
+                  border: onlyMyTasks ? '1px solid transparent' : '1px solid var(--notion-border)',
+                  boxShadow: onlyMyTasks ? '0 2px 6px rgba(79, 70, 229, 0.28)' : 'var(--notion-shadow-sm)',
                 }}
               >
-                <option value="ALL">All Departments ({items.length})</option>
-                {allDepartmentOptions.map((d) => {
-                  const stat = deptStats.get(String(d.id));
-                  return (
-                    <option key={d.id} value={d.id}>
-                      {d.name} {d.code ? `[${d.code}]` : ''} ({stat?.total || 0})
-                    </option>
-                  );
-                })}
-              </select>
-              {activeDeptFilter !== 'ALL' && (
-                <button
-                  type="button"
-                  onClick={() => handleSelectDept('ALL')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#7c3aed', fontSize: '11px', padding: 0 }}
-                  title="Reset to All Departments"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
+                <CheckCircle2 size={13} />
+                <span>Assigned to Me</span>
+              </button>
+            )}
 
-            {/* Staff Dropdown */}
-            {staffList && staffList.length > 0 && (
+            {/* Department Dropdown (Admin / GM Only) */}
+            {isGM && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '4px 8px',
+                  borderRadius: '8px',
+                  background: activeDeptFilter !== 'ALL' ? 'rgba(124, 58, 237, 0.09)' : 'var(--notion-card)',
+                  border: activeDeptFilter !== 'ALL' ? '1.5px solid #8b5cf6' : '1px solid var(--notion-border)',
+                }}
+              >
+                <Building size={12} style={{ color: activeDeptFilter !== 'ALL' ? '#7c3aed' : 'var(--notion-text-muted)' }} />
+                <span style={{ fontSize: '11px', fontWeight: 700, color: activeDeptFilter !== 'ALL' ? '#7c3aed' : 'var(--notion-text-muted)' }}>Dept:</span>
+                <select
+                  value={String(activeDeptFilter)}
+                  onChange={(e) => handleSelectDept(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: '11.5px',
+                    fontWeight: activeDeptFilter !== 'ALL' ? 700 : 500,
+                    color: activeDeptFilter !== 'ALL' ? '#7c3aed' : 'var(--notion-text)',
+                    cursor: 'pointer',
+                    maxWidth: '160px',
+                  }}
+                >
+                  <option value="ALL">All Departments ({items.length})</option>
+                  {allDepartmentOptions.map((d) => {
+                    const stat = deptStats.get(String(d.id));
+                    return (
+                      <option key={d.id} value={d.id}>
+                        {d.name} {d.code ? `[${d.code}]` : ''} ({stat?.total || 0})
+                      </option>
+                    );
+                  })}
+                </select>
+                {activeDeptFilter !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => handleSelectDept('ALL')}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#7c3aed', fontSize: '11px', padding: 0 }}
+                    title="Reset to All Departments"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Staff Dropdown (Hidden for Staff since staff only see their own tasks) */}
+            {!isStaff && toolbarStaffList && toolbarStaffList.length > 0 && (
               <div
                 style={{
                   display: 'flex',
@@ -2111,36 +2174,40 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
                     </button>
 
                     {/* Edit Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditModal(item)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--notion-text-muted)',
-                        padding: '4px',
-                      }}
-                      title="Edit checklist item"
-                    >
-                      <Edit size={13} />
-                    </button>
+                    {(isGM || isDeptManager || Number(item.created_by) === Number(currentUser.id)) && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditModal(item)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--notion-text-muted)',
+                          padding: '4px',
+                        }}
+                        title="Edit checklist item"
+                      >
+                        <Edit size={13} />
+                      </button>
+                    )}
 
                     {/* Delete Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteItem(item.id)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: '#ef4444',
-                        padding: '4px',
-                      }}
-                      title="Delete checklist item from database"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    {(isGM || isDeptManager || Number(item.created_by) === Number(currentUser.id)) && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteItem(item.id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: '#ef4444',
+                          padding: '4px',
+                        }}
+                        title="Delete checklist item from database"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2417,32 +2484,34 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
 
             {/* Filter Dropdowns & Search Row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', paddingTop: '8px', borderTop: '1px solid var(--notion-border-subtle)' }}>
-              {/* Department Dropdown */}
-              <div>
-                <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-dim)', marginBottom: '3px' }}>
-                  DEPARTMENT
-                </label>
-                <select
-                  value={reportDeptFilter}
-                  onChange={(e) => setReportDeptFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
-                  style={{
-                    width: '100%',
-                    padding: '6px 10px',
-                    borderRadius: '7px',
-                    border: '1px solid var(--notion-border)',
-                    background: 'var(--notion-input-bg)',
-                    color: 'var(--notion-text)',
-                    fontSize: '12px',
-                  }}
-                >
-                  <option value="ALL">All Departments ({departments.length})</option>
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name} ({d.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Department Dropdown (Admin / GM Only) */}
+              {isGM && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-dim)', marginBottom: '3px' }}>
+                    DEPARTMENT
+                  </label>
+                  <select
+                    value={reportDeptFilter}
+                    onChange={(e) => setReportDeptFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px',
+                      borderRadius: '7px',
+                      border: '1px solid var(--notion-border)',
+                      background: 'var(--notion-input-bg)',
+                      color: 'var(--notion-text)',
+                      fontSize: '12px',
+                    }}
+                  >
+                    <option value="ALL">All Departments ({departments.length})</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} ({d.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Frequency Dropdown */}
               <div>
@@ -2470,32 +2539,34 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
                 </select>
               </div>
 
-              {/* Staff Dropdown */}
-              <div>
-                <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-dim)', marginBottom: '3px' }}>
-                  STAFF CONTRIBUTOR
-                </label>
-                <select
-                  value={reportStaffFilter}
-                  onChange={(e) => setReportStaffFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
-                  style={{
-                    width: '100%',
-                    padding: '6px 10px',
-                    borderRadius: '7px',
-                    border: '1px solid var(--notion-border)',
-                    background: 'var(--notion-input-bg)',
-                    color: 'var(--notion-text)',
-                    fontSize: '12px',
-                  }}
-                >
-                  <option value="ALL">All Staff Members</option>
-                  {(staffList || []).map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.full_name || s.username}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Staff Dropdown (Hidden for Staff) */}
+              {!isStaff && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 700, color: 'var(--notion-text-dim)', marginBottom: '3px' }}>
+                    STAFF CONTRIBUTOR
+                  </label>
+                  <select
+                    value={reportStaffFilter}
+                    onChange={(e) => setReportStaffFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px',
+                      borderRadius: '7px',
+                      border: '1px solid var(--notion-border)',
+                      background: 'var(--notion-input-bg)',
+                      color: 'var(--notion-text)',
+                      fontSize: '12px',
+                    }}
+                  >
+                    <option value="ALL">All Staff Members</option>
+                    {(toolbarStaffList && toolbarStaffList.length > 0 ? toolbarStaffList : (staffList || [])).map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.full_name || s.username}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Search Query */}
               <div>
@@ -2934,10 +3005,11 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: 'var(--notion-text)' }}>
-                    Department
+                    Department {!isGM && '(Assigned to your department)'}
                   </label>
                   <select
                     value={String(formDept)}
+                    disabled={!isGM}
                     onChange={(e) => {
                       const newDeptId = e.target.value ? Number(e.target.value) : '';
                       setFormDept(newDeptId);
@@ -2960,10 +3032,12 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
                       padding: '8px 12px',
                       borderRadius: '8px',
                       border: '1px solid var(--notion-border)',
-                      background: 'var(--notion-item-bg)',
+                      background: !isGM ? 'rgba(0, 0, 0, 0.04)' : 'var(--notion-item-bg)',
                       color: 'var(--notion-text)',
                       fontSize: '12.5px',
                       outline: 'none',
+                      opacity: !isGM ? 0.8 : 1,
+                      cursor: !isGM ? 'not-allowed' : 'pointer',
                     }}
                   >
                     <option value="">Select Department</option>
@@ -2977,20 +3051,23 @@ export const RoutineWorkView: React.FC<RoutineWorkViewProps> = ({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: 'var(--notion-text)' }}>
-                    Assigned Personnel {formDept ? `(${modalAvailableStaff.length})` : ''}
+                    Assigned Personnel {isStaff ? '(Assigned to you)' : (formDept ? `(${modalAvailableStaff.length})` : '')}
                   </label>
                   <select
                     value={String(formAssignee)}
+                    disabled={isStaff}
                     onChange={(e) => setFormAssignee(e.target.value ? Number(e.target.value) : '')}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
                       borderRadius: '8px',
                       border: '1px solid var(--notion-border)',
-                      background: 'var(--notion-item-bg)',
+                      background: isStaff ? 'rgba(0, 0, 0, 0.04)' : 'var(--notion-item-bg)',
                       color: 'var(--notion-text)',
                       fontSize: '12.5px',
                       outline: 'none',
+                      opacity: isStaff ? 0.8 : 1,
+                      cursor: isStaff ? 'not-allowed' : 'pointer',
                     }}
                   >
                     <option value="">
